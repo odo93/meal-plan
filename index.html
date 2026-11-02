@@ -575,12 +575,13 @@ function vCloud(){const c=cloud,on=!!c.sess;
   <p class="note">دون إعداد، كل شيء يُحفظ في هذا المتصفح فقط. للمزامنة بين أجهزتك: أنشئ مشروعاً مجانياً على Supabase، نفّذ ملف <b>schema.sql</b> (مرفق)، ثم أدخل رابط المشروع والمفتاح العام (anon / publishable). لا تُدخل مفتاح service_role أبداً.</p>
   <label>رابط المشروع<input id="cl_url" dir="ltr" value="${esc(c.url||'')}" data-ch="cl" data-k="url" placeholder="https://xxxx.supabase.co" style="width:100%"></label>
   <label>المفتاح العام<input id="cl_key" dir="ltr" value="${esc(c.key||'')}" data-ch="cl" data-k="key" style="width:100%"></label>
+  ${on&&ui.recov?`<label>كلمة مرور جديدة (6 أحرف فأكثر)<input id="cl_np" type="password" dir="ltr" autocomplete="new-password" style="width:100%"></label><div class="btns" style="margin:6px 0"><button class="btn pri" data-act="cnewpw">حفظ كلمة المرور الجديدة</button></div>`:''}
   ${on?`<p class="note">مسجّل الدخول: <b dir="ltr">${esc(c.email||'')}</b></p>
   <label><span><input type="checkbox" data-ch="cl" data-k="auto" ${c.auto?'checked':''} style="width:auto"> رفع تلقائي بعد كل تعديل</span></label>
   <div class="btns"><button data-act="cpush">⬆ رفع الآن</button><button data-act="cpull">⬇ تنزيل من السحابة</button><button data-act="clogout">خروج</button></div>`
   :`<label>البريد<input id="cl_em" dir="ltr" type="email" value="${esc(c.email||'')}" data-ch="cl" data-k="email" style="width:100%"></label>
   <label>كلمة المرور (لا تُحفظ في الجهاز)<input id="cl_pw" type="password" dir="ltr" autocomplete="current-password" style="width:100%"></label>
-  <div class="btns"><button data-act="clogin">تسجيل الدخول</button><button data-act="csignup">إنشاء حساب</button></div>`}
+  <div class="btns"><button data-act="clogin">تسجيل الدخول</button><button data-act="csignup">إنشاء حساب</button></div><div class="btns" style="margin-top:6px"><button data-act="cforgot">نسيت كلمة المرور؟ أرسل رابط استعادة</button></div>`}
   <p class="note" id="cst">${esc(c.last||'')}</p></div>`;
 }
 function vSet(){
@@ -756,6 +757,8 @@ function act(a,ds){
     case 'glreset':ask('استعادة الأهداف الافتراضية؟ تُحذف أي أهداف أو تعديلات خاصة بك على أسمائها وإعداداتها.',()=>{const s=S();s.goals=clone(DEF_GOALS);s.g={};fixSettings(s)});return;
     case 'clogin':cRun(()=>cAuth(false));return;
     case 'csignup':cRun(()=>cAuth(true));return;
+    case 'cforgot':cRun(async()=>{const em=(($('#cl_em')||{}).value||cloud.email||'').trim();if(!em)return 'اكتب بريدك أولاً';cloud.email=em;cSave();await cFetch('/auth/v1/recover',{method:'POST',anon:true,body:{email:em}});return 'أُرسل رابط الاستعادة إلى '+em+' — افتحه من نفس الجهاز'});return;
+    case 'cnewpw':cRun(async()=>{const pw=($('#cl_np')||{}).value||'';if(pw.length<6)return 'كلمة المرور 6 أحرف على الأقل';await cFetch('/auth/v1/user',{method:'PUT',body:{password:pw}});ui.recov=false;setTimeout(render,0);return 'تم تغيير كلمة المرور — يمكنك الرفع الآن'});return;
     case 'clogout':cloud.sess=null;cloud.auto=false;cSave();break;
     case 'cpush':cRun(cPush);return;
     case 'cpull':cRun(cPull);return;
@@ -867,7 +870,7 @@ function cMsg(t){cloud.last=t;cSave();const e=$('#cst');if(e)e.textContent=t}
 async function cRun(fn){if(!cloud.url||!cloud.key){cMsg('أدخل رابط المشروع والمفتاح العام أولاً');return}cMsg('جارٍ التنفيذ…');try{cMsg(await fn()||'تم')}catch(e){cMsg('خطأ: '+(e&&e.message||e))}}
 async function cFetch(path,o){o=o||{};
   const h=Object.assign({apikey:cloud.key,'Content-Type':'application/json'},o.headers||{});
-  h.Authorization='Bearer '+(o.anon||!cloud.sess?cloud.key:await cToken());
+  h.Authorization='Bearer '+(o.token||(o.anon||!cloud.sess?cloud.key:await cToken()));
   const r=await fetch(cloud.url.replace(/\/+$/,'')+path,{method:o.method||'GET',headers:h,body:o.body!==undefined?JSON.stringify(o.body):undefined});
   const t=await r.text();let j=null;try{j=t?JSON.parse(t):null}catch(e){}
   if(!r.ok)throw new Error((j&&(j.msg||j.message||j.error_description||j.error))||('HTTP '+r.status));
@@ -882,6 +885,19 @@ async function cAuth(signup){
   const j=await cFetch(signup?'/auth/v1/signup':'/auth/v1/token?grant_type=password',{method:'POST',anon:true,body:{email,password:pw}});
   if(j&&j.access_token){cSess(j);setTimeout(render,0);return 'تم تسجيل الدخول'}
   return 'تم إنشاء الحساب. أكّد بريدك من الرسالة ثم سجّل الدخول';
+}
+async function cHash(){ // رابط التأكيد/الاستعادة من Supabase يعود إلى التطبيق ومعه الرمز في #hash
+  const q=new URLSearchParams(location.hash.slice(1)),at=q.get('access_token');
+  if(!at)return false;
+  history.replaceState(null,'',location.pathname+location.search);
+  try{
+    const u=await cFetch('/auth/v1/user',{token:at});
+    cSess({access_token:at,refresh_token:q.get('refresh_token'),expires_in:+q.get('expires_in')||3600,user:u});
+    cloud.email=u.email||cloud.email;cSave();
+    ui.tab='set';ui.recov=q.get('type')==='recovery';
+    cMsg(ui.recov?'تم التحقق من الرابط — اكتب كلمة المرور الجديدة':'تم تأكيد الحساب وتسجيل الدخول');
+    return true;
+  }catch(e){cMsg('رابط غير صالح أو منتهٍ: '+(e.message||e));return false}
 }
 const ENC=x=>encodeURIComponent(x);
 async function cUpsert(table,rows,conflict){if(!rows.length)return;
@@ -940,6 +956,7 @@ if(!state){state=defaultState();const id=uid();meta={users:[{id,name:'المست
   if(fx.length){save();setTimeout(()=>toast('تم تصحيح سعرات: '+fx.join('، ')),400)}})();
 if(rollWeek())save();
 render();
+if(/access_token=/.test(location.hash))cHash().then(r=>{if(r||ui.tab==='set')render()});
 </script>
 </body>
 </html>
