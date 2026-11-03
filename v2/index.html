@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>نظام الوجبات الأسبوعي</title>
 <style>
-:root{--bg:#f5f5f6;--card:#fff;--tx:#1b1b1f;--mu:#777;--ac:#f5a623;--ac2:#fff1d6;--ln:#e8e8ec;--ok:#2e9e5b;--hi:#d9534f;--lo:#e0922f}
+:root{--bg:#f5f5f6;--card:#fff;--tx:#1b1b1f;--mu:#636366;--ac:#f5a623;--on-ac:#2b1a00;--act:#8a5700;--ac2:#fff1d6;--ln:#e8e8ec;--ok:#1f7a45;--hi:#c0392b;--lo:#9a5800}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,"Segoe UI",Tahoma,Arial,sans-serif;font-size:15px;line-height:1.5}
 header{background:#fff;position:sticky;top:0;z-index:5;border-bottom:1px solid var(--ln)}
@@ -18,11 +18,11 @@ h1{font-size:17px;margin:0;padding:10px 14px 4px}
 .dv b{white-space:nowrap;direction:ltr}
 .d-hi{color:var(--hi);font-weight:700}.d-lo{color:var(--lo);font-weight:700}.d-ok{color:var(--ok);font-weight:700}
 .lbl{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0;font-weight:600}
-.sheet h4{margin:12px 0 4px;color:#b87500}
+.sheet h4{margin:12px 0 4px;color:var(--act)}
 .gch{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
 .gch button{flex:1 1 30%;border:1px solid var(--ln);background:#fff;border-radius:10px;padding:8px 4px;font:inherit;font-weight:600}
-.gch button.on{background:var(--ac);border-color:var(--ac);color:#fff}
-.set h4{margin:12px 0 2px;color:#b87500}
+.gch button.on{background:var(--ac);border-color:var(--ac);color:var(--on-ac)}
+.set h4{margin:12px 0 2px;color:var(--act)}
 .set select{max-width:60%}
 .hr{display:grid;grid-template-columns:86px 1fr 52px;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--ln);cursor:pointer;font-size:13px}
 .hb{position:relative;height:12px;background:#eee;border-radius:6px}
@@ -34,7 +34,7 @@ h1{font-size:17px;margin:0;padding:10px 14px 4px}
 #ubar select{flex:1;font-weight:700;min-width:0}
 #tabs{display:flex;gap:6px;padding:4px 10px 8px}
 #tabs button{flex:1;border:0;background:#f0f0f2;border-radius:10px;padding:8px 4px;font:inherit;font-weight:600;color:#555}
-#tabs button.on{background:var(--ac);color:#fff}
+#tabs button.on{background:var(--ac);color:var(--on-ac)}
 main{max-width:760px;margin:0 auto;padding:10px 10px 80px}
 .card{background:var(--card);border-radius:14px;padding:12px;margin:10px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
 .days{display:flex;gap:6px;overflow-x:auto;padding:2px 0 4px}
@@ -44,12 +44,12 @@ main{max-width:760px;margin:0 auto;padding:10px 10px 80px}
 .ctl{display:flex;flex-direction:column;gap:8px}
 .seg{display:flex;gap:6px}
 .seg button{flex:1;border:1px solid var(--ln);background:#fff;border-radius:10px;padding:8px;font:inherit;font-weight:600}
-.seg button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.seg button.on{background:var(--ac);border-color:var(--ac);color:var(--on-ac)}
 .ctl label{display:flex;align-items:center;gap:8px;font-weight:600}
 select,input,textarea{font:inherit;border:1px solid var(--ln);border-radius:8px;padding:6px 8px;background:#fff;color:var(--tx)}
 .btns{display:flex;gap:6px}
-.btns button,.btn{flex:1;border:1px solid var(--ac);background:#fff;color:#b87500;border-radius:10px;padding:8px;font:inherit;font-weight:600;cursor:pointer}
-.btn.pri{background:var(--ac);color:#fff}
+.btns button,.btn{flex:1;border:1px solid var(--ac);background:#fff;color:var(--act);border-radius:10px;padding:8px;font:inherit;font-weight:600;cursor:pointer}
+.btn.pri{background:var(--ac);color:var(--on-ac)}
 .btn.dan{border-color:var(--hi);color:var(--hi)}
 .big{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
 .big b{font-size:26px}.big span{color:var(--mu)}
@@ -63,20 +63,23 @@ i.ok{background:var(--ok)}i.hi{background:var(--hi)}i.lo{background:var(--lo)}
 .mh h3{margin:0;font-size:15px}.mh span{font-size:12px;color:var(--mu)}
 .it{display:grid;grid-template-columns:1fr auto auto;gap:4px 8px;align-items:center;padding:8px 0;border-top:1px solid var(--ln)}
 .it .nm{grid-column:1/-1;font-weight:600}
-.tag{background:var(--ac2);color:#b87500;border-radius:6px;font-size:11px;padding:1px 6px;margin-inline-start:4px}
+.tag{background:var(--ac2);color:var(--act);border-radius:6px;font-size:11px;padding:1px 6px;margin-inline-start:4px}
 .qty{display:flex;align-items:center;gap:4px}
 .qty input{width:70px;text-align:center}
 .kc{font-weight:700;text-align:center;min-width:46px}.kc small{display:block;font-weight:400;color:var(--mu);font-size:10px}
 .mc{grid-column:1;font-size:12px;color:var(--mu)}
-.ib{border:1px solid var(--ln);background:#fff;border-radius:8px;width:34px;height:34px;font-size:16px;cursor:pointer}
-.acts{display:flex;gap:4px;justify-content:flex-end}
-.add{width:100%;border:1px dashed var(--ac);background:none;color:#b87500;border-radius:10px;padding:8px;font:inherit;font-weight:600;margin-top:6px}
+.ib{border:1px solid var(--ln);background:#fff;border-radius:10px;width:44px;height:44px;font-size:17px;cursor:pointer;touch-action:manipulation;flex:0 0 auto}
+.fr .ib{width:32px;height:44px}
+:focus-visible{outline:3px solid var(--act);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+.acts{display:flex;gap:8px;justify-content:flex-end}
+.add{width:100%;border:1px dashed var(--ac);background:none;color:var(--act);border-radius:10px;padding:8px;font:inherit;font-weight:600;margin-top:6px}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:6px 4px;text-align:center;border-bottom:1px solid var(--ln)}
 th{color:var(--mu);font-weight:600}
 td:first-child,th:first-child{text-align:start}
 tr.clk{cursor:pointer}tr.avg td{font-weight:700;background:var(--ac2)}
-.sh h4{margin:10px 0 2px;color:#b87500}
+.sh h4{margin:10px 0 2px;color:var(--act)}
 .sh div{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed var(--ln)}
 .fr{display:grid;grid-template-columns:1fr repeat(4,54px) 32px;gap:4px;align-items:center;margin:4px 0}
 .fr input{width:100%;padding:5px 3px;text-align:center}.fr input.n{text-align:start}
@@ -95,9 +98,10 @@ tr.clk{cursor:pointer}tr.avg td{font-weight:700;background:var(--ac2)}
 .cand b{display:block}.cand small{color:var(--mu)}
 .dl{font-size:12px;text-align:end;white-space:nowrap;direction:ltr}
 .dl .w{color:var(--hi);font-weight:700}
-#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px 14px;border-radius:10px;display:none;z-index:30}
+#toast .tu{border:0;background:none;color:#ffd48a;font:inherit;font-weight:700;min-height:44px;padding:0 6px;cursor:pointer}
+#toast{position:fixed;bottom:16px;width:max-content;max-width:calc(100% - 32px);align-items:center;gap:12px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px 14px;border-radius:10px;display:none;z-index:30}
 @media print{header,.btns,.add,.ib,#modal{display:none!important}.card{box-shadow:none;break-inside:avoid}}
-.fr2{display:flex;gap:6px;align-items:center;margin:4px 0}.fr2 input,.fr2 select{flex:1;min-width:0}.fr2 .pv{min-width:46px;text-align:center;color:#b87500}
+.fr2{display:flex;gap:6px;align-items:center;margin:4px 0}.fr2 input,.fr2 select{flex:1;min-width:0}.fr2 .pv{min-width:46px;text-align:center;color:var(--act)}
 .eqr{border-top:1px solid var(--ln);padding:4px 0}.eqr details{margin:2px 0 6px}.eqr summary{cursor:pointer;color:var(--mu);font-size:13px}
 .coef input{width:100%;min-width:44px;padding:4px;text-align:center}.coef th{font-size:11px}
 .gch.sm button{flex:0 0 auto;padding:5px 10px;font-size:13px}
@@ -110,7 +114,7 @@ tr.clk{cursor:pointer}tr.avg td{font-weight:700;background:var(--ac2)}
 <header><h1>🍽️ نظام الوجبات الأسبوعي</h1><div id="ubar"></div><nav id="tabs"></nav></header>
 <main id="app"></main>
 <div id="modal"></div>
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="file" accept="application/json" style="display:none">
 <script>
 const KEY='mealplan_v1';
@@ -431,7 +435,8 @@ function delUser(id){
   state=loadUser(meta.cur)||defaultState();
 }
 function ask(msg,fn){modal={type:'ask',msg,fn};render()}
-function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',1800)}
+// undo اختياري: يظهر زر «تراجع» ويبقى الإشعار 5 ثوانٍ
+function toast(t,undo){const e=$('#toast');toast.u=undo||null;e.innerHTML=esc(t)+(undo?'<button class="tu" data-act="undo">تراجع</button>':'');e.style.display='flex';clearTimeout(toast.t);toast.t=setTimeout(()=>{e.style.display='none';toast.u=null},undo?5000:3000)}
 
 function swapCands(it,by){
   const o=F(it.f);if(!o)return[];
@@ -733,7 +738,7 @@ function row(it,mi,ii){
   <div class="mc">P ${rd(m.p)} · C ${rd(m.c)} · F ${rd(m.f)}</div>
   <div class="qty"><input type="number" inputmode="decimal" min="0" step="${f.u?1:5}" value="${qtyOf(it)}" data-ch="qty" data-m="${mi}" data-i="${ii}"><span>${esc(unitOf(f))}</span></div>
   <div class="kc">${rd(m.k)}<small>سعرة</small></div>
-  <div class="acts" style="grid-column:1/-1"><button class="ib${e!=null&&!sk?' on':''}" title="أُكل كما في الخطة" data-act="qlog" data-m="${mi}" data-i="${ii}">✓</button><button class="ib" title="تسجيل: كمية / وجبة / لم يُؤكل" data-act="log" data-m="${mi}" data-i="${ii}">📝</button>${it.x?'':`<button class="ib" title="بدائل" data-act="swap" data-m="${mi}" data-i="${ii}">⇄</button>`}<button class="ib" title="حذف" data-act="del" data-m="${mi}" data-i="${ii}">✕</button></div></div>`}
+  <div class="acts" style="grid-column:1/-1"><button class="ib${e!=null&&!sk?' on':''}" title="أُكل كما في الخطة" aria-label="أُكل كما في الخطة: ${esc(f.n)}" aria-pressed="${e!=null&&!sk}" data-act="qlog" data-m="${mi}" data-i="${ii}">✓</button><button class="ib" title="تسجيل: كمية / وجبة / لم يُؤكل" aria-label="تسجيل ${esc(f.n)}" data-act="log" data-m="${mi}" data-i="${ii}">📝</button>${it.x?'':`<button class="ib" title="بدائل" aria-label="بدائل ${esc(f.n)}" data-act="swap" data-m="${mi}" data-i="${ii}">⇄</button>`}<button class="ib" title="حذف" aria-label="حذف ${esc(f.n)}" data-act="del" data-m="${mi}" data-i="${ii}">✕</button></div></div>`}
 function vDay(){
   const di=ui.day,d=state.days[di],T=targets(d),tot=sum(d.meals.flatMap(m=>m.items)),L=dayLog(d);
   let h=`<div class="days">${state.days.map((x,i)=>`<button class="${i===di?'on':''}" data-act="day" data-v="${i}">${x.name}<small>${dateOfDay(i).slice(5).replace('-','/')}</small><small>${x.mode==='high'?'كارب عادي':'كارب قليل'} · ${PL[x.prot]}</small></button>`).join('')}</div>`;
@@ -761,7 +766,7 @@ function vWeek(){
 }
 function foodRows(list,g){const f0=ui.fu==='unit';
   return `<div class="card"><h3 style="margin:0 0 6px">${GROUPS[g]}</h3><div class="fr fh"><span>الصنف</span><span>سعرات</span><span>P</span><span>C</span><span>F</span><span></span></div>${list.map(f=>{const pu=f0&&f.u&&f.ug,val=k=>pu?+(f[k]*f.ug/100).toFixed(2):f[k];
-    return `<div class="fr"><input class="n" value="${esc(f.n)}" data-ch="food" data-id="${f.id}" data-fld="n">${['k','p','c','f'].map(k=>`<input type="number" step="any" value="${val(k)}" data-ch="food" data-id="${f.id}" data-fld="${k}">`).join('')}<button class="ib" data-act="delfood" data-id="${f.id}">✕</button></div>${(f.u||String(f.id).startsWith('c'))?`<div class="fr"><span class="note">${pu?'⬆ القيم لكل '+esc(f.u):'وحدة / وزنها'}</span><input value="${esc(f.u||'')}" data-ch="food" data-id="${f.id}" data-fld="u" placeholder="الوحدة" style="grid-column:span 2"><input type="number" step="any" value="${f.ug||''}" data-ch="food" data-id="${f.id}" data-fld="ug" placeholder="جم" style="grid-column:span 2"><span></span></div>`:''}`}).join('')}</div>`;
+    return `<div class="fr"><input class="n" value="${esc(f.n)}" data-ch="food" data-id="${f.id}" data-fld="n">${['k','p','c','f'].map(k=>`<input type="number" step="any" value="${val(k)}" data-ch="food" data-id="${f.id}" data-fld="${k}">`).join('')}<button class="ib" title="حذف الصنف" aria-label="حذف الصنف ${esc(f.n)}" data-act="delfood" data-id="${f.id}">✕</button></div>${(f.u||String(f.id).startsWith('c'))?`<div class="fr"><span class="note">${pu?'⬆ القيم لكل '+esc(f.u):'وحدة / وزنها'}</span><input value="${esc(f.u||'')}" data-ch="food" data-id="${f.id}" data-fld="u" placeholder="الوحدة" style="grid-column:span 2"><input type="number" step="any" value="${f.ug||''}" data-ch="food" data-id="${f.id}" data-fld="ug" placeholder="جم" style="grid-column:span 2"><span></span></div>`:''}`}).join('')}</div>`;
 }
 function fqInfo(){const q=(ui.fq||'').trim(),L=q?searchFoods(q):state.foods;return{q,L,txt:q?(L.length?L.length+' نتيجة':'لا توجد نتائج لـ «'+q+'» — يمكنك إضافته من النموذج أسفل'):''}}
 function foodsList(){
@@ -830,10 +835,10 @@ function goalUI(s,hi,lo){
 }
 const SIGNS=[[-1,'عجز'],[0,'ثبات'],[1,'فائض']];
 function vEqMgmt(s){
-  const goals=s.goals.map(gl=>`<div class="eqr"><div class="fr2"><input value="${esc(gl.name)}" data-ch="gln" data-id="${gl.id}" data-k="name" aria-label="اسم الهدف">${gl.kind==='manual'?'<span class="tag">مضاعفات ثابتة</span>':`<select data-ch="gln" data-id="${gl.id}" data-k="sign" aria-label="اتجاه الهدف">${SIGNS.map(([v,t])=>`<option value="${v}" ${gl.sign===v?'selected':''}>${t}</option>`).join('')}</select>`}<button class="ib" title="حذف" data-act="gldel" data-id="${gl.id}">✕</button></div></div>`).join('');
+  const goals=s.goals.map(gl=>`<div class="eqr"><div class="fr2"><input value="${esc(gl.name)}" data-ch="gln" data-id="${gl.id}" data-k="name" aria-label="اسم الهدف">${gl.kind==='manual'?'<span class="tag">مضاعفات ثابتة</span>':`<select data-ch="gln" data-id="${gl.id}" data-k="sign" aria-label="اتجاه الهدف">${SIGNS.map(([v,t])=>`<option value="${v}" ${gl.sign===v?'selected':''}>${t}</option>`).join('')}</select>`}<button class="ib" title="حذف" aria-label="حذف الهدف ${esc(gl.name)}" data-act="gldel" data-id="${gl.id}">✕</button></div></div>`).join('');
   const eqs=s.eqs.map(e=>{const pv=bmrWith(e,s);
     const co=e.type==='lin'?`<table class="coef"><tr><th></th><th>الوزن</th><th>الطول</th><th>العمر</th><th>كتلة خالية</th><th>ثابت</th></tr>${['m','f'].map(sx=>`<tr><td>${sx==='m'?'ذكر':'أنثى'}</td>${['w','h','a','l','c'].map(k=>`<td><input type="number" step="any" value="${e[sx][k]}" data-ch="eqc" data-id="${e.id}" data-sx="${sx}" data-k="${k}"></td>`).join('')}</tr>`).join('')}</table><p class="note">BMR = الوزن×م + الطول×م + العمر×م + الكتلة الخالية×م + الثابت. أي معامل للكتلة الخالية يتطلب نسبة دهون.</p>`:'<p class="note">معادلة بحسب الفئة العمرية (جدول WHO)؛ معاملاتها ثابتة ويمكن تغيير اسمها وحذفها.</p>';
-    return `<div class="eqr"><div class="fr2"><input value="${esc(e.name)}" data-ch="eqn" data-id="${e.id}" data-k="name" aria-label="اسم المعادلة"><b class="pv" title="BMR لبياناتك">${pv==null?'—':rd(pv)}</b><button class="ib" title="حذف" data-act="eqdel" data-id="${e.id}">✕</button></div><details ${ui.eqo===e.id?'open':''}><summary>الملاحظة والمعاملات</summary><label style="display:block">ملاحظة<input value="${esc(e.note||'')}" data-ch="eqn" data-id="${e.id}" data-k="note" style="width:100%"></label>${co}</details></div>`}).join('');
+    return `<div class="eqr"><div class="fr2"><input value="${esc(e.name)}" data-ch="eqn" data-id="${e.id}" data-k="name" aria-label="اسم المعادلة"><b class="pv" title="BMR لبياناتك">${pv==null?'—':rd(pv)}</b><button class="ib" title="حذف" aria-label="حذف المعادلة ${esc(e.name)}" data-act="eqdel" data-id="${e.id}">✕</button></div><details ${ui.eqo===e.id?'open':''}><summary>الملاحظة والمعاملات</summary><label style="display:block">ملاحظة<input value="${esc(e.note||'')}" data-ch="eqn" data-id="${e.id}" data-k="note" style="width:100%"></label>${co}</details></div>`}).join('');
   return `<div class="card set"><h3 style="margin:0 0 6px">إدارة المعادلات والأهداف</h3>
   <h4>الأهداف (تنحيف / تثبيت / …)</h4>${goals}
   <div class="fr2"><input id="gl_n" placeholder="اسم هدف جديد"><select id="gl_s">${SIGNS.map(([v,t])=>`<option value="${v}">${t}</option>`).join('')}</select><button class="btn" style="flex:0 0 auto" data-act="gladd">＋ إضافة</button></div>
@@ -865,7 +870,7 @@ function hFoot(r){
   const past=r.date<weekKey();
   const rows=r.meals.map((mm,mi)=>`<div class="mh" style="margin-top:8px"><h3 style="font-size:14px">${esc(mm.n)}</h3></div>`+mm.items.map((it,ii)=>{
     const f=it.fd,e=gE(it),em=emOf(it,mi);
-    return `<div class="dv"><span>${esc(f.n)} · ${it.x?'خارج الخطة':'الخطة '+fmtQ(f,it.g)} · ${e==null?'لم يُسجَّل':'الفعلي '+fmtQ(f,e)}${e>0&&em!==mi?' ↪ '+esc(mealShort(r,em)):''}</span>${past?`<button class="ib" data-act="hlog" data-d="${r.date}" data-m="${mi}" data-i="${ii}">📝</button>`:''}</div>`}).join('')).join('');
+    return `<div class="dv"><span>${esc(f.n)} · ${it.x?'خارج الخطة':'الخطة '+fmtQ(f,it.g)} · ${e==null?'لم يُسجَّل':'الفعلي '+fmtQ(f,e)}${e>0&&em!==mi?' ↪ '+esc(mealShort(r,em)):''}</span>${past?`<button class="ib" title="تعديل التسجيل" aria-label="تعديل تسجيل ${esc(f.n)}" data-act="hlog" data-d="${r.date}" data-m="${mi}" data-i="${ii}">📝</button>`:''}</div>`}).join('')).join('');
   return `<h4>أصناف اليوم</h4>${rows}${past?'':'<p class="note">هذا اليوم من الأسبوع الحالي: عدّله من تبويب «اليوم».</p>'}
   <div class="btns" style="margin-top:10px">${past?`<button class="btn dan" data-act="hdel" data-d="${r.date}">حذف السجل</button>`:''}<button data-act="close">إغلاق</button></div>`;
 }
@@ -968,7 +973,7 @@ function renderAddList(q){
     +(q?`<button class="btn" style="width:100%;margin-top:6px" data-act="newfromq">＋ إضافة «${esc(q)}» يدوياً</button>`:'');
 }
 function render(){
-  $('#ubar').innerHTML=`<select data-ch="user" aria-label="المستخدم">${meta.users.map(u=>`<option value="${u.id}" ${u.id===meta.cur?'selected':''}>👤 ${esc(u.name)}</option>`).join('')}</select><button class="ib" title="مستخدم جديد" data-act="uadd">＋</button><button class="ib" title="تعديل الاسم" data-act="uren">✎</button><button class="ib" title="حذف المستخدم" data-act="udel">🗑</button>`;
+  $('#ubar').innerHTML=`<select data-ch="user" aria-label="المستخدم">${meta.users.map(u=>`<option value="${u.id}" ${u.id===meta.cur?'selected':''}>👤 ${esc(u.name)}</option>`).join('')}</select><button class="ib" title="مستخدم جديد" aria-label="مستخدم جديد" data-act="uadd">＋</button><button class="ib" title="تعديل الاسم" aria-label="تعديل اسم المستخدم" data-act="uren">✎</button><button class="ib" title="حذف المستخدم" aria-label="حذف المستخدم" data-act="udel">🗑</button>`;
   $('#tabs').innerHTML=[['day','اليوم'],['week','الأسبوع'],['hist','السجل'],['foods','الأصناف'],['set','إعدادات']].map(([k,l])=>`<button class="${ui.tab===k?'on':''}" data-act="tab" data-v="${k}">${l}</button>`).join('');
   $('#app').innerHTML=ui.tab==='day'?vDay():ui.tab==='week'?vWeek():ui.tab==='hist'?vHist():ui.tab==='foods'?vFoods():vSet();
   renderModal();
@@ -1014,14 +1019,15 @@ function act(a,ds){
     case 'swap':modal={type:'swap',m:+ds.m,i:+ds.i};break;
     case 'by':modal.by=ds.v;break;
     case 'applyswap':{const it=d.meals[modal.m].items[modal.i];it.f=ds.f;it.g=+ds.g;it.b=it.g;delete it.e;delete it.em;modal=null;break}
-    case 'del':d.meals[+ds.m].items.splice(+ds.i,1);break;
+    case 'del':{const di=ui.day,m=+ds.m,i=+ds.i,[rm]=d.meals[m].items.splice(i,1),f=FOOD(rm);toast('حُذف «'+(f?f.n:'الصنف')+'»',()=>{state.days[di].meals[m].items.splice(i,0,rm)});break}
+    case 'undo':{const u=toast.u;toast.u=null;clearTimeout(toast.t);$('#toast').style.display='none';if(u)u();break}
     case 'add':ui.aq='';ui.ag='';ui.xt=false;modal={type:'add',m:+ds.m};break;
     case 'agrp':ui.xt=!!($('#xtra')&&$('#xtra').checked);ui.aq=($('#q')||{}).value||'';ui.ag=ds.v;break;
     case 'newfromq':ui.nfd=Object.assign({},ui.nfd,{n:ui.aq||'',g:ui.ag||(ui.nfd||{}).g});ui.tab='foods';modal=null;setTimeout(()=>{const e=$('#nfcard');if(e&&e.scrollIntoView)e.scrollIntoView()},60);break;
     case 'pick':{const f=F(ds.id),g=f.u&&f.ug?f.ug:100,xt=!!($('#xtra')&&$('#xtra').checked);
       d.meals[modal.m].items.push(xt?{f:f.id,g:0,b:0,r:'x',s:'',x:true,e:g}:{f:f.id,g,b:g,r:'x',s:''});if(xt)d.lw=weekKey();modal=null;break}
     case 'close':modal=(modal&&modal.type==='hlog')?{type:'hdetail',date:modal.date}:null;break;
-    case 'delfood':{const used=state.days.some(x=>x.meals.some(m=>m.items.some(i=>i.f===ds.id)));if(used){toast('الصنف مستخدم في الخطة. استبدله أولاً.');return}state.foods=state.foods.filter(f=>f.id!==ds.id);break}
+    case 'delfood':{const used=state.days.some(x=>x.meals.some(m=>m.items.some(i=>i.f===ds.id)));if(used){toast('الصنف مستخدم في الخطة. استبدله أولاً.');return}const fi=state.foods.findIndex(f=>f.id===ds.id);if(fi<0)return;const [rf]=state.foods.splice(fi,1);toast('حُذف الصنف «'+rf.n+'»',()=>{state.foods.splice(fi,0,rf)});break}
     case 'nftxt':ui.scan={busy:false,d:{b:'g'},txt:'',warn:[],from:null,sug:''};modal={type:'scan'};break;
     case 'online':{const q=(modal&&modal.type==='add'?ui.aq:ui.fq)||'';if(!q.trim()){toast('اكتب كلمة البحث أولاً');return}doOnline(q.trim());return}
     case 'addc':{const c=ui.cands[+ds.ci];if(!c)return;candFood(c);toast('أُضيف «'+c.n+'» إلى أصنافي');break}
@@ -1218,7 +1224,7 @@ function scanHtml(){
   <div class="frm"><label>سعرات<input id="sc_k" type="number" step="any" inputmode="decimal" value="${v('k')}"></label><label>بروتين (جم)<input id="sc_p" type="number" step="any" inputmode="decimal" value="${v('p')}"></label><label>كارب (جم)<input id="sc_c" type="number" step="any" inputmode="decimal" value="${v('c')}"></label><label>دهون (جم)<input id="sc_f" type="number" step="any" inputmode="decimal" value="${v('f')}"></label>
   ${per?`<label>اسم الوحدة<input id="sc_u" placeholder="قطعة / حصة" value="${v('u')}"></label><label>وزنها بالجرام<input id="sc_ug" type="number" step="any" inputmode="decimal" value="${v('ug')}"></label>`:''}
   <label style="grid-column:1/-1">المجموعة<select id="sc_g">${Object.keys(GROUPS).map(g=>`<option value="${g}" ${d.g===g?'selected':''}>${GROUPS[g]}</option>`).join('')}</select></label></div>
-  ${bad?'<p class="note" style="color:#b87500">السعرات لا تطابق الماكروز (4·P + 4·C + 9·F)؛ راجع الأرقام.</p>':''}
+  ${bad?'<p class="note" style="color:var(--act)">السعرات لا تطابق الماكروز (4·P + 4·C + 9·F)؛ راجع الأرقام.</p>':''}
   <button class="btn pri" style="width:100%;margin-top:8px" data-act="scansave">💾 حفظ كصنف</button>
   ${S0.from!=null?'<button class="btn" style="width:100%;margin-top:6px" data-act="scansaveadd">💾 حفظ وإضافته لهذه الوجبة</button>':''}
   <details style="margin-top:8px"><summary class="note">النص المقروء / لصق نص ملصق</summary><textarea id="sc_txt" rows="4" style="width:100%" placeholder="الصق نص الملصق هنا">${esc(S0.txt||'')}</textarea><button class="btn" style="width:100%;margin-top:4px" data-act="scanreparse">إعادة تحليل النص</button></details>
