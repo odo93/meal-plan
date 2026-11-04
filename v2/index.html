@@ -38,6 +38,34 @@ h1 small{display:block;font-size:12px;font-weight:400;color:var(--mu)}
 .modes button{border:1px solid var(--ln);background:#fff;border-radius:12px;padding:10px;font:inherit;text-align:start;cursor:pointer;min-height:64px}
 .modes button b{display:block}.modes button small{color:var(--mu);font-size:12px}
 .modes button.on{border-color:var(--ac);background:var(--ac2)}
+.dhead{display:flex;align-items:center;gap:8px;margin:12px 2px 2px}
+.dhead b{flex:1;font-size:16px}.dhead small{color:var(--mu);font-weight:400;font-size:13px}
+.days.wk{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;overflow:visible}
+.days.wk button{min-width:0;padding:6px 0;position:relative}
+.days.wk button b{font-size:15px}
+.days .ck{position:absolute;top:3px;inset-inline-end:6px;color:var(--ok);font-size:12px;font-weight:700}
+.days button.on .ck{color:var(--on-ac)}
+.days .td{display:block;width:6px;height:6px;border-radius:50%;background:var(--ac);margin:2px auto 0}
+.sum{position:sticky;top:calc(58px + env(safe-area-inset-top,0px));z-index:4;display:flex;align-items:center;gap:14px}
+.ring{width:76px;height:76px;flex:0 0 auto}
+.mcs{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.mcs .bl{font-size:12px}.mcs .bt{height:6px}
+.meal{padding:0;overflow:hidden}
+.mhd{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;font:inherit;color:inherit;text-align:start;padding:12px;cursor:pointer;min-height:56px}
+.mhd .g{flex:1;min-width:0}.mhd .g b{display:block;font-size:15px}.mhd .g small{color:var(--mu);font-size:12px}
+.mhd .chev svg{width:20px;height:20px;color:var(--mu);transition:transform .15s}
+.mhd[aria-expanded="true"] .chev svg{transform:rotate(-90deg)}
+.mbd{padding:0 12px 12px}
+.row2{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--ln)}
+.row2 .g{flex:1;min-width:0}.row2 .g b{display:block;font-weight:600;font-size:14px}.row2 .g small{color:var(--mu);font-size:12px;font-variant-numeric:tabular-nums}
+.row2 .q{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--mu)}
+.row2 .q input{width:62px;text-align:center;min-height:40px;padding:4px}
+.chk{width:40px;height:40px;border-radius:12px;border:1.5px solid var(--ln);background:#fff;color:#c7c7cc;display:grid;place-items:center;cursor:pointer;flex:0 0 auto;font-size:18px;font-weight:700}
+.chk.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.chk.sk{background:#fde8e8;border-color:#fde8e8;color:var(--hi)}
+.more{width:40px;height:40px;border:0;background:none;border-radius:10px;color:var(--mu);cursor:pointer;flex:0 0 auto;font-size:20px;line-height:1}
+.mft{display:flex;gap:8px;margin-top:8px}.mft .btn{flex:1}.mft .btn.pri{flex:1.4}
+.raw{color:var(--mu);font-size:11px}
 .lnk{border:0;background:none;color:var(--act);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;padding:0}
 .ib.on{background:var(--ok);border-color:var(--ok);color:#fff}
 .tag.sk{background:#fde8e8;color:var(--hi)}.tag.ok2{background:#e3f5ea;color:var(--ok)}.tag.x{background:#e8eefc;color:#3a5bd9}
@@ -768,15 +796,33 @@ function row(it,mi,ii){
   <div class="qty"><input type="number" inputmode="decimal" min="0" step="${f.u?1:5}" value="${qtyOf(it)}" data-ch="qty" data-m="${mi}" data-i="${ii}"><span>${esc(unitOf(f))}</span></div>
   <div class="kc">${rd(m.k)}<small>سعرة</small></div>
   <div class="acts" style="grid-column:1/-1"><button class="ib${e!=null&&!sk?' on':''}" title="أُكل كما في الخطة" aria-label="أُكل كما في الخطة: ${esc(f.n)}" aria-pressed="${e!=null&&!sk}" data-act="qlog" data-m="${mi}" data-i="${ii}">✓</button><button class="ib" title="تسجيل: كمية / وجبة / لم يُؤكل" aria-label="تسجيل ${esc(f.n)}" data-act="log" data-m="${mi}" data-i="${ii}">📝</button>${it.x?'':`<button class="ib" title="بدائل" aria-label="بدائل ${esc(f.n)}" data-act="swap" data-m="${mi}" data-i="${ii}">⇄</button>`}<button class="ib" title="حذف" aria-label="حذف ${esc(f.n)}" data-act="del" data-m="${mi}" data-i="${ii}">✕</button></div></div>`}
+// اكتمال اليوم/الوجبة: كل الأصناف المخططة سُجّلت (أُكلت أو لم تُؤكل)
+const mealDone=m=>{const a=m.items.filter(it=>!it.x);return a.length>0&&a.every(it=>gE(it)!=null)};
+const dayDone=d=>d.meals.some(m=>m.items.some(it=>!it.x))&&d.meals.every(m=>!m.items.some(it=>!it.x)||mealDone(m));
+// قيم اللحوم والدواجن والأسماك مخزّنة بعد الطهي؛ نعرض الوزن النيء التقريبي (يفقد اللحم نحو 25% بالطهي)
+const RAWF=1.33,isCooked=f=>f&&f.grp==='pro'&&/مطبوخ|مشوي|مسلوق|مقلي/.test(f.n);
+function ring(v,t){const r=31,C=2*Math.PI*r,p=Math.max(0,Math.min(1,t?v/t:0));
+  return `<svg class="ring" viewBox="0 0 76 76" role="img" aria-label="${rd(v)} من ${rd(t)} سعرة"><circle cx="38" cy="38" r="${r}" fill="none" stroke="#eee" stroke-width="8"/><circle cx="38" cy="38" r="${r}" fill="none" stroke="var(--ac)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${(C*p).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 38 38)"/><text x="38" y="38" text-anchor="middle" font-size="16" font-weight="700" fill="var(--tx)">${rd(v)}</text><text x="38" y="52" text-anchor="middle" font-size="10" fill="var(--mu)">من ${rd(t)}</text></svg>`}
+function openMeal(d){const di=ui.day;if(ui.open&&ui.open.d===di)return ui.open.m;const i=d.meals.findIndex(m=>!mealDone(m)&&m.items.length);return i<0?-1:i}
+function row(it,mi,ii){
+  const f=F(it.f);if(!f)return'';const m=it.x?macE(it):mac(it),e=gE(it),sk=!it.x&&e===0,on=e!=null&&!sk;
+  const raw=isCooked(f)&&!it.x?` · <span class="raw">مطبوخ ≈ ${rd(it.g*RAWF)} جم نيء</span>`:'';
+  return `<div class="row2"><button class="chk${on?' on':''}${sk?' sk':''}" aria-label="${it.x?'صنف خارج الخطة':'أُكل كما في الخطة'}: ${esc(f.n)}" aria-pressed="${on}" data-act="qlog" data-m="${mi}" data-i="${ii}" ${it.x?'disabled':''}>${sk?'✗':'✓'}</button>
+  <span class="g"><b>${esc(f.n)}</b><small>${rd(m.k)} سعرة${raw}</small>${it.s==='prot'||stTag(it,mi)?`<span style="display:block">${it.s==='prot'?'<span class="tag" style="margin:0">بروتين اليوم</span>':''}${stTag(it,mi)}</span>`:''}</span>
+  <span class="q"><input type="number" inputmode="decimal" min="0" step="${f.u?1:5}" value="${qtyOf(it)}" data-ch="qty" data-m="${mi}" data-i="${ii}" aria-label="كمية ${esc(f.n)} بـ${esc(unitOf(f))}">${esc(unitOf(f))}</span>
+  <button class="more" data-act="itemopts" data-m="${mi}" data-i="${ii}" aria-label="خيارات ${esc(f.n)}" aria-haspopup="dialog">⋯</button></div>`}
 function vDay(){
-  const di=ui.day,d=state.days[di],T=targets(d),tot=sum(d.meals.flatMap(m=>m.items)),L=dayLog(d);
-  let h=`<div class="days">${state.days.map((x,i)=>`<button class="${i===di?'on':''}" data-act="day" data-v="${i}">${x.name}<small>${dateOfDay(i).slice(5).replace('-','/')}</small><small>${x.mode==='high'?'كارب عادي':'كارب قليل'} · ${PL[x.prot]}</small></button>`).join('')}</div>`;
-  h+=`<div class="card ctl"><div style="font-weight:700">📅 ${esc(d.name)} ${dateLabel(dateOfDay(di))}${dateOfDay(di)===todayISO()?' · اليوم':''}<div class="note" style="font-weight:400">ما تسجّله من الفعلي يُحفظ في «التقدم» بهذا التاريخ.</div></div><div class="seg"><button class="${d.mode==='high'?'on':''}" data-act="mode" data-v="high">كارب عادي</button><button class="${d.mode==='low'?'on':''}" data-act="mode" data-v="low">كارب قليل</button></div>
-  <label>بروتين اليوم <select data-ch="prot">${Object.keys(PL).map(k=>`<option value="${k}" ${d.prot===k?'selected':''}>${PL[k]}</option>`).join('')}</select></label>
-  <div class="btns"><button data-act="refit">ضبط على الهدف</button><button data-act="rebuild">إعادة بناء اليوم</button></div>
-  <button class="btn pri" style="width:100%" data-act="cmp">📊 مقارنة الفعلي بالخطة (${L.logged}/${L.total})</button></div>`;
-  h+=`<div class="card"><div class="big"><b>${rd(tot.k)} <small style="font-size:13px">سعرة</small></b><span>الهدف ${rd(T.k)}</span></div>${bar('بروتين',tot.p,T.p,'جم')}${bar('كارب',tot.c,T.c,'جم')}${bar('دهون',tot.f,T.f,'جم')}</div>`;
-  h+=d.meals.map((m,mi)=>{const mt=sum(m.items);return `<section class="card"><div class="mh"><h3>${esc(m.n)}</h3><span>${rd(mt.k)} سعرة · P ${rd(mt.p)} · C ${rd(mt.c)} · F ${rd(mt.f)}</span></div>${m.items.map((it,ii)=>row(it,mi,ii)).join('')}${movedIn(d,mi)}<button class="add" data-act="add" data-m="${mi}">+ إضافة صنف</button></section>`}).join('');
+  const di=ui.day,d=state.days[di],T=targets(d),tot=sum(d.meals.flatMap(m=>m.items)),op=openMeal(d),isT=dateOfDay(di)===todayISO();
+  const mb=(l,v,t)=>{const dv=v-t,cls=Math.abs(dv)<=t*0.08?'ok':(dv>0?'hi':'lo');return `<div><div class="bl"><b>${l}</b><span>${rd(v)} / ${rd(t)} جم</span></div><div class="bt"><i class="${cls}" style="width:${Math.min(100,t?v/t*100:0)}%"></i></div></div>`};
+  const DL='سحنثرخج';
+  let h=`<div class="days wk" role="tablist" aria-label="أيام الأسبوع">${state.days.map((x,i)=>`<button class="${i===di?'on':''}" role="tab" aria-selected="${i===di}" aria-label="${esc(x.name)} ${dateLabel(dateOfDay(i))}${dayDone(x)?'، مكتمل':''}" data-act="day" data-v="${i}">${dayDone(x)?'<span class="ck" aria-hidden="true">✓</span>':''}<b>${DL[i]}</b><small>${+dateOfDay(i).slice(8)}</small>${dateOfDay(i)===todayISO()?'<span class="td" aria-hidden="true"></span>':''}</button>`).join('')}</div>`;
+  h+=`<div class="dhead"><b>${esc(d.name)} <small>${dateLabel(dateOfDay(di))}${isT?' · اليوم':''}</small></b><button class="more" data-act="dayopts" aria-label="خيارات اليوم" aria-haspopup="dialog">⋯</button></div>`;
+  h+=`<div class="card sum">${ring(tot.k,T.k)}<div class="mcs">${mb('بروتين',tot.p,T.p)}${mb('كارب',tot.c,T.c)}${mb('دهون',tot.f,T.f)}</div></div>`;
+  h+=d.meals.map((m,mi)=>{const mt=sum(m.items),open=mi===op,done=mealDone(m),n=m.items.length;
+    return `<section class="card meal"><button class="mhd" data-act="mopen" data-m="${mi}" aria-expanded="${open}" aria-controls="mb${mi}"><span class="g"><b>${esc(m.n)}</b><small>${rd(mt.k)} سعرة · ${n} ${n===1?'صنف':'أصناف'}</small></span>${done?'<span class="pill">مكتملة</span>':''}<span class="chev">${ico('chev')}</span></button>
+    <div class="mbd" id="mb${mi}" ${open?'':'hidden'}>${m.items.map((it,ii)=>row(it,mi,ii)).join('')}${movedIn(d,mi)}${n?'':`<p class="note">لا أصناف بعد. <button class="lnk" data-act="delmeal" data-m="${mi}">حذف هذه الوجبة</button></p>`}
+    <div class="mft"><button class="btn" data-act="add" data-m="${mi}">+ إضافة صنف</button>${m.items.some(it=>!it.x)?`<button class="btn${done?'':' pri'}" data-act="mfinish" data-m="${mi}">${done?'إلغاء الإنهاء':'إنهاء الوجبة'}</button>`:''}</div></div></section>`}).join('');
+  h+=`<button class="add" data-act="addmeal">+ إضافة وجبة أو سناك</button>`;
   return h;
 }
 function shopping(){
@@ -935,8 +981,8 @@ function banners(){
 }
 // ---------- الشخص المشارك: يُحمَّل من السحابة ولا يُكتب في هذا الجهاز ----------
 const canWrite=()=>!!ui.remote&&ui.remote.role!=='viewer';
-const NAV_ACTS=new Set(['tab','back','day','goday','close','hopen','hr','cmp','who','whopick','whome','whoload','yes','undo','annx','reload','umode','copyshop','print','fu','by','agrp','gaccept','gleave','share','grevoke','gcreate','gcopy','scanclose','eqo']);
-const LOG_ACTS=new Set(['qlog','log','logsave','logskip','logclr','hlog','hdel','logrest','logclear']);
+const NAV_ACTS=new Set(['dayopts','itemopts','mopen','tab','back','day','goday','close','hopen','hr','cmp','who','whopick','whome','whoload','yes','undo','annx','reload','umode','copyshop','print','fu','by','agrp','gaccept','gleave','share','grevoke','gcreate','gcopy','scanclose','eqo']);
+const LOG_ACTS=new Set(['mfinish','qlog','log','logsave','logskip','logclr','hlog','hdel','logrest','logclear']);
 const LOCAL_ACTS=new Set(['uadd','uren','usave','udel','uswitch','reset','import','export','cpush','cpull','rebuildweek']);
 function remoteBlock(a){if(!ui.remote||NAV_ACTS.has(a))return '';
   if(LOG_ACTS.has(a))return 'التسجيل لصاحب الخطة فقط';
@@ -1129,6 +1175,29 @@ function renderModal(){
     ${hr?hFoot(hr):`<div class="btns" style="margin-top:10px"><button data-act="logrest">تسجيل الباقي كما في الخطة</button><button data-act="logclear">مسح تسجيل اليوم</button></div>
     <button class="btn" style="width:100%;margin-top:6px" data-act="close">إغلاق</button>
     <p class="note">يُحفظ سجل كل يوم بتاريخه تلقائياً، ويبقى في «التقدم» بعد انتهاء الأسبوع.</p>`}</div>`;
+  }else if(modal.type==='dayopts'){
+    const d=state.days[ui.day],L=dayLog(d);
+    m.innerHTML=`<div class="sheet" role="dialog" aria-label="خيارات اليوم"><h3>خيارات ${esc(d.name)}</h3>
+    <h4>نوع اليوم</h4><div class="seg"><button class="${d.mode==='high'?'on':''}" data-act="mode" data-v="high">كارب عادي</button><button class="${d.mode==='low'?'on':''}" data-act="mode" data-v="low">كارب قليل</button></div>
+    <label class="lbl">بروتين اليوم <select data-ch="prot">${Object.keys(PL).map(k=>`<option value="${k}" ${d.prot===k?'selected':''}>${PL[k]}</option>`).join('')}</select></label>
+    <div class="list" style="box-shadow:none;border:1px solid var(--ln)">
+    <button class="li" data-act="cmp"><span class="g"><b>مقارنة الفعلي بالخطة</b><small>سُجّل ${L.logged} من ${L.total}</small></span></button>
+    <button class="li" data-act="logrest"><span class="g"><b>تسجيل كل المتبقي كما في الخطة</b></span></button>
+    <button class="li" data-act="refit"><span class="g"><b>ضبط الكميات على الهدف</b><small>يُبقي الأصناف ويغيّر الكميات</small></span></button>
+    <button class="li" data-act="addmeal"><span class="g"><b>إضافة وجبة أو سناك</b></span></button>
+    <button class="li dz" data-act="rebuild"><span class="g"><b>إعادة بناء اليوم من القالب</b><small>يُفقد أي تعديل يدوي</small></span></button>
+    <button class="li dz" data-act="logclear"><span class="g"><b>مسح تسجيل اليوم</b></span></button></div>
+    <div class="btns" style="margin-top:8px"><button data-act="close">إغلاق</button></div></div>`;
+  }else if(modal.type==='item'){
+    const d=state.days[ui.day],it=d.meals[modal.m]&&d.meals[modal.m].items[modal.i],f=it&&F(it.f);
+    if(!f){modal=null;m.className='';m.innerHTML='';return}
+    const a=`data-m="${modal.m}" data-i="${modal.i}"`;
+    m.innerHTML=`<div class="sheet" role="dialog" aria-label="خيارات ${esc(f.n)}"><h3>${esc(f.n)}</h3><p class="note">${it.x?'خارج الخطة':'الخطة: '+fmtQ(f,it.g)}${isCooked(f)&&!it.x?' مطبوخ (≈ '+rd(it.g*RAWF)+' جم نيء)':''}</p>
+    <div class="list" style="box-shadow:none;border:1px solid var(--ln)">
+    <button class="li" data-act="log" ${a}><span class="g"><b>تسجيل كمية مختلفة أو وجبة أخرى</b><small>أو «لم يُؤكل»</small></span></button>
+    ${it.x?'':`<button class="li" data-act="swap" ${a}><span class="g"><b>بدائل</b><small>صنف بنفس القيمة الغذائية</small></span></button>`}
+    <button class="li dz" data-act="del" ${a}><span class="g"><b>حذف من الوجبة</b></span></button></div>
+    <div class="btns" style="margin-top:8px"><button data-act="close">إغلاق</button></div></div>`;
   }else if(modal.type==='who'){
     const L=ui.shared||[];
     m.innerHTML=`<div class="sheet" role="dialog" aria-label="من تعرض؟"><h3>من تعرض؟</h3><div class="list" style="box-shadow:none;border:1px solid var(--ln)">${meta.users.map(u=>`<button class="li" data-act="uswitch" data-v="${u.id}" aria-pressed="${!ui.remote&&u.id===meta.cur}">${avS(u.name,!ui.remote&&u.id===meta.cur)}<span class="g"><b>${esc(u.name)}</b><small>${u.kind==='child'?'ملف طفل':'على هذا الجهاز'}${!ui.remote&&u.id===meta.cur?' · المعروض الآن':''}</small></span></button>`).join('')}
@@ -1200,9 +1269,9 @@ function act(a,ds){
     case 'gaccept':{const c=(($('#inv_code')||{}).value||'').trim().toUpperCase();if(c.length<4){toast('اكتب الكود');return}
       cRun(async()=>{try{const r=await cFetch('/rest/v1/rpc/mp_accept_invite',{method:'POST',body:{p_code:c}});await loadShared();render();toast('أُضيف «'+((r&&r.name)||'')+'» إلى «من تعرض؟»');return 'تم قبول الدعوة'}
         catch(e){const m=String(e.message||e);const t=/invalid_code/.test(m)?'الكود غير صحيح أو استُخدم من قبل':/own_invite/.test(m)?'هذا كود دعوة من حسابك أنت':m;const el=$('#inv_msg');if(el)el.textContent=t;toast(t);return t}});return}
-    case 'day':ui.day=+ds.v;break;
+    case 'day':ui.day=+ds.v;ui.open=null;break;
     case 'goday':ui.day=+ds.v;ui.tab='day';window.scrollTo(0,0);break;
-    case 'mode':{const v=ds.v,di=ui.day;if(d.mode!==v)ask('تغيير النوع يعيد بناء اليوم من القالب. متابعة؟',()=>{state.days[di]=buildDay(di,v,state.days[di].prot)});return}
+    case 'mode':{const v=ds.v,di=ui.day;if(d.mode===v){modal=null;break}ask('تغيير النوع يعيد بناء اليوم من القالب. متابعة؟',()=>{state.days[di]=buildDay(di,v,state.days[di].prot)});return}
     case 'rebuild':{const di=ui.day;ask('إعادة بناء اليوم من القالب؟ سيُفقد أي تعديل يدوي.',()=>{state.days[di]=buildDay(di,state.days[di].mode,state.days[di].prot)});return}
     case 'yes':{const f=modal.fn;modal=null;f();break}
     case 'qlog':{const it=d.meals[+ds.m].items[+ds.i];if(it.x)break;if(gE(it)==null){it.e=it.g;d.lw=weekKey()}else{delete it.e;delete it.em}break}
@@ -1235,7 +1304,17 @@ function act(a,ds){
     case 'swap':modal={type:'swap',m:+ds.m,i:+ds.i};break;
     case 'by':modal.by=ds.v;break;
     case 'applyswap':{const it=d.meals[modal.m].items[modal.i];it.f=ds.f;it.g=+ds.g;it.b=it.g;delete it.e;delete it.em;modal=null;break}
-    case 'del':{const di=ui.day,m=+ds.m,i=+ds.i,[rm]=d.meals[m].items.splice(i,1),f=FOOD(rm);toast('حُذف «'+(f?f.n:'الصنف')+'»',()=>{state.days[di].meals[m].items.splice(i,0,rm)});break}
+    case 'dayopts':modal={type:'dayopts'};break;
+    case 'itemopts':modal={type:'item',m:+ds.m,i:+ds.i};break;
+    case 'mopen':{const cur=openMeal(d),mi=+ds.m;ui.open={d:ui.day,m:cur===mi?-1:mi};render();return}
+    case 'mfinish':{const mi=+ds.m,mm=d.meals[mi];
+      if(mealDone(mm)){const prev=mm.items.map(it=>({e:it.e,em:it.em}));mm.items.forEach(it=>{if(!it.x){delete it.e;delete it.em}});ui.open={d:ui.day,m:mi};
+        toast('أُلغي إنهاء «'+mm.n+'»',()=>{mm.items.forEach((it,k)=>{if(prev[k].e!=null)it.e=prev[k].e;if(prev[k].em!=null)it.em=prev[k].em})})}
+      else{mm.items.forEach(it=>{if(!it.x&&gE(it)==null)it.e=it.g});d.lw=weekKey();const nx=d.meals.findIndex((x,j)=>j>mi&&!mealDone(x)&&x.items.length);ui.open={d:ui.day,m:nx};toast('تم تسجيل «'+mm.n+'»')}
+      break}
+    case 'addmeal':{const k=d.meals.filter(x=>x.n.startsWith('سناك إضافي')).length,n='سناك إضافي'+(k?' '+(k+1):'');d.meals.push({n,items:[]});ui.open={d:ui.day,m:d.meals.length-1};modal=null;toast('أُضيف «'+n+'» — أضف أصنافه');break}
+    case 'delmeal':{const mi=+ds.m;if(d.meals[mi]&&!d.meals[mi].items.length&&d.meals.length>1){d.meals.splice(mi,1);ui.open=null}break}
+    case 'del':{modal=null;const di=ui.day,m=+ds.m,i=+ds.i,[rm]=d.meals[m].items.splice(i,1),f=FOOD(rm);toast('حُذف «'+(f?f.n:'الصنف')+'»',()=>{state.days[di].meals[m].items.splice(i,0,rm)});break}
     case 'undo':{const u=toast.u;toast.u=null;clearTimeout(toast.t);$('#toast').style.display='none';if(u)u();break}
     case 'add':ui.aq='';ui.ag='';ui.xt=false;modal={type:'add',m:+ds.m};break;
     case 'agrp':ui.xt=!!($('#xtra')&&$('#xtra').checked);ui.aq=($('#q')||{}).value||'';ui.ag=ds.v;break;
