@@ -6,6 +6,8 @@
 ## هيكل المستودع
 - `index.html` — **النسخة 1 (مستقرة، لا تُعدَّل إلا لإضافة بانر «تحديث جديد»)** على `/meal-plan/`.
 - `v2/index.html` — **النسخة 2 (قيد التطوير)** على `/meal-plan/v2/`.
+- `admin/index.html` — لوحة الإدارة على `/meal-plan/admin/` (الصلاحية من `is_admin()` في قاعدة البيانات).
+- `supabase/migrations/` — تغييرات قاعدة البيانات بالترتيب.
 - `schema.sql` — جداول Supabase (`mp_users`, `mp_days`, `mp_history`) + RLS.
 - `tests/` — اختبارات jsdom (`npm test`). `docs/ARCHITECTURE.md` — المعمارية والقرارات. `docs/ROADMAP.md` — المراحل المتبقية.
 

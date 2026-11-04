@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>إدارة نظام الوجبات</title>
+<style>
+:root{--bg:#f5f5f6;--card:#fff;--tx:#1b1b1f;--mu:#636366;--ac:#f5a623;--on-ac:#2b1a00;--act:#8a5700;--ac2:#fff1d6;--ln:#e8e8ec;--ok:#1f7a45;--hi:#c0392b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,"Segoe UI",Tahoma,Arial,sans-serif;font-size:15px;line-height:1.5}
+header{background:#fff;border-bottom:1px solid var(--ln);position:sticky;top:0;z-index:5;padding-top:env(safe-area-inset-top,0px)}
+.top{max-width:960px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px}
+h1{font-size:18px;margin:0;flex:1}h1 small{display:block;font-size:12px;font-weight:400;color:var(--mu)}
+nav{max-width:960px;margin:0 auto;padding:0 12px 8px;display:flex;gap:6px;overflow-x:auto}
+nav button{border:0;background:#f0f0f2;border-radius:999px;padding:8px 14px;font:inherit;font-weight:600;color:var(--tx);cursor:pointer;white-space:nowrap;min-height:40px}
+nav button[aria-current="page"]{background:var(--ac);color:var(--on-ac)}
+main{max-width:960px;margin:0 auto;padding:12px max(16px,env(safe-area-inset-left,0px)) 48px}
+.card{background:var(--card);border-radius:14px;padding:14px;margin:10px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.card h2{font-size:16px;margin:0 0 8px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.stat{background:var(--card);border-radius:14px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.stat b{display:block;font-size:26px;font-variant-numeric:tabular-nums}.stat span{color:var(--mu);font-size:13px}
+label{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:13px;margin:8px 0}
+input,select,textarea{font:inherit;border:1px solid var(--ln);border-radius:10px;padding:9px 10px;background:#fff;color:var(--tx);width:100%;min-height:44px}
+textarea{min-height:90px;font-family:ui-monospace,Consolas,monospace;direction:ltr}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.btn{border:1px solid var(--ac);background:#fff;color:var(--act);border-radius:10px;padding:9px 14px;font:inherit;font-weight:700;cursor:pointer;min-height:44px}
+.btn.pri{background:var(--ac);color:var(--on-ac)}.btn.dan{border-color:var(--hi);color:var(--hi)}
+.btn:disabled{opacity:.5;cursor:default}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th,td{padding:8px 6px;border-bottom:1px solid var(--ln);text-align:start;vertical-align:middle}
+th{color:var(--mu);font-weight:600;font-size:12px}
+td.n{font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:1px 10px;background:#e3f5ea;color:var(--ok)}.pill.off{background:#f0f0f2;color:var(--mu)}.pill.warn{background:#fde8e8;color:var(--hi)}
+.note{font-size:13px;color:var(--mu);margin:4px 0}
+#msg{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:10px;display:none;z-index:30;max-width:calc(100% - 32px)}
+.login{max-width:380px;margin:40px auto}
+:focus-visible{outline:3px solid var(--act);outline-offset:2px}
+</style>
+</head>
+<body>
+<header><div class="top"><h1>لوحة الإدارة<small id="who"></small></h1><a class="btn" href="../v2/">فتح التطبيق</a></div><nav id="nav" aria-label="أقسام الإدارة"></nav></header>
+<main id="app"></main>
+<div id="msg" role="status" aria-live="polite"></div>
+<script>
+// لوحة الإدارة: كل صلاحية تتحقق منها قاعدة البيانات (is_admin في سياسات RLS والدوال)، والصفحة لا تحمل أي سر.
+const SB={url:'https://exznecnhvsihdelwsibv.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4em5lY25odnNpaGRlbHdzaWJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1OTY4NzAsImV4cCI6MjEwOTE3Mjg3MH0.8TP92hVmjHt9KrnaWzWDWvzdgBIctk2BkBphxjzRCK0'};
+const SK='mp3_admin_sess';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const lsGet=k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const GRPS={pro:'بروتين',dairy:'ألبان',carb:'كارب',fruit:'فاكهة',fat:'دهون',veg:'خضار'};
+const TABS=[['stats','نظرة عامة'],['accounts','الحسابات'],['ann','الإعلانات'],['config','إعدادات التطبيق'],['foods','الأصناف المشتركة']];
+let sess=lsGet(SK),ui={tab:'stats',busy:false},data={};
+function msg(t){const e=$('#msg');e.textContent=t;e.style.display='block';clearTimeout(msg.t);msg.t=setTimeout(()=>e.style.display='none',3500)}
+async function api(path,o){o=o||{};
+  if(sess&&!o.anon&&sess.exp-Date.now()<60000){const j=await api('/auth/v1/token?grant_type=refresh_token',{method:'POST',anon:true,body:{refresh_token:sess.rt}});setSess(j)}
+  const h={apikey:SB.key,'Content-Type':'application/json',Authorization:'Bearer '+(o.anon||!sess?SB.key:sess.at)};
+  if(o.prefer)h.Prefer=o.prefer;
+  const r=await fetch(SB.url+path,{method:o.method||'GET',headers:h,body:o.body!==undefined?JSON.stringify(o.body):undefined});
+  const t=await r.text();let j=null;try{j=t?JSON.parse(t):null}catch(e){}
+  if(!r.ok){const m=(j&&(j.msg||j.message||j.error_description||j.error))||('HTTP '+r.status);throw new Error(/not_admin/.test(m)?'هذا الحساب ليس مديراً':m)}
+  return j;
+}
+function setSess(j){sess={at:j.access_token,rt:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000,email:(j.user&&j.user.email)||(sess&&sess.email)||''};lsSet(SK,sess)}
+const rpc=(n,b)=>api('/rest/v1/rpc/'+n,{method:'POST',body:b||{}});
+const fmtD=d=>d?new Date(d).toLocaleDateString('ar',{day:'numeric',month:'short',year:'numeric'}):'—';
+
+async function load(tab){ui.busy=true;render();
+  try{
+    if(tab==='stats')data.stats=await rpc('admin_stats');
+    if(tab==='accounts')data.accounts=await rpc('admin_accounts');
+    if(tab==='ann')data.ann=await api('/rest/v1/announcements?select=*&order=id.desc');
+    if(tab==='config')data.cfg=(await api('/rest/v1/app_config?select=*&id=eq.1'))[0];
+    if(tab==='foods')data.foods=await api('/rest/v1/shared_foods?select=*&order=grp,n');
+  }catch(e){msg(e.message)}
+  ui.busy=false;render();
+}
+function vLogin(){return `<div class="card login"><h2>دخول المدير</h2><p class="note">استخدم نفس حساب التطبيق. الدخول متاح للمديرين فقط.</p>
+  <form id="lf"><label>البريد<input id="em" type="email" autocomplete="username" dir="ltr" required></label><label>كلمة المرور<input id="pw" type="password" autocomplete="current-password" dir="ltr" required></label>
+  <div class="btns"><button class="btn pri" type="submit">دخول</button></div><p class="note" id="lmsg"></p></form></div>`}
+function vStats(){const s=data.stats;if(!s)return '<p class="note">جارٍ التحميل…</p>';
+  const c=[['accounts','حسابات مسجّلة'],['active_7d','نشطة آخر 7 أيام'],['people','ملفات أشخاص'],['history_days','أيام في السجل'],['active_grants','مشاركات مفعّلة'],['pending_grants','دعوات بانتظار القبول']];
+  return `<div class="stats">${c.map(([k,l])=>`<div class="stat"><b>${esc(s[k])}</b><span>${l}</span></div>`).join('')}</div>`}
+function vAccounts(){const A=data.accounts;if(!A)return '<p class="note">جارٍ التحميل…</p>';
+  return `<div class="card"><h2>الحسابات (${A.length})</h2><div class="tbl"><table><thead><tr><th>البريد</th><th>التسجيل</th><th>آخر دخول</th><th>الملفات</th><th>آخر تحديث</th><th></th></tr></thead><tbody>
+  ${A.map(a=>`<tr><td dir="ltr" style="text-align:end">${esc(a.email)}</td><td>${fmtD(a.created_at)}</td><td>${fmtD(a.last_sign_in_at)}</td><td class="n">${esc(a.people)}</td><td>${fmtD(a.last_update)}</td><td>${a.is_admin?'<span class="pill">مدير</span>':''}</td></tr>`).join('')}</tbody></table></div></div>`}
+function vAnn(){const A=data.ann||[];
+  return `<div class="card"><h2>إعلان جديد</h2><form id="af"><label>العنوان<input id="a_t" required maxlength="80"></label><label>النص<input id="a_b" maxlength="240"></label>
+  <div class="row"><label>النوع<select id="a_l"><option value="info">معلومة</option><option value="warn">تنبيه</option></select></label><label>ينتهي في (اختياري)<input id="a_e" type="date"></label></div>
+  <div class="btns"><button class="btn pri" type="submit">نشر الإعلان</button></div><p class="note">يظهر لكل المستخدمين أعلى التطبيق حتى يخفيه كل واحد، أو حتى تاريخ الانتهاء.</p></form></div>
+  <div class="card"><h2>الإعلانات (${A.length})</h2>${A.length?`<div class="tbl"><table><thead><tr><th>العنوان</th><th>النوع</th><th>الحالة</th><th>ينتهي</th><th></th></tr></thead><tbody>
+  ${A.map(a=>`<tr><td><b>${esc(a.title)}</b><div class="note">${esc(a.body)}</div></td><td>${a.level==='warn'?'<span class="pill warn">تنبيه</span>':'معلومة'}</td><td>${a.active?'<span class="pill">ظاهر</span>':'<span class="pill off">مخفي</span>'}</td><td>${fmtD(a.ends_at)}</td>
+  <td><div class="btns" style="margin:0"><button class="btn" data-act="atog" data-id="${a.id}" data-v="${a.active?0:1}">${a.active?'إخفاء':'إظهار'}</button><button class="btn dan" data-act="adel" data-id="${a.id}">حذف</button></div></td></tr>`).join('')}</tbody></table></div>`:'<p class="note">لا توجد إعلانات.</p>'}</div>`}
+function vConfig(){const c=data.cfg;if(!c)return '<p class="note">جارٍ التحميل…</p>';
+  return `<div class="card"><h2>الإصدارات</h2><form id="cf"><div class="row"><label>أحدث إصدار<input id="c_l" value="${esc(c.latest_version)}" dir="ltr" pattern="[0-9.]+" required></label><label>أقل إصدار مسموح<input id="c_m" value="${esc(c.min_version)}" dir="ltr" pattern="[0-9.]+" required></label></div>
+  <p class="note">من يفتح نسخة أقدم من «أقل إصدار مسموح» يرى «تحديث مطلوب». الإصدار الحالي في التطبيق 2.1.</p>
+  <label>تفعيل الميزات (JSON)<textarea id="c_f" spellcheck="false">${esc(JSON.stringify(c.features||{},null,2))}</textarea></label>
+  <div class="btns"><button class="btn pri" type="submit">حفظ</button></div><p class="note">آخر تعديل: ${fmtD(c.updated_at)}</p></form></div>`}
+function vFoods(){const F=data.foods||[];
+  return `<div class="card"><h2>صنف جديد</h2><form id="ff"><div class="row"><label>الاسم<input id="f_n" required></label><label>المجموعة<select id="f_g">${Object.keys(GRPS).map(k=>`<option value="${k}">${GRPS[k]}</option>`).join('')}</select></label></div>
+  <div class="row">${[['k','سعرات'],['p','بروتين'],['c','كارب'],['f','دهون']].map(([k,l])=>`<label>${l} / 100 جم<input id="f_${k}" type="number" step="any" min="0" required></label>`).join('')}</div>
+  <div class="row"><label>الوحدة (اختياري)<input id="f_u" placeholder="حبة"></label><label>وزن الوحدة جم<input id="f_ug" type="number" step="any" min="0"></label></div>
+  <div class="btns"><button class="btn pri" type="submit">إضافة</button></div><p class="note">تظهر الأصناف المشتركة لكل المستخدمين ضمن «القاعدة الجاهزة» في البحث.</p></form></div>
+  <div class="card"><h2>الأصناف المشتركة (${F.length})</h2>${F.length?`<div class="tbl"><table><thead><tr><th>الصنف</th><th>المجموعة</th><th>سعرات</th><th>P</th><th>C</th><th>F</th><th>الحالة</th><th></th></tr></thead><tbody>
+  ${F.map(f=>`<tr><td>${esc(f.n)}${f.u?`<div class="note">${esc(f.u)} = ${esc(f.ug)} جم</div>`:''}</td><td>${GRPS[f.grp]}</td><td class="n">${esc(f.k)}</td><td class="n">${esc(f.p)}</td><td class="n">${esc(f.c)}</td><td class="n">${esc(f.f)}</td><td>${f.active?'<span class="pill">ظاهر</span>':'<span class="pill off">مخفي</span>'}</td>
+  <td><div class="btns" style="margin:0"><button class="btn" data-act="ftog" data-id="${esc(f.id)}" data-v="${f.active?0:1}">${f.active?'إخفاء':'إظهار'}</button><button class="btn dan" data-act="fdel" data-id="${esc(f.id)}">حذف</button></div></td></tr>`).join('')}</tbody></table></div>`:'<p class="note">لا توجد أصناف مشتركة بعد.</p>'}</div>`}
+function render(){
+  $('#who').textContent=sess?(sess.email||'')+(ui.admin===false?' · ليس مديراً':''):'';
+  $('#nav').innerHTML=sess&&ui.admin?TABS.map(([k,l])=>`<button data-act="tab" data-v="${k}" ${ui.tab===k?'aria-current="page"':''}>${l}</button>`).join('')+'<button data-act="out">خروج</button>':'';
+  if(!sess){$('#app').innerHTML=vLogin();return}
+  if(ui.admin===false){$('#app').innerHTML=`<div class="card login"><h2>لا توجد صلاحية</h2><p class="note">الحساب ${esc(sess.email)} ليس ضمن مديري التطبيق.</p><div class="btns"><button class="btn" data-act="out">تسجيل الخروج</button></div></div>`;return}
+  if(ui.admin==null){$('#app').innerHTML='<p class="note">جارٍ التحقق من الصلاحية…</p>';return}
+  $('#app').innerHTML={stats:vStats,accounts:vAccounts,ann:vAnn,config:vConfig,foods:vFoods}[ui.tab]();
+}
+async function boot(){render();if(!sess)return;
+  try{ui.admin=!!(await rpc('is_admin'))}catch(e){ui.admin=false;msg(e.message)}
+  render();if(ui.admin)load(ui.tab);
+}
+async function run(fn,ok){try{await fn();if(ok)msg(ok);await load(ui.tab)}catch(e){msg('خطأ: '+e.message)}}
+document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target;
+  if(f.id==='lf'){const b=f.querySelector('button');b.disabled=true;
+    try{const j=await api('/auth/v1/token?grant_type=password',{method:'POST',anon:true,body:{email:$('#em').value.trim(),password:$('#pw').value}});setSess(j);ui.admin=null;boot()}
+    catch(x){$('#lmsg').textContent=/Invalid login/i.test(x.message)?'البريد أو كلمة المرور غير صحيحة':x.message;b.disabled=false}}
+  if(f.id==='af')run(()=>api('/rest/v1/announcements',{method:'POST',prefer:'return=minimal',body:{title:$('#a_t').value.trim(),body:$('#a_b').value.trim(),level:$('#a_l').value,ends_at:$('#a_e').value?new Date($('#a_e').value+'T23:59:59').toISOString():null}}),'نُشر الإعلان');
+  if(f.id==='cf'){let ft;try{ft=JSON.parse($('#c_f').value||'{}')}catch(x){msg('صيغة JSON غير صحيحة في «تفعيل الميزات»');return}
+    run(()=>api('/rest/v1/app_config?id=eq.1',{method:'PATCH',prefer:'return=minimal',body:{latest_version:$('#c_l').value.trim(),min_version:$('#c_m').value.trim(),features:ft,updated_at:new Date().toISOString()}}),'تم حفظ الإعدادات')}
+  if(f.id==='ff'){const n=$('#f_n').value.trim(),v=k=>+$('#f_'+k).value||0;
+    run(()=>api('/rest/v1/shared_foods',{method:'POST',prefer:'return=minimal',body:{id:'sf_'+Date.now().toString(36),n,grp:$('#f_g').value,k:v('k'),p:v('p'),c:v('c'),f:v('f'),u:$('#f_u').value.trim()||null,ug:v('ug')||null}}),'أُضيف «'+n+'»')}
+});
+const pending={};
+document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t)return;const a=t.dataset.act,id=t.dataset.id;
+  // الحذف يحتاج ضغطة ثانية خلال 4 ثوانٍ بدل نافذة تأكيد
+  const twice=()=>{if(pending[a+id]){delete pending[a+id];return true}pending[a+id]=1;t.textContent='اضغط مرة أخرى للحذف';setTimeout(()=>{delete pending[a+id];render()},4000);return false};
+  if(a==='tab'){ui.tab=t.dataset.v;render();load(ui.tab)}
+  if(a==='out'){sess=null;ui.admin=null;try{localStorage.removeItem(SK)}catch(x){}render()}
+  if(a==='atog')run(()=>api('/rest/v1/announcements?id=eq.'+encodeURIComponent(id),{method:'PATCH',prefer:'return=minimal',body:{active:t.dataset.v==='1'}}),'تم');
+  if(a==='adel'&&twice())run(()=>api('/rest/v1/announcements?id=eq.'+encodeURIComponent(id),{method:'DELETE'}),'حُذف الإعلان');
+  if(a==='ftog')run(()=>api('/rest/v1/shared_foods?id=eq.'+encodeURIComponent(id),{method:'PATCH',prefer:'return=minimal',body:{active:t.dataset.v==='1',updated_at:new Date().toISOString()}}),'تم');
+  if(a==='fdel'&&twice())run(()=>api('/rest/v1/shared_foods?id=eq.'+encodeURIComponent(id),{method:'DELETE'}),'حُذف الصنف');
+});
+boot();
+</script>
+</body>
+</html>

@@ -29,6 +29,15 @@ h1 small{display:block;font-size:12px;font-weight:400;color:var(--mu)}
 .grp{font-size:13px;font-weight:600;color:var(--mu);margin:16px 4px -4px}
 .prof{display:flex;align-items:center;gap:12px}.prof .av{width:56px;height:56px;font-size:22px;cursor:default}
 .pill{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:1px 10px;background:#e3f5ea;color:var(--ok)}.pill.off{background:#f0f0f2;color:var(--mu)}
+.bnr{display:flex;align-items:center;gap:10px;border-radius:12px;padding:10px 12px;margin:10px 0;font-size:14px}
+.bnr b{display:block}.bnr .g{flex:1;min-width:0}
+.bnr.info{background:var(--ac2);color:var(--tx)}.bnr.warn{background:#fde8e8;color:var(--tx)}.bnr.rm{background:#e8eefc;color:var(--tx)}
+.bnr button{flex:0 0 auto;min-height:40px}
+.code{font-family:ui-monospace,Consolas,monospace;font-size:26px;font-weight:700;letter-spacing:.18em;text-align:center;direction:ltr;background:var(--ac2);border-radius:12px;padding:12px;margin:8px 0;user-select:all}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.modes button{border:1px solid var(--ln);background:#fff;border-radius:12px;padding:10px;font:inherit;text-align:start;cursor:pointer;min-height:64px}
+.modes button b{display:block}.modes button small{color:var(--mu);font-size:12px}
+.modes button.on{border-color:var(--ac);background:var(--ac2)}
 .lnk{border:0;background:none;color:var(--act);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;padding:0}
 .ib.on{background:var(--ok);border-color:var(--ok);color:#fff}
 .tag.sk{background:#fde8e8;color:var(--hi)}.tag.ok2{background:#e3f5ea;color:var(--ok)}.tag.x{background:#e8eefc;color:#3a5bd9}
@@ -422,7 +431,7 @@ const hGet=(id,d)=>lsGet(HK(id,d));
 function hPut(id,r){lsSet(HK(id,r.date),r);const ix=hIdx(id);if(!ix.includes(r.date)){ix.push(r.date);ix.sort();lsSet(HI(id),ix)}}
 function hDel(id,d){lsDel(HK(id,d));lsSet(HI(id),hIdx(id).filter(x=>x!==d))}
 const hAll=id=>hIdx(id).map(d=>hGet(id,d)).filter(Boolean);
-const getRec=d=>hGet(meta.cur,d);
+const getRec=d=>ui.remote?ui.remote.hist.find(r=>r.date===d):hGet(meta.cur,d);
 function wipeUser(id){lsDel(UK(id));for(let i=0;i<7;i++)lsDel(DK(id,i));hIdx(id).forEach(d=>lsDel(HK(id,d)));lsDel(HI(id))}
 function syncHist(){ // يحفظ/يحدّث سجل كل يوم من الأسبوع الحالي بتاريخه عند أي تعديل في التسجيل
   const cmp=x=>JSON.stringify(Object.assign({},x,{ts:0}));
@@ -432,7 +441,7 @@ function syncHist(){ // يحفظ/يحدّث سجل كل يوم من الأسبو
     const r=snapDay(d,date,di);if(!old||cmp(old)!==cmp(r))hPut(meta.cur,r);
   });
 }
-function save(onlyDay){saveMeta();saveUser(meta.cur,state,onlyDay);syncHist();if(typeof cloud!=='undefined'&&cloud.auto&&cloud.sess)cSched()}
+function save(onlyDay){if(ui.remote){if(canWrite())rSched();return}saveMeta();saveUser(meta.cur,state,onlyDay);syncHist();if(typeof cloud!=='undefined'&&cloud.auto&&cloud.sess)cSched()}
 function load(){
   const m=lsGet(MK);
   if(m&&Array.isArray(m.users)&&m.users.length){
@@ -443,11 +452,11 @@ function load(){
   if(validUser(old)){const id=uid();meta={users:[{id,name:'المستخدم 1'}],cur:id};saveUser(id,old);saveMeta();return old}
   return null;
 }
-function switchUser(id){if(!meta.users.some(u=>u.id===id))return;meta.cur=id;state=loadUser(id)||defaultState();rollWeek();save();render()}
-function addUser(name,copy){
+function switchUser(id){if(!meta.users.some(u=>u.id===id))return;ui.remote=null;meta.cur=id;state=loadUser(id)||defaultState();rollWeek();save();render()}
+function addUser(name,copy,kind){
   const id=uid();let st;
   if(copy){st=JSON.parse(JSON.stringify(state));st.days.forEach(clearLog)}else st=defaultState();
-  meta.users.push({id,name});meta.cur=id;state=st;save();
+  meta.users.push(kind?{id,name,kind}:{id,name});meta.cur=id;state=st;save();
 }
 function delUser(id){
   wipeUser(id);
@@ -899,7 +908,13 @@ const ICON={
 };
 const ico=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
 const TABS=[['day','اليوم'],['week','الخطة'],['hist','التقدم'],['foods','الأصناف'],['me','حسابي']];
-const SUBS={profile:'ملفي الشخصي',goals:'أهدافي',family:'أفراد العائلة',sync:'الحساب والمزامنة',data:'بياناتي',advanced:'متقدم'};
+const SUBS={profile:'ملفي الشخصي',goals:'أهدافي',family:'الأشخاص والمشاركة',clients:'متدربيني',mode:'نوع الاستخدام',sync:'الحساب والمزامنة',data:'بياناتي',advanced:'متقدم'};
+const APP_VER='2.1';
+// نوع الاستخدام: يحدد ما يظهر في «حسابي»، ويمكن تغييره في أي وقت
+const MODES=[['self','لنفسي','خطتي وحدي'],['family','لي ولعائلتي','أفراد وأطفال تديرهم'],['coach','مدرب مستقل','متابعة متدربين'],['org','مؤسسة','مدربون وأخصائيو تغذية']];
+const isCoach=()=>meta.mode==='coach'||meta.mode==='org';
+const ROLES={viewer:'مشاهد',editor:'محرر',coach:'مدرب / أخصائي'};
+const ROLE_NOTE={viewer:'يرى الخطة والتقدم فقط',editor:'يرى ويعدّل الخطة والأهداف',coach:'يرى ويعدّل الخطة والأهداف ويتابع الالتزام'};
 // عناوين الرابط: #/plan، #/me/goals … (اليوم بلا عنوان)
 const RT={day:'today',week:'plan',hist:'progress',foods:'foods',me:'me'};
 function routeHash(){const r=RT[ui.tab]||'today';return r==='today'?'':'#/'+r+(ui.tab==='me'&&ui.sub?'/'+ui.sub:'')}
@@ -909,12 +924,74 @@ function syncHash(){const h=routeHash(),cur=location.hash;
   if(cur&&!cur.startsWith('#/'))return;   // رابط تأكيد/استعادة Supabase: يعالجه cHash
   if(h===cur)return;try{history.pushState(null,'',h||location.pathname+location.search)}catch(e){}}
 const li=(ic,t,sub,v,act,cls)=>`<button class="li ${cls||''}" data-act="${act||'tab'}" ${v?`data-v="${v}"`:''}><span class="ic">${ico(ic)}</span><span class="g"><b>${t}</b>${sub?`<small>${sub}</small>`:''}</span>${act?'':`<span class="chev">${ico('chev')}</span>`}</button>`;
+const verLt=(a,b)=>{const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){if((x[i]||0)!==(y[i]||0))return (x[i]||0)<(y[i]||0)}return false};
+function banners(){
+  const P=ui.pub||{},cfg=P.cfg,seen=lsGet('mp3_ann_seen')||[];let h='';
+  if(cfg&&verLt(APP_VER,cfg.min_version))h+=`<div class="bnr warn" role="alert"><span class="g"><b>تحديث مطلوب</b>هذه النسخة (${APP_VER}) أقدم من المسموح. أعد تحميل الصفحة للحصول على ${esc(cfg.latest_version)}.</span><button class="btn pri" data-act="reload">إعادة التحميل</button></div>`;
+  (P.ann||[]).filter(a=>!seen.includes(a.id)).forEach(a=>{h+=`<div class="bnr ${a.level==='warn'?'warn':'info'}" role="status"><span class="g"><b>${esc(a.title)}</b>${esc(a.body||'')}</span><button class="btn" data-act="annx" data-v="${a.id}" aria-label="إخفاء الإعلان">إخفاء</button></div>`});
+  if(ui.remote)h+=`<div class="bnr rm" role="status"><span class="g"><b>تعرض الآن: ${esc(ui.remote.name)}</b>${ROLES[ui.remote.role]} · ${canWrite()?'تعديلاتك على الخطة تُحفظ في حسابه، والتسجيل يبقى له':'مشاهدة فقط'}${ui.remote.busy?' · جارٍ الحفظ…':''}</span><button class="btn" data-act="whome">رجوع لملفي</button></div>`;
+  if(!meta.mode&&ui.tab==='day'&&!ui.remote)h+=`<div class="card"><b>كيف ستستخدم التطبيق؟</b><p class="note" style="margin:2px 0 8px">نعرض لك ما تحتاجه فقط. يمكنك التغيير لاحقاً من حسابي.</p><div class="modes">${MODES.map(([k,t,d])=>`<button data-act="umode" data-v="${k}"><b>${t}</b><small>${d}</small></button>`).join('')}</div></div>`;
+  return h;
+}
+// ---------- الشخص المشارك: يُحمَّل من السحابة ولا يُكتب في هذا الجهاز ----------
+const canWrite=()=>!!ui.remote&&ui.remote.role!=='viewer';
+const NAV_ACTS=new Set(['tab','back','day','goday','close','hopen','hr','cmp','who','whopick','whome','whoload','yes','undo','annx','reload','umode','copyshop','print','fu','by','agrp','gaccept','gleave','share','grevoke','gcreate','gcopy','scanclose','eqo']);
+const LOG_ACTS=new Set(['qlog','log','logsave','logskip','logclr','hlog','hdel','logrest','logclear']);
+const LOCAL_ACTS=new Set(['uadd','uren','usave','udel','uswitch','reset','import','export','cpush','cpull','rebuildweek']);
+function remoteBlock(a){if(!ui.remote||NAV_ACTS.has(a))return '';
+  if(LOG_ACTS.has(a))return 'التسجيل لصاحب الخطة فقط';
+  if(LOCAL_ACTS.has(a))return 'ارجع لملفك أولاً';
+  return canWrite()?'':'لديك صلاحية مشاهدة فقط'}
+const qs=o=>Object.keys(o).map(k=>k+'=eq.'+ENC(o[k])).join('&');
+async function openRemote(x){
+  const k={owner:x.owner,id:x.user_id},kd={owner:x.owner,user_id:x.user_id};
+  const [U,D,H]=await Promise.all([cFetch('/rest/v1/mp_users?select=*&'+qs(k)),cFetch('/rest/v1/mp_days?select=idx,data&order=idx&'+qs(kd)),cFetch('/rest/v1/mp_history?select=data&order=date.desc&limit=90&'+qs(kd))]);
+  if(!U||!U[0])throw new Error('لم يعد لديك وصول إلى هذا الملف');
+  const days=Array(7).fill(null);(D||[]).forEach(r=>days[r.idx]=r.data);
+  const st={settings:U[0].settings,foods:U[0].foods,days};
+  if(!validUser(st))throw new Error('خطة هذا الشخص غير مكتملة في السحابة');
+  ui.remote={owner:x.owner,id:x.user_id,name:U[0].name,role:x.role,hist:(H||[]).map(r=>r.data)};
+  state=st;modal=null;if(ui.tab==='me')ui.tab='day',ui.sub='';
+}
+function leaveRemote(){if(!ui.remote)return;clearTimeout(rT);ui.remote=null;state=loadUser(meta.cur)||defaultState()}
+// يدمج تسجيل صاحب الخطة الأحدث في يوم عدّله المدرب، حتى لا يضيع ما سجّله أثناء التعديل
+function mergeLog(mine,fresh){if(!fresh||!fresh.meals)return mine;
+  mine.meals.forEach((m,mi)=>{const fm=fresh.meals[mi];if(!fm)return;
+    m.items=m.items.filter(it=>!it.x);
+    m.items.forEach((it,ii)=>{const fi=fm.items.filter(z=>!z.x)[ii];if(fi&&fi.f===it.f){if(fi.e!=null)it.e=fi.e;else delete it.e;if(fi.em!=null)it.em=fi.em;else delete it.em}});
+    fm.items.filter(z=>z.x).forEach(z=>m.items.push(z))});
+  if(fresh.lw)mine.lw=fresh.lw;return mine}
+let rT=null;function rSched(){clearTimeout(rT);rT=setTimeout(()=>rPush().catch(e=>{ui.remote&&(ui.remote.busy=false);toast('تعذّر الحفظ: '+(e.message||e));render()}),1500)}
+async function rPush(){const R=ui.remote;if(!R||!canWrite())return;R.busy=true;
+  const now=new Date().toISOString(),k={owner:R.owner,id:R.id},kd={owner:R.owner,user_id:R.id};
+  await cFetch('/rest/v1/mp_users?'+qs(k),{method:'PATCH',headers:{Prefer:'return=minimal'},body:{settings:state.settings,foods:state.foods,updated_at:now}});
+  const F=await cFetch('/rest/v1/mp_days?select=idx,data&'+qs(kd))||[];
+  for(let i=0;i<7;i++){const fr=F.find(r=>r.idx===i);const d=mergeLog(clone(state.days[i]),fr&&fr.data);state.days[i]=d;
+    await cFetch('/rest/v1/mp_days?'+qs(Object.assign({idx:i},kd)),{method:'PATCH',headers:{Prefer:'return=minimal'},body:{data:d,updated_at:now}})}
+  if(ui.remote===R){R.busy=false;render()}
+}
+async function loadShared(){if(!cloud.sess)return;
+  try{const arr=x=>Array.isArray(x)?x:[];ui.shared=arr(await cFetch('/rest/v1/rpc/mp_shared_with_me',{method:'POST',body:{}}));
+    ui.grants=arr(await cFetch('/rest/v1/rpc/mp_my_grants',{method:'POST',body:{}}));
+    if(isCoach()&&ui.shared.length){const or=ui.shared.map(x=>'and(owner.eq.'+x.owner+',user_id.eq.'+ENC(x.user_id)+')').join(',');
+      const D=await cFetch('/rest/v1/mp_days?select=owner,user_id,idx,data&or=('+or+')')||[];ui.adh={};
+      ui.shared.forEach(x=>{ui.adh[x.owner+'/'+x.user_id]=adh(D.filter(r=>r.owner===x.owner&&r.user_id===x.user_id).map(r=>r.data))})}
+  }catch(e){ui.shared=ui.shared||[];ui.grants=ui.grants||[]}
+}
+const CODE_AB='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const mkCode=()=>{const a=new Uint32Array(6);(window.crypto||{getRandomValues:x=>x.map(()=>Math.random()*4e9)}).getRandomValues(a);return [...a].map(n=>CODE_AB[n%CODE_AB.length]).join('')};
+async function loadPublic(){ // إعدادات التطبيق والإعلانات والأصناف المشتركة (بدون تسجيل دخول)
+  try{const [C,A,F]=await Promise.all([cFetch('/rest/v1/app_config?select=latest_version,min_version,features',{anon:true}),cFetch('/rest/v1/announcements?select=id,title,body,level&order=id.desc&limit=5',{anon:true}),cFetch('/rest/v1/shared_foods?select=id,n,grp,k,p,c,f,u,ug&active=eq.true',{anon:true})]);
+    ui.pub={cfg:Array.isArray(C)?C[0]:null,ann:Array.isArray(A)?A.filter(x=>x&&x.title):[]};if(Array.isArray(F)){lsSet('mp3_sfoods',F);addShared(F)}render();
+  }catch(e){}
+}
+function addShared(F){(F||[]).forEach(x=>{if(!CAT.some(r=>r.sid===x.id)){const r=[x.n,'','',x.grp,+x.k,+x.p,+x.c,+x.f,x.u||'',+x.ug||0];r.sid=x.id;CAT.push(r)}})}
 function profLine(s){return `${s.sex==='f'?'أنثى':'ذكر'} · ${s.age} سنة · ${s.ht} سم · ${s.bw} كجم`}
 function vMe(){
   const s=S(),u=curUser(),on=!!cloud.sess,k=rd(targets(state.days[ui.day]).k),nU=meta.users.length;
   return `<div class="card prof"><span class="av" aria-hidden="true">${esc(u.name.trim().charAt(0)||'؟')}</span><div style="flex:1;min-width:0"><b style="font-size:17px">${esc(u.name)}</b><div class="note">${esc(goalOf(s).name)} · هدف اليوم ${k} سعرة</div></div><span class="pill ${on?'':'off'}">${on?'متزامن':'على هذا الجهاز'}</span></div>
   <div class="grp">أنا</div><div class="list">${li('profile','ملفي الشخصي',profLine(s),'me/profile')}${li('goals','أهدافي',esc(goalOf(s).name)+' · السعرات والماكروز ودورة الكارب','me/goals')}</div>
-  <div class="grp">الحساب</div><div class="list">${li('family','أفراد العائلة',nU+(nU>1?' مستخدمين':' مستخدم')+' على هذا الجهاز','me/family')}${li('sync','الحساب والمزامنة',on?esc(cloud.email||'مسجّل الدخول'):'غير مفعّلة','me/sync')}</div>
+  <div class="grp">الحساب</div><div class="list">${li('advanced','نوع الاستخدام',(MODES.find(x=>x[0]===meta.mode)||[0,'لم يُحدَّد بعد'])[1],'me/mode')}${isCoach()?li('family','متدربيني',(ui.shared||[]).length+' مشارك معك','me/clients'):''}${li('family','الأشخاص والمشاركة',nU+(nU>1?' ملفات':' ملف')+' على هذا الجهاز'+(on?'':' · المشاركة تحتاج تسجيل الدخول'),'me/family')}${li('sync','الحساب والمزامنة',on?esc(cloud.email||'مسجّل الدخول'):'غير مفعّلة','me/sync')}</div>
   <div class="grp">البيانات</div><div class="list">${li('data','بياناتي','تصدير واستيراد','me/data')}${li('advanced','متقدم','معادلات BMR والأهداف المخصصة','me/advanced')}</div>
   <div class="grp">منطقة الخطر</div><div class="list">${li('reset','إعادة ضبط «'+esc(u.name)+'»','الإعدادات والأصناف والخطة','','reset','dz')}${li('trash','حذف «'+esc(u.name)+'»','مع كل خطته وسجله','','udel','dz')}${on?li('logout','تسجيل الخروج من السحابة','','','clogout','dz'):''}</div>`;
 }
@@ -925,10 +1002,33 @@ function vProfile(){
   ${sel('الجنس','sset','sex',[['m','ذكر'],['f','أنثى']],s.sex)}${inp('العمر (سنة)','age',1)}${inp('الطول (سم)','ht',1)}${inp('الوزن (كجم)','bw',0.5)}${inp('نسبة الدهون % (اختياري)','bf',0.5)}
   ${sel('مستوى النشاط','set','act',ACTS.some(a=>a[0]===+s.act)?ACTS:ACTS.concat([[+s.act,'مخصص ×'+s.act]]),+s.act)}</div>`;
 }
+const avS=(n,on)=>`<span class="av" style="width:36px;height:36px;font-size:14px;${on?'':'background:#f0f0f2;color:var(--tx)'}" aria-hidden="true">${esc(String(n||'').trim().charAt(0)||'؟')}</span>`;
 function vFamily(){
-  return `<div class="list">${meta.users.map(u=>`<button class="li" data-act="uswitch" data-v="${u.id}" aria-pressed="${u.id===meta.cur}"><span class="av" style="width:36px;height:36px;font-size:14px;${u.id===meta.cur?'':'background:#f0f0f2;color:var(--tx)'}" aria-hidden="true">${esc(u.name.trim().charAt(0)||'؟')}</span><span class="g"><b>${esc(u.name)}</b><small>${u.id===meta.cur?'المستخدم الحالي':'اضغط للتبديل'}</small></span></button>`).join('')}</div>
-  <div class="btns"><button data-act="uadd">＋ إضافة فرد</button><button data-act="uren">تعديل اسم «${esc(curUser().name)}»</button></div>
-  <p class="note">لكل فرد أهدافه وأصنافه وخطته وسجله. الحذف من «منطقة الخطر» في حسابي.</p>`;
+  const on=!!cloud.sess,G=ui.grants||[];
+  const mine=meta.users.map(u=>{const gs=G.filter(g=>g.user_id===u.id);
+    return `<div class="li" style="cursor:default">${avS(u.name,u.id===meta.cur&&!ui.remote)}<span class="g"><b>${esc(u.name)}</b><small>${u.kind==='child'?'ملف طفل تديره أنت · ':''}${gs.length?gs.map(g=>g.status==='pending'?'دعوة '+ROLES[g.role]+' بانتظار القبول':esc(g.grantee_email||'')+' ('+ROLES[g.role]+')').join('، '):'غير مشارك'}</small></span>${on&&u.kind!=='child'?`<button class="btn" style="flex:0 0 auto" data-act="share" data-v="${u.id}">مشاركة</button>`:''}</div>`}).join('');
+  const grants=G.length?`<div class="grp">الدعوات والصلاحيات</div><div class="list">${G.map(g=>{const u=meta.users.find(x=>x.id===g.user_id);
+    return `<div class="li" style="cursor:default"><span class="g"><b>${esc(u?u.name:g.user_id)} → ${g.status==='pending'?'كود '+esc(g.code||''):esc(g.grantee_email||'')}</b><small>${ROLES[g.role]} · ${g.status==='pending'?'لم تُقبل بعد':'مفعّلة'}</small></span><button class="btn dan" style="flex:0 0 auto" data-act="grevoke" data-v="${g.id}">${g.status==='pending'?'إلغاء':'إيقاف'}</button></div>`}).join('')}</div>`:'';
+  const shared=(ui.shared||[]).length?`<div class="grp">مشاركون معي</div><div class="list">${ui.shared.map((x,i)=>`<div class="li" style="cursor:default">${avS(x.name)}<span class="g"><b>${esc(x.name)}</b><small>من ${esc(x.owner_email||'')} · ${ROLES[x.role]}</small></span><button class="btn" style="flex:0 0 auto" data-act="whopick" data-v="${i}">عرض</button><button class="btn dan" style="flex:0 0 auto" data-act="gleave" data-v="${i}">مغادرة</button></div>`).join('')}</div>`:'';
+  return `<div class="grp">ملفاتي على هذا الجهاز</div><div class="list">${mine}</div>
+  <div class="btns"><button data-act="uadd">＋ إضافة فرد أو طفل</button><button data-act="uren">تعديل اسم «${esc(curUser().name)}»</button></div>
+  ${on?grants+shared+`<div class="grp">لديك كود من شخص آخر؟</div><div class="card"><div class="fr2"><input id="inv_code" dir="ltr" autocomplete="off" placeholder="مثال: K7Q2MX" style="text-transform:uppercase;letter-spacing:.1em" aria-label="كود الدعوة"><button class="btn pri" style="flex:0 0 auto" data-act="gaccept">قبول</button></div><p class="note" id="inv_msg">أدخل الكود الذي أرسله لك صاحب الخطة. بعدها يظهر في «من تعرض؟».</p></div>`
+  :`<div class="bnr info"><span class="g"><b>المشاركة تحتاج تسجيل الدخول</b>لمشاركة ملف مع فرد بالغ أو مدرب، أو لقبول كود، سجّل الدخول أولاً.</span><button class="btn" data-act="tab" data-v="me/sync">تسجيل الدخول</button></div>`}
+  <p class="note">ملف الطفل لا يحتاج بريداً ويُدار بالكامل من حسابك. البالغ أو المدرب يحصل على صلاحية بكود تُرسله له، ويمكنك إيقافها في أي وقت. الحذف من «منطقة الخطر» في حسابي.</p>`;
+}
+function vMode(){
+  return `<div class="card"><p class="note" style="margin:0 0 8px">يحدد ما يظهر لك في «حسابي». يمكن تغييره في أي وقت ولا يمس بياناتك.</p><div class="modes">${MODES.map(([k,t,d])=>`<button class="${meta.mode===k?'on':''}" data-act="umode" data-v="${k}" aria-pressed="${meta.mode===k}"><b>${t}</b><small>${d}</small></button>`).join('')}</div></div>`;
+}
+function adh(days){ // التزام الأسبوع: نسبة الأصناف المخططة التي سُجّلت
+  let pl=0,lg=0,dn=0;(days||[]).forEach(d=>{if(!d)return;let a=0,b=0;d.meals.forEach(m=>m.items.forEach(it=>{if(it.x)return;a++;if(gE(it)!=null)b++}));pl+=a;lg+=b;if(a&&b===a)dn++});
+  return{pct:pl?Math.round(lg/pl*100):0,done:dn};
+}
+function vClients(){
+  const L=ui.shared||[];
+  if(!cloud.sess)return `<div class="bnr info"><span class="g"><b>سجّل الدخول أولاً</b>المتدربون يظهرون هنا بعد أن يشاركوا ملفاتهم معك.</span><button class="btn" data-act="tab" data-v="me/sync">تسجيل الدخول</button></div>`;
+  return `<div class="btns"><button data-act="whoload">تحديث القائمة</button></div>
+  ${L.length?`<div class="list">${L.map((x,i)=>{const a=ui.adh&&ui.adh[x.owner+'/'+x.user_id];return `<button class="li" data-act="whopick" data-v="${i}">${avS(x.name)}<span class="g"><b>${esc(x.name)}</b><small>${ROLES[x.role]}${a?' · التزام الأسبوع '+a.pct+'% · '+a.done+' أيام مكتملة':''}</small></span><span class="chev">${ico('chev')}</span></button>`}).join('')}</div>`
+  :`<div class="card"><b>لا يوجد متدربون بعد</b><p class="note">اطلب من المتدرب: حسابي › الأشخاص والمشاركة › مشاركة، ويختار «مدرب / أخصائي» ثم يرسل لك الكود. أدخل الكود في «الأشخاص والمشاركة».</p><button class="btn" data-act="tab" data-v="me/family">إدخال كود</button></div>`}`;
 }
 function vData(){return `
   <div class="card"><h3 style="margin:0 0 6px">النسخ الاحتياطي</h3><p class="note">لكل مستخدم إعداداته وأصنافه وخطته، ويُحفظ كل يوم بأصنافه في مفتاح مستقل داخل هذا المتصفح، ويُحفظ الفعلي لكل تاريخ في «التقدم» ويدخل في التصدير. المستخدم الحالي: <b>${esc(curUser().name)}</b>. صدّر نسخة احتياطية قبل تغيير الجهاز.</p><div class="btns"><button data-act="export">تصدير كل المستخدمين</button><button data-act="import">استيراد</button></div></div>`;
@@ -938,6 +1038,8 @@ function vMeSub(){const s=S();
     case 'profile':return vProfile();
     case 'goals':return goalUI(s,targets({mode:'high'}),targets({mode:'low'}));
     case 'family':return vFamily();
+    case 'clients':return vClients();
+    case 'mode':return vMode();
     case 'sync':return vCloud();
     case 'data':return vData();
     case 'advanced':return vEqMgmt(s);
@@ -956,7 +1058,7 @@ function histRecs(){
   const t=new Date(),r=ui.hr||'7';let from='0000-00-00',to='9999-99-99';
   if(r==='7')from=iso(addDays(t,-6));else if(r==='30')from=iso(addDays(t,-29));
   else if(r==='custom'){if(ui.hf)from=ui.hf;if(ui.ht)to=ui.ht}
-  return hAll(meta.cur).filter(x=>x.date>=from&&x.date<=to).sort((a,b)=>a.date<b.date?1:-1);
+  return (ui.remote?ui.remote.hist:hAll(meta.cur)).filter(x=>x.date>=from&&x.date<=to).sort((a,b)=>a.date<b.date?1:-1);
 }
 function vHist(){
   const rs=histRecs(),A=rs.map(r=>({r,L:dayLog(r)})),done=A.filter(x=>x.L.total>0&&x.L.logged===x.L.total),n=done.length;
@@ -1000,7 +1102,7 @@ function renderModal(){
   if(modal.type==='ask'){
     m.innerHTML=`<div class="sheet"><h3>تأكيد</h3><p>${esc(modal.msg)}</p><div class="btns"><button class="btn pri" data-act="yes">متابعة</button><button class="btn" data-act="close">إلغاء</button></div></div>`;
   }else if(modal.type==='user'){
-    m.innerHTML=`<div class="sheet"><h3>${modal.mode==='add'?'مستخدم جديد':'تعديل الاسم'}</h3><input id="un" value="${esc(modal.name||'')}" placeholder="الاسم" style="width:100%">${modal.mode==='add'?'<label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="ucopy" style="width:auto"> نسخ إعدادات وأصناف وخطة المستخدم الحالي</label><p class="note" style="margin:0 0 6px">بدون النسخ يبدأ بالخطة والإعدادات الافتراضية.</p>':'<div style="height:10px"></div>'}<div class="btns"><button class="btn pri" data-act="usave">حفظ</button><button class="btn" data-act="close">إلغاء</button></div></div>`;
+    m.innerHTML=`<div class="sheet"><h3>${modal.mode==='add'?'مستخدم جديد':'تعديل الاسم'}</h3><input id="un" value="${esc(modal.name||'')}" placeholder="الاسم" style="width:100%">${modal.mode==='add'?'<label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="ucopy" style="width:auto"> نسخ إعدادات وأصناف وخطة المستخدم الحالي</label><label style="display:flex;gap:8px;align-items:center;margin:0 0 10px"><input type="checkbox" id="ukid" style="width:auto"> ملف طفل (بلا بريد، تديره أنت بالكامل)</label><p class="note" style="margin:0 0 6px">بدون النسخ يبدأ بالخطة والإعدادات الافتراضية.</p>':'<div style="height:10px"></div>'}<div class="btns"><button class="btn pri" data-act="usave">حفظ</button><button class="btn" data-act="close">إلغاء</button></div></div>`;
   }else if(modal.type==='log'||modal.type==='hlog'){
     const hr=modal.type==='hlog'?getRec(modal.date):null,d=hr||state.days[ui.day],it=d.meals[modal.m].items[modal.i],f=FOOD(it),e=gE(it),em=emOf(it,modal.m);
     const u=f.u&&f.ug?f.ug:1,dq=+(((e!=null?e:(it.x?0:it.g)))/u).toFixed(1);
@@ -1027,6 +1129,16 @@ function renderModal(){
     ${hr?hFoot(hr):`<div class="btns" style="margin-top:10px"><button data-act="logrest">تسجيل الباقي كما في الخطة</button><button data-act="logclear">مسح تسجيل اليوم</button></div>
     <button class="btn" style="width:100%;margin-top:6px" data-act="close">إغلاق</button>
     <p class="note">يُحفظ سجل كل يوم بتاريخه تلقائياً، ويبقى في «التقدم» بعد انتهاء الأسبوع.</p>`}</div>`;
+  }else if(modal.type==='who'){
+    const L=ui.shared||[];
+    m.innerHTML=`<div class="sheet" role="dialog" aria-label="من تعرض؟"><h3>من تعرض؟</h3><div class="list" style="box-shadow:none;border:1px solid var(--ln)">${meta.users.map(u=>`<button class="li" data-act="uswitch" data-v="${u.id}" aria-pressed="${!ui.remote&&u.id===meta.cur}">${avS(u.name,!ui.remote&&u.id===meta.cur)}<span class="g"><b>${esc(u.name)}</b><small>${u.kind==='child'?'ملف طفل':'على هذا الجهاز'}${!ui.remote&&u.id===meta.cur?' · المعروض الآن':''}</small></span></button>`).join('')}
+    ${L.map((x,i)=>`<button class="li" data-act="whopick" data-v="${i}" aria-pressed="${!!ui.remote&&ui.remote.owner===x.owner&&ui.remote.id===x.user_id}">${avS(x.name,!!ui.remote&&ui.remote.id===x.user_id)}<span class="g"><b>${esc(x.name)}</b><small>${ROLES[x.role]} · من ${esc(x.owner_email||'')}</small></span></button>`).join('')}</div>
+    ${cloud.sess?'':'<p class="note">سجّل الدخول لترى الأشخاص المشاركين معك.</p>'}
+    <div class="btns" style="margin-top:8px"><button data-act="tab" data-v="me/family">إدارة الأشخاص</button><button data-act="tab" data-v="me">حسابي</button><button data-act="close">إغلاق</button></div></div>`;
+  }else if(modal.type==='share'){
+    const u=meta.users.find(x=>x.id===modal.user)||{name:''};
+    m.innerHTML=`<div class="sheet" role="dialog" aria-label="مشاركة ${esc(u.name)}"><h3>مشاركة «${esc(u.name)}»</h3>${modal.code?`<p>أرسل هذا الكود للشخص. يدخله من: حسابي › الأشخاص والمشاركة.</p><div class="code" id="sh_code">${esc(modal.code)}</div><p class="note">الصلاحية: ${ROLES[modal.role]} (${ROLE_NOTE[modal.role]}). الكود يُستخدم مرة واحدة.</p><div class="btns"><button class="btn pri" data-act="gcopy">نسخ الكود</button><button data-act="close">تم</button></div>`
+    :`<p class="note">اختر ما يستطيع الشخص الآخر فعله. التسجيل (ما أكلت) يبقى لك دائماً.</p><div class="modes" style="grid-template-columns:1fr">${Object.keys(ROLES).map(r=>`<button class="${modal.role===r?'on':''}" data-act="srole" data-v="${r}" aria-pressed="${modal.role===r}"><b>${ROLES[r]}</b><small>${ROLE_NOTE[r]}</small></button>`).join('')}</div><div class="btns" style="margin-top:8px"><button class="btn pri" data-act="gcreate" ${modal.busy?'disabled':''}>${modal.busy?'جارٍ إنشاء الكود…':'إنشاء كود دعوة'}</button><button data-act="close">إلغاء</button></div>`}</div>`;
   }else if(modal.type==='scan'){
     m.innerHTML=scanHtml();
   }else if(modal.type==='swap'){
@@ -1052,21 +1164,42 @@ function renderAddList(q){
 }
 function render(){
   if(ui.tab==='me'&&!SUBS[ui.sub])ui.sub='';
-  const sub=ui.tab==='me'&&ui.sub,u=curUser(),title=sub?SUBS[ui.sub]:(TABS.find(t=>t[0]===ui.tab)||TABS[0])[1];
-  $('#top').innerHTML=`<div class="top">${sub?`<button class="bk" data-act="back" aria-label="رجوع إلى حسابي">${ico('back')}</button>`:''}<h1>${title}${ui.tab==='me'?'':`<small>${esc(u.name)}</small>`}</h1>${ui.tab==='me'?'':`<button class="av" data-act="tab" data-v="me" aria-label="حسابي: ${esc(u.name)}">${esc(u.name.trim().charAt(0)||'؟')}</button>`}</div>`;
+  const sub=ui.tab==='me'&&ui.sub,u=ui.remote?{name:ui.remote.name}:curUser(),title=sub?SUBS[ui.sub]:(TABS.find(t=>t[0]===ui.tab)||TABS[0])[1];
+  $('#top').innerHTML=`<div class="top">${sub?`<button class="bk" data-act="back" aria-label="رجوع إلى حسابي">${ico('back')}</button>`:''}<h1>${title}${ui.tab==='me'?'':`<small>${esc(u.name)}</small>`}</h1>${ui.tab==='me'?'':`<button class="av" data-act="who" aria-haspopup="dialog" aria-label="من تعرض؟ الآن: ${esc(u.name)}" style="${ui.remote?'background:#3a5bd9;color:#fff':''}">${esc(u.name.trim().charAt(0)||'؟')}</button>`}</div>`;
   $('#nav').innerHTML=TABS.map(([k,l])=>`<button data-act="tab" data-v="${k}" ${ui.tab===k?'aria-current="page"':''}><span>${ico(k)}</span>${l}</button>`).join('');
-  $('#app').innerHTML=ui.tab==='day'?vDay():ui.tab==='week'?vWeek():ui.tab==='hist'?vHist():ui.tab==='foods'?vFoods():vMeSub();
+  $('#app').innerHTML=banners()+(ui.tab==='day'?vDay():ui.tab==='week'?vWeek():ui.tab==='hist'?vHist():ui.tab==='foods'?vFoods():vMeSub());
   syncHash();
   renderModal();
 }
 
 // ---------- actions ----------
 function act(a,ds){
+  const blk=remoteBlock(a);if(blk){toast(blk);return}
   const d=state.days[ui.day];
   switch(a){
-    case 'tab':{const [t,sb]=String(ds.v).split('/');ui.tab=t;ui.sub=sb||'';document.documentElement.scrollTop=0;break}
+    case 'tab':{const [t,sb]=String(ds.v).split('/');modal=null;ui.tab=t;ui.sub=sb||'';document.documentElement.scrollTop=0;break}
     case 'back':ui.sub='';document.documentElement.scrollTop=0;break;
-    case 'uswitch':if(ds.v!==meta.cur){switchUser(ds.v);toast('تم التبديل إلى «'+curUser().name+'»')}return;
+    case 'uswitch':if(ui.remote){leaveRemote();meta.cur=ds.v}if(ds.v!==meta.cur||modal){modal=null;switchUser(ds.v);toast('تعرض الآن: «'+curUser().name+'»')}else{modal=null;render()}return;
+    case 'who':modal={type:'who'};render();if(cloud.sess&&!ui.shared)loadShared().then(()=>{if(modal&&modal.type==='who')render()});return;
+    case 'whoload':cRun(async()=>{await loadShared();render();return 'تم تحديث القائمة'});return;
+    case 'whopick':{const x=(ui.shared||[])[+ds.v];if(!x)return;toast('جارٍ تحميل «'+x.name+'»…');
+      openRemote(x).then(()=>{toast('تعرض الآن: «'+ui.remote.name+'»');render()},e=>{toast(e.message||String(e));render()});return}
+    case 'whome':leaveRemote();modal=null;toast('رجعت إلى ملفك');break;
+    case 'umode':meta.mode=ds.v;saveMeta();toast('نوع الاستخدام: '+MODES.find(x=>x[0]===ds.v)[1]);if(isCoach())loadShared().then(render);break;
+    case 'annx':{const sn=lsGet('mp3_ann_seen')||[];sn.push(+ds.v);lsSet('mp3_ann_seen',sn);render();return}
+    case 'reload':location.reload();return;
+    case 'share':modal={type:'share',user:ds.v,role:isCoach()?'coach':'viewer'};render();return;
+    case 'srole':modal.role=ds.v;render();return;
+    case 'gcreate':{const M=modal;M.busy=true;render();
+      cRun(async()=>{await cPush();const code=mkCode();
+        await cFetch('/rest/v1/mp_grants',{method:'POST',headers:{Prefer:'return=minimal'},body:{owner:cloud.sess.uid,user_id:M.user,role:M.role,code}});
+        M.code=code;M.busy=false;await loadShared();if(modal===M)render();return 'تم إنشاء كود الدعوة'}).then(()=>{if(M.busy){M.busy=false;render()}});return}
+    case 'gcopy':{const c=modal&&modal.code;try{navigator.clipboard.writeText(c).then(()=>toast('تم نسخ الكود'),()=>toast('انسخ الكود يدوياً'))}catch(e){toast('انسخ الكود يدوياً')}return}
+    case 'grevoke':{const id=ds.v;ask('إيقاف هذه الصلاحية؟ لن يرى الطرف الآخر الملف بعد الآن.',()=>{cRun(async()=>{await cFetch('/rest/v1/mp_grants?id=eq.'+ENC(id),{method:'DELETE'});await loadShared();render();return 'تم إيقاف الصلاحية'})});return}
+    case 'gleave':{const x=(ui.shared||[])[+ds.v];if(!x)return;ask('مغادرة «'+x.name+'»؟ لن تراه بعد الآن إلا بكود جديد.',()=>{cRun(async()=>{await cFetch('/rest/v1/mp_grants?'+qs({owner:x.owner,user_id:x.user_id,grantee:cloud.sess.uid}),{method:'DELETE'});if(ui.remote&&ui.remote.owner===x.owner&&ui.remote.id===x.user_id)leaveRemote();await loadShared();render();return 'تمت المغادرة'})});return}
+    case 'gaccept':{const c=(($('#inv_code')||{}).value||'').trim().toUpperCase();if(c.length<4){toast('اكتب الكود');return}
+      cRun(async()=>{try{const r=await cFetch('/rest/v1/rpc/mp_accept_invite',{method:'POST',body:{p_code:c}});await loadShared();render();toast('أُضيف «'+((r&&r.name)||'')+'» إلى «من تعرض؟»');return 'تم قبول الدعوة'}
+        catch(e){const m=String(e.message||e);const t=/invalid_code/.test(m)?'الكود غير صحيح أو استُخدم من قبل':/own_invite/.test(m)?'هذا كود دعوة من حسابك أنت':m;const el=$('#inv_msg');if(el)el.textContent=t;toast(t);return t}});return}
     case 'day':ui.day=+ds.v;break;
     case 'goday':ui.day=+ds.v;ui.tab='day';window.scrollTo(0,0);break;
     case 'mode':{const v=ds.v,di=ui.day;if(d.mode!==v)ask('تغيير النوع يعيد بناء اليوم من القالب. متابعة؟',()=>{state.days[di]=buildDay(di,v,state.days[di].prot)});return}
@@ -1093,7 +1226,7 @@ function act(a,ds){
     case 'uadd':modal={type:'user',mode:'add',name:''};break;
     case 'uren':modal={type:'user',mode:'ren',name:curUser().name};break;
     case 'usave':{const n=($('#un').value||'').trim();if(!n){toast('اكتب الاسم');return}
-      if(modal.mode==='add'){const cp=!!($('#ucopy')&&$('#ucopy').checked);modal=null;addUser(n,cp);toast('تم إنشاء المستخدم')}
+      if(modal.mode==='add'){const cp=!!($('#ucopy')&&$('#ucopy').checked),kid=!!($('#ukid')&&$('#ukid').checked);modal=null;addUser(n,cp,kid?'child':'');toast(kid?'تم إنشاء ملف الطفل':'تم إنشاء الملف')}
       else{curUser().name=n;modal=null}
       break}
     case 'udel':{if(meta.users.length<2){toast('لا يمكن حذف المستخدم الوحيد');return}
@@ -1133,7 +1266,7 @@ function act(a,ds){
     case 'csignup':cRun(()=>cAuth(true));return;
     case 'cforgot':cRun(async()=>{const em=(($('#cl_em')||{}).value||cloud.email||'').trim();if(!em)return 'اكتب بريدك أولاً';cloud.email=em;cSave();await cFetch('/auth/v1/recover'+RET(),{method:'POST',anon:true,body:{email:em}});return 'أُرسل رابط الاستعادة إلى '+em+' — افتحه من نفس الجهاز'});return;
     case 'cnewpw':cRun(async()=>{const pw=($('#cl_np')||{}).value||'';if(pw.length<6)return 'كلمة المرور 6 أحرف على الأقل';await cFetch('/auth/v1/user',{method:'PUT',body:{password:pw}});ui.recov=false;setTimeout(render,0);return 'تم تغيير كلمة المرور — يمكنك الرفع الآن'});return;
-    case 'clogout':cloud.sess=null;cloud.auto=false;cSave();break;
+    case 'clogout':leaveRemote();cloud.sess=null;cloud.auto=false;ui.shared=null;ui.grants=null;cSave();break;
     case 'cpush':cRun(cPush);return;
     case 'cpull':cRun(cPull);return;
     case 'addfood':{const n=$('#nf_n').value.trim();if(!n){toast('اكتب الاسم');return}
@@ -1171,6 +1304,7 @@ document.addEventListener('input',e=>{const t=e.target,id=t.id||'';
 document.addEventListener('change',e=>{const t=e.target;if((t.id==='nf_img'||t.id==='am_img')&&t.files&&t.files[0]){const f=t.files[0],from=t.id==='am_img'&&modal&&modal.type==='add'?modal.m:null;t.value='';startScan(f,from)}});
 document.addEventListener('change',e=>{
   const t=e.target,c=t.dataset&&t.dataset.ch;if(!c)return;
+  if(ui.remote&&!canWrite()&&c!=='cl'){toast('لديك صلاحية مشاهدة فقط');render();return}
   if(c==='user'){switchUser(t.value);return}
   if(c==='hf'||c==='ht'){ui[c]=t.value;render();return}
   const d=state.days[ui.day];
@@ -1345,7 +1479,7 @@ async function cAuth(signup){
   if(!email||!pw)return 'أدخل البريد وكلمة المرور';
   cloud.email=email;
   const j=await cFetch(signup?'/auth/v1/signup'+RET():'/auth/v1/token?grant_type=password',{method:'POST',anon:true,body:{email,password:pw}});
-  if(j&&j.access_token){cSess(j);setTimeout(render,0);return 'تم تسجيل الدخول'}
+  if(j&&j.access_token){cSess(j);loadShared().then(render);setTimeout(render,0);return 'تم تسجيل الدخول'}
   return 'تم إنشاء الحساب. أكّد بريدك من الرسالة ثم سجّل الدخول';
 }
 async function cHash(){ // رابط التأكيد/الاستعادة من Supabase يعود إلى التطبيق ومعه الرمز في #hash
@@ -1376,12 +1510,12 @@ async function cPush(){
   await cUpsert('mp_users',U,'owner,id');await cUpsert('mp_days',D,'owner,user_id,idx');await cUpsert('mp_history',H,'owner,user_id,date');
   // تنظيف ما حُذف محلياً (مستخدمون، وأيام سجل)
   const ids=meta.users.map(u=>u.id);
-  await cFetch('/rest/v1/mp_users?id=not.in.('+ids.map(ENC).join(',')+')',{method:'DELETE'});
+  await cFetch('/rest/v1/mp_users?owner=eq.'+ENC(uid)+'&id=not.in.('+ids.map(ENC).join(',')+')',{method:'DELETE'});
   for(const u of meta.users){const ds=hIdx(u.id);
-    await cFetch('/rest/v1/mp_history?user_id=eq.'+ENC(u.id)+(ds.length?'&date=not.in.('+ds.join(',')+')':''),{method:'DELETE'})}
+    await cFetch('/rest/v1/mp_history?owner=eq.'+ENC(uid)+'&user_id=eq.'+ENC(u.id)+(ds.length?'&date=not.in.('+ds.join(',')+')':''),{method:'DELETE'})}
   return 'تم الرفع '+new Date().toLocaleTimeString('ar')+' — '+U.length+' مستخدم، '+H.length+' يوم سجل';
 }
-async function cAll(table,order){let out=[],off=0;for(;;){const r=await cFetch('/rest/v1/'+table+'?select=*&order='+order+'&limit=1000&offset='+off);out=out.concat(r||[]);if(!r||r.length<1000)break;off+=1000}return out}
+async function cAll(table,order){let out=[],off=0;for(;;){const r=await cFetch('/rest/v1/'+table+'?select=*&owner=eq.'+ENC(cloud.sess.uid)+'&order='+order+'&limit=1000&offset='+off);out=out.concat(r||[]);if(!r||r.length<1000)break;off+=1000}return out}
 async function cPull(){
   const U=await cAll('mp_users','id'),D=await cAll('mp_days','user_id,idx'),H=await cAll('mp_history','user_id,date');
   if(!U.length)return 'لا توجد بيانات في السحابة بعد — ارفع أولاً';
@@ -1419,8 +1553,10 @@ if(!state){state=defaultState();const id=uid();meta={users:[{id,name:'المست
   if(fx.length){save();setTimeout(()=>toast('تم تصحيح سعرات: '+fx.join('، ')),400)}})();
 if(rollWeek())save();
 fromHash();
+addShared(lsGet('mp3_sfoods'));
 window.addEventListener('popstate',()=>{if(location.hash&&!location.hash.startsWith('#/'))return;if(!fromHash()){ui.tab='day';ui.sub=''}modal=null;render()});
 render();
+loadPublic();if(cloud.sess)loadShared().then(render);
 if(/access_token=/.test(location.hash))cHash().then(r=>{if(r||ui.sub==='sync')render()});
 </script>
 </body>

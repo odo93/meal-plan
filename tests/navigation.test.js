@@ -12,7 +12,7 @@ const mk=url=>new JSDOM(html,{runScripts:'dangerously',url,virtualConsole:vc,pre
  T('5 nav items',nav.join('|')==='اليوم|الخطة|التقدم|الأصناف|حسابي',nav);
  T('day is current',$('#nav [aria-current="page"]').dataset.v==='day');
  T('no hash on start',w.location.hash==='');
- T('avatar opens me',!!$('#top .av[data-v="me"]'));
+ T('avatar opens who sheet',!!$('#top .av[data-act="who"]'));
  // 2) hub
  click('#nav [data-v="me"]');
  T('hash #/me',w.location.hash==='#/me',w.location.hash);
@@ -38,11 +38,28 @@ const mk=url=>new JSDOM(html,{runScripts:'dangerously',url,virtualConsole:vc,pre
  T('unknown route falls back to day',E('ui.tab')==='day');
  // 5) family
  click('#nav [data-v="me"]');click('[data-v="me/family"]');
- T('family lists user',$$('#app [data-act="uswitch"]').length===1);
- E("addUser('سارة',false)");E('render()');
- T('family lists two',$$('#app [data-act="uswitch"]').length===2);
- const first=E('meta.users[0].id');click(`[data-act="uswitch"][data-v="${first}"]`);
- T('switched user',E('meta.cur')===first&&E('ui.tab')==='me'&&E('ui.sub')==='family');
+ T('family lists user',$$('#app .list')[0].querySelectorAll('.li').length===1);
+ T('sharing needs sign-in',$('#app').textContent.includes('المشاركة تحتاج تسجيل الدخول')&&!$('#app [data-act="share"]'));
+ click('[data-act="uadd"]');$('#un').value='سارة';$('#ukid').checked=true;click('[data-act="usave"]');
+ T('child profile created',E('curUser().kind')==='child'&&E('meta.users.length')===2);
+ click('#nav [data-v="me"]');click('[data-v="me/family"]');
+ T('family lists two',$$('#app .list')[0].querySelectorAll('.li').length===2&&$('#app').textContent.includes('ملف طفل'));
+ // 6) «من تعرض؟» from the avatar
+ click('#nav [data-v="day"]');click('#top [data-act="who"]');
+ T('who sheet lists profiles',$$('#modal [data-act="uswitch"]').length===2);
+ const first=E('meta.users[0].id');click(`#modal [data-act="uswitch"][data-v="${first}"]`);
+ T('switched user',E('meta.cur')===first&&!$('#modal.on'));
+ click('#top [data-act="who"]');click('#modal [data-v="me/family"]');
+ T('sheet closes on navigation',!$('#modal.on')&&E('ui.sub')==='family');
+ click('#nav [data-v="day"]');
+ // 7) usage type
+ T('onboarding asks usage type',!!$('#app [data-act="umode"]'));
+ click('#app [data-act="umode"][data-v="coach"]');
+ T('mode saved',E('meta.mode')==='coach'&&JSON.parse(w.localStorage.getItem('mp3_meta')).mode==='coach'&&!$('#app [data-act="umode"]'));
+ click('#nav [data-v="me"]');
+ T('coach sees trainees',!!$('#app [data-v="me/clients"]'));
+ click('[data-v="me/mode"]');click('[data-act="umode"][data-v="self"]');click('[data-act="back"]');
+ T('self hides trainees',!$('#app [data-v="me/clients"]'));
  // 6) goals: weight gain and muscle gain are separate
  const ids=E('S().goals.map(g=>g.id+":"+g.name).join(",")');
  T('bulk renamed and lean added',ids.includes('bulk:زيادة وزن')&&ids.includes('lean:بناء عضلات'),ids);

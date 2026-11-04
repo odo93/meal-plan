@@ -38,7 +38,7 @@ let ok=0,bad=0;const T=(n,c,x)=>{c?ok++:(bad++,console.log('FAIL',n,x===undefine
  T('users uploaded',DB.mp_users.length===2&&DB.mp_users[0].owner==='uid-1'&&Array.isArray(DB.mp_users[0].foods));
  T('days uploaded',DB.mp_days.length===14);
  T('history uploaded',DB.mp_history.length>=1&&DB.mp_history[0].data.date===DB.mp_history[0].date);
- T('auth header uses token',log.filter(l=>l[1].startsWith('/rest')).every(l=>l[2]==='Bearer AT1'));
+ T('auth header uses token',log.filter(l=>l[1].startsWith('/rest')&&!/app_config|announcements|shared_foods/.test(l[1])).every(l=>l[2]==='Bearer AT1'));
  // prune: delete second user locally and push
  E('delUser(meta.users[1].id)');click('[data-act="cpush"]');await sleep(150);
  T('pruned user',DB.mp_users.length===1);

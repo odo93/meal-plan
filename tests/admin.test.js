@@ -1,0 +1,51 @@
+// لوحة الإدارة: الدخول، رفض غير المدير، الإحصاءات، نشر إعلان، حفظ الإعدادات، والحذف بضغطتين
+const {JSDOM,VirtualConsole}=require('jsdom');const fs=require('fs');
+const html=fs.readFileSync(__dirname+'/../admin/index.html','utf8');
+const errs=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errs.push(e.message));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));let ok=0,bad=0;const T=(n,c,x)=>{c?ok++:(bad++,console.log('FAIL',n,x===undefined?'':x))};
+const log=[];let ADMIN=true;
+const R=(j,st)=>({ok:(st||200)<300,status:st||200,text:async()=>j===undefined?'':JSON.stringify(j)});
+const mk=()=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.io/meal-plan/admin/',virtualConsole:vc,pretendToBeVisual:true,beforeParse(win){
+  win.fetch=async(url,o)=>{o=o||{};const u=new URL(url),p=u.pathname,body=o.body?JSON.parse(o.body):null;log.push([o.method||'GET',p+u.search,o.headers.Authorization,body]);
+    if(p==='/auth/v1/token')return body.password==='pw'?R({access_token:'AT',refresh_token:'RT',expires_in:3600,user:{email:'m@x.y'}}):R({error_description:'Invalid login credentials'},400);
+    if(p==='/rest/v1/rpc/is_admin')return R(ADMIN);
+    if(p==='/rest/v1/rpc/admin_stats')return R({accounts:2,active_7d:1,people:3,history_days:14,active_grants:1,pending_grants:0});
+    if(p==='/rest/v1/rpc/admin_accounts')return R([{email:'m@x.y',created_at:'2026-11-02T00:00:00Z',last_sign_in_at:null,people:2,last_update:null,is_admin:true}]);
+    if(p==='/rest/v1/announcements'&&(o.method||'GET')==='GET')return R([{id:3,title:'قديم',body:'',level:'info',active:true,ends_at:null}]);
+    if(p==='/rest/v1/app_config')return (o.method||'GET')==='GET'?R([{id:1,latest_version:'2.1',min_version:'2.0',features:{share:true},updated_at:null}]):R(undefined,204);
+    if(p==='/rest/v1/shared_foods'&&(o.method||'GET')==='GET')return R([]);
+    return R(undefined,201)}}});
+(async()=>{
+ let d=mk(),w=d.window,$=s=>w.document.querySelector(s);
+ const click=s=>$(s).dispatchEvent(new w.MouseEvent('click',{bubbles:true})),submit=s=>$(s).dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
+ T('login form first',!!$('#lf')&&!$('#nav button'));
+ $('#em').value='m@x.y';$('#pw').value='bad';submit('#lf');await sleep(40);
+ T('wrong password message',$('#lmsg').textContent.includes('غير صحيحة'));
+ $('#pw').value='pw';submit('#lf');await sleep(80);
+ T('admin checked via rpc',log.some(l=>l[1]==='/rest/v1/rpc/is_admin'&&l[2]==='Bearer AT'));
+ T('stats shown',$('#app').textContent.includes('حسابات مسجّلة')&&$('#app').textContent.includes('14'));
+ T('session not holding password',!JSON.stringify(w.localStorage).includes('"pw"'));
+ click('[data-v="accounts"]');await sleep(40);
+ T('accounts table',$('#app').textContent.includes('m@x.y')&&$('#app').textContent.includes('مدير'));
+ click('[data-v="ann"]');await sleep(40);
+ $('#a_t').value='تحديث جديد';$('#a_b').value='جرّب «من تعرض؟»';submit('#af');await sleep(60);
+ const pa=log.find(l=>l[0]==='POST'&&l[1]==='/rest/v1/announcements');
+ T('announcement posted',pa&&pa[3].title==='تحديث جديد'&&pa[3].level==='info'&&pa[3].ends_at===null);
+ click('[data-act="adel"]');await sleep(20);
+ T('delete needs second press',!log.some(l=>l[0]==='DELETE'));
+ click('[data-act="adel"]');await sleep(40);
+ T('delete on second press',log.some(l=>l[0]==='DELETE'&&l[1]==='/rest/v1/announcements?id=eq.3'));
+ click('[data-v="config"]');await sleep(40);
+ $('#c_f').value='{bad';submit('#cf');await sleep(20);
+ T('bad JSON rejected',!log.some(l=>l[0]==='PATCH'&&l[1].startsWith('/rest/v1/app_config')));
+ $('#c_m').value='2.1';$('#c_f').value='{"share":false}';submit('#cf');await sleep(40);
+ const pc=log.find(l=>l[0]==='PATCH'&&l[1].startsWith('/rest/v1/app_config'));
+ T('config saved',pc&&pc[3].min_version==='2.1'&&pc[3].features.share===false);
+ click('[data-v="foods"]');await sleep(40);
+ $('#f_n').value='كشري';$('#f_k').value='150';$('#f_p').value='5';$('#f_c').value='28';$('#f_f').value='2';submit('#ff');await sleep(40);
+ const pf=log.find(l=>l[0]==='POST'&&l[1]==='/rest/v1/shared_foods');
+ T('shared food posted',pf&&pf[3].n==='كشري'&&pf[3].k===150&&pf[3].grp==='pro');
+ // not an admin
+ ADMIN=false;d=mk();w=d.window;w.document.querySelector('#em').value='x@y.z';w.document.querySelector('#pw').value='pw';w.document.querySelector('#lf').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await sleep(80);
+ T('non-admin blocked',w.document.querySelector('#app').textContent.includes('لا توجد صلاحية')&&!w.document.querySelector('#nav [data-v="stats"]'));
+ console.log('PASS',ok,'FAIL',bad,errs);process.exit(0)})();
