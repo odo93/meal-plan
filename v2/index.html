@@ -2,14 +2,34 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>نظام الوجبات الأسبوعي</title>
 <style>
 :root{--bg:#f5f5f6;--card:#fff;--tx:#1b1b1f;--mu:#636366;--ac:#f5a623;--on-ac:#2b1a00;--act:#8a5700;--ac2:#fff1d6;--ln:#e8e8ec;--ok:#1f7a45;--hi:#c0392b;--lo:#9a5800}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,"Segoe UI",Tahoma,Arial,sans-serif;font-size:15px;line-height:1.5}
-header{background:#fff;position:sticky;top:0;z-index:5;border-bottom:1px solid var(--ln)}
-h1{font-size:17px;margin:0;padding:10px 14px 4px}
+header{background:#fff;position:sticky;top:0;z-index:5;border-bottom:1px solid var(--ln);padding-top:env(safe-area-inset-top,0px)}
+.top{display:flex;align-items:center;gap:8px;max-width:760px;margin:0 auto;padding:8px 12px;min-height:58px}
+h1{font-size:18px;margin:0;flex:1;min-width:0}
+h1 small{display:block;font-size:12px;font-weight:400;color:var(--mu)}
+.av{width:40px;height:40px;border-radius:50%;border:0;background:var(--ac);color:var(--on-ac);font:inherit;font-weight:700;font-size:16px;cursor:pointer;flex:0 0 auto}
+.bk{width:44px;height:44px;border:0;background:none;border-radius:12px;color:var(--tx);cursor:pointer;display:grid;place-items:center;flex:0 0 auto}
+.bk svg,#nav svg,.li .ic svg,.li .chev{width:22px;height:22px}
+#nav{position:fixed;bottom:0;left:0;right:0;z-index:10;background:#fff;border-top:1px solid var(--ln);padding:4px 4px calc(6px + env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:repeat(5,1fr)}
+#nav button{border:0;background:none;color:var(--mu);font:inherit;font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;min-height:52px;cursor:pointer;touch-action:manipulation}
+#nav button span{display:grid;place-items:center;padding:2px 16px;border-radius:999px}
+#nav button[aria-current="page"]{color:var(--act)}#nav button[aria-current="page"] span{background:var(--ac2)}
+.list{background:var(--card);border-radius:14px;overflow:hidden;margin:10px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.li{display:flex;align-items:center;gap:12px;width:100%;padding:12px;border:0;border-top:1px solid var(--ln);background:none;font:inherit;color:inherit;text-align:start;cursor:pointer;min-height:56px}
+.li:first-child{border-top:0}.li:active{background:var(--ac2)}
+.li .ic{width:36px;height:36px;border-radius:10px;background:var(--ac2);color:var(--act);display:grid;place-items:center;flex:0 0 auto}
+.li .g{flex:1;min-width:0}.li .g b{display:block;font-weight:600}.li .g small{color:var(--mu);font-size:12px}
+.li .chev{color:var(--mu);flex:0 0 auto}
+.li.dz{color:var(--hi)}.li.dz .ic{background:#fde8e8;color:var(--hi)}
+.grp{font-size:13px;font-weight:600;color:var(--mu);margin:16px 4px -4px}
+.prof{display:flex;align-items:center;gap:12px}.prof .av{width:56px;height:56px;font-size:22px;cursor:default}
+.pill{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:1px 10px;background:#e3f5ea;color:var(--ok)}.pill.off{background:#f0f0f2;color:var(--mu)}
+.lnk{border:0;background:none;color:var(--act);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;padding:0}
 .ib.on{background:var(--ok);border-color:var(--ok);color:#fff}
 .tag.sk{background:#fde8e8;color:var(--hi)}.tag.ok2{background:#e3f5ea;color:var(--ok)}.tag.x{background:#e8eefc;color:#3a5bd9}
 .nm.sk .t{text-decoration:line-through;color:var(--mu)}
@@ -30,12 +50,7 @@ h1{font-size:17px;margin:0;padding:10px 14px 4px}
 .hb i.part{opacity:.45}
 .hb u{position:absolute;top:-3px;bottom:-3px;width:2px;background:#333}
 .hr b{text-align:end}
-#ubar{display:flex;gap:6px;padding:2px 10px 4px;align-items:center}
-#ubar select{flex:1;font-weight:700;min-width:0}
-#tabs{display:flex;gap:6px;padding:4px 10px 8px}
-#tabs button{flex:1;border:0;background:#f0f0f2;border-radius:10px;padding:8px 4px;font:inherit;font-weight:600;color:#555}
-#tabs button.on{background:var(--ac);color:var(--on-ac)}
-main{max-width:760px;margin:0 auto;padding:10px 10px 80px}
+main{max-width:760px;margin:0 auto;padding:10px 10px calc(96px + env(safe-area-inset-bottom,0px))}
 .card{background:var(--card);border-radius:14px;padding:12px;margin:10px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
 .days{display:flex;gap:6px;overflow-x:auto;padding:2px 0 4px}
 .days button{flex:0 0 auto;min-width:78px;border:1px solid var(--ln);background:#fff;border-radius:12px;padding:6px 8px;font:inherit;font-weight:700;display:flex;flex-direction:column;align-items:center}
@@ -99,8 +114,8 @@ tr.clk{cursor:pointer}tr.avg td{font-weight:700;background:var(--ac2)}
 .dl{font-size:12px;text-align:end;white-space:nowrap;direction:ltr}
 .dl .w{color:var(--hi);font-weight:700}
 #toast .tu{border:0;background:none;color:#ffd48a;font:inherit;font-weight:700;min-height:44px;padding:0 6px;cursor:pointer}
-#toast{position:fixed;bottom:16px;width:max-content;max-width:calc(100% - 32px);align-items:center;gap:12px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px 14px;border-radius:10px;display:none;z-index:30}
-@media print{header,.btns,.add,.ib,#modal{display:none!important}.card{box-shadow:none;break-inside:avoid}}
+#toast{position:fixed;bottom:calc(84px + env(safe-area-inset-bottom,0px));width:max-content;max-width:calc(100% - 32px);align-items:center;gap:12px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px 14px;border-radius:10px;display:none;z-index:30}
+@media print{header,#nav,.btns,.add,.ib,#modal{display:none!important}.card{box-shadow:none;break-inside:avoid}}
 .fr2{display:flex;gap:6px;align-items:center;margin:4px 0}.fr2 input,.fr2 select{flex:1;min-width:0}.fr2 .pv{min-width:46px;text-align:center;color:var(--act)}
 .eqr{border-top:1px solid var(--ln);padding:4px 0}.eqr details{margin:2px 0 6px}.eqr summary{cursor:pointer;color:var(--mu);font-size:13px}
 .coef input{width:100%;min-width:44px;padding:4px;text-align:center}.coef th{font-size:11px}
@@ -111,8 +126,9 @@ tr.clk{cursor:pointer}tr.avg td{font-weight:700;background:var(--ac2)}
 </style>
 </head>
 <body>
-<header><h1>🍽️ نظام الوجبات الأسبوعي</h1><div id="ubar"></div><nav id="tabs"></nav></header>
+<header id="top"></header>
 <main id="app"></main>
+<nav id="nav" aria-label="التنقل الرئيسي"></nav>
 <div id="modal"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <input type="file" id="file" accept="application/json" style="display:none">
@@ -285,14 +301,16 @@ const DEF_GOALS=[
  {id:'cut',name:'تنحيف',kind:'calc',sign:-1},
  {id:'maint',name:'تثبيت',kind:'calc',sign:0},
  {id:'recomp',name:'إظهار العضلات',kind:'calc',sign:-1},
- {id:'bulk',name:'زيادة / بناء',kind:'calc',sign:1}
+ {id:'bulk',name:'زيادة وزن',kind:'calc',sign:1},
+ {id:'lean',name:'بناء عضلات',kind:'calc',sign:1}
 ];
 const ACTS=[[1.2,'خامل (مكتبي بلا تمرين)'],[1.375,'خفيف (1–3 تمارين أسبوعياً)'],[1.55,'متوسط (3–5 تمارين)'],[1.725,'عالٍ (6–7 تمارين)'],[1.9,'شديد (تمرين مكثف + عمل بدني)']];
 const GDEF={
  cut:{mode:'rate',val:0.75,pr:2.2,prB:'bw',fat:25,fatM:'pct'},
  maint:{mode:'pct',val:0,pr:1.8,prB:'bw',fat:25,fatM:'pct'},
  recomp:{mode:'pct',val:10,pr:2.2,prB:'bw',fat:25,fatM:'pct'},
- bulk:{mode:'pct',val:10,pr:1.8,prB:'bw',fat:25,fatM:'pct'}
+ bulk:{mode:'pct',val:15,pr:1.6,prB:'bw',fat:25,fatM:'pct'},   // زيادة وزن: فائض 15–20%
+ lean:{mode:'pct',val:7,pr:2.2,prB:'bw',fat:25,fatM:'pct'}     // بناء عضلات: فائض 5–10% وبروتين أعلى
 };
 function fixSettings(s){
   const D={goal:'manual',sex:'m',age:30,ht:175,bf:0,eq:'mifflin',act:1.55,tdeeM:0};
@@ -300,6 +318,8 @@ function fixSettings(s){
   if(!Array.isArray(s.eqs)||!s.eqs.length)s.eqs=clone(DEF_EQS);
   if(!s.eqs.some(e=>e.id===s.eq))s.eq=s.eqs[0].id;
   if(!Array.isArray(s.goals)||!s.goals.length)s.goals=clone(DEF_GOALS);
+  // كان «زيادة / بناء» هدفاً واحداً: يُسمّى «زيادة وزن» ويُضاف «بناء عضلات» بجانبه مرة واحدة
+  const bi=s.goals.findIndex(g=>g.id==='bulk');if(bi>=0&&s.goals[bi].name==='زيادة / بناء'){s.goals[bi].name='زيادة وزن';if(!s.goals.some(g=>g.id==='lean'))s.goals.splice(bi+1,0,clone(DEF_GOALS.find(g=>g.id==='lean')))}
   if(!s.goals.some(g=>g.id===s.goal))s.goal=s.goals[0].id;
   s.g=s.g||{};
   s.goals.forEach(gl=>{if(gl.kind==='manual')return;const b=GDEF[gl.id]||(gl.sign<0?GDEF.cut:gl.sign>0?GDEF.bulk:GDEF.maint);s.g[gl.id]=Object.assign({},b,s.g[gl.id]||{})});
@@ -742,7 +762,7 @@ function row(it,mi,ii){
 function vDay(){
   const di=ui.day,d=state.days[di],T=targets(d),tot=sum(d.meals.flatMap(m=>m.items)),L=dayLog(d);
   let h=`<div class="days">${state.days.map((x,i)=>`<button class="${i===di?'on':''}" data-act="day" data-v="${i}">${x.name}<small>${dateOfDay(i).slice(5).replace('-','/')}</small><small>${x.mode==='high'?'كارب عادي':'كارب قليل'} · ${PL[x.prot]}</small></button>`).join('')}</div>`;
-  h+=`<div class="card ctl"><div style="font-weight:700">📅 ${esc(d.name)} ${dateLabel(dateOfDay(di))}${dateOfDay(di)===todayISO()?' · اليوم':''}<div class="note" style="font-weight:400">ما تسجّله من الفعلي يُحفظ في «السجل» بهذا التاريخ.</div></div><div class="seg"><button class="${d.mode==='high'?'on':''}" data-act="mode" data-v="high">كارب عادي</button><button class="${d.mode==='low'?'on':''}" data-act="mode" data-v="low">كارب قليل</button></div>
+  h+=`<div class="card ctl"><div style="font-weight:700">📅 ${esc(d.name)} ${dateLabel(dateOfDay(di))}${dateOfDay(di)===todayISO()?' · اليوم':''}<div class="note" style="font-weight:400">ما تسجّله من الفعلي يُحفظ في «التقدم» بهذا التاريخ.</div></div><div class="seg"><button class="${d.mode==='high'?'on':''}" data-act="mode" data-v="high">كارب عادي</button><button class="${d.mode==='low'?'on':''}" data-act="mode" data-v="low">كارب قليل</button></div>
   <label>بروتين اليوم <select data-ch="prot">${Object.keys(PL).map(k=>`<option value="${k}" ${d.prot===k?'selected':''}>${PL[k]}</option>`).join('')}</select></label>
   <div class="btns"><button data-act="refit">ضبط على الهدف</button><button data-act="rebuild">إعادة بناء اليوم</button></div>
   <button class="btn pri" style="width:100%" data-act="cmp">📊 مقارنة الفعلي بالخطة (${L.logged}/${L.total})</button></div>`;
@@ -802,11 +822,9 @@ function goalUI(s,hi,lo){
   }else{
     const G=goalCore(s),w=+s.bw||70,nH=state.days.filter(x=>x.mode==='high').length;
     const adjL=gl.sign>0?'الفائض':'العجز',unit=g.mode==='kcal'?'سعرة/يوم':g.mode==='rate'?(gl.sign>0?'% من الوزن/شهر':'% من الوزن/أسبوع'):'% من TDEE';
-    body=`<h4>بياناتك</h4>
-    ${sel('الجنس','sset','sex',[['m','ذكر'],['f','أنثى']],s.sex)}${inp('العمر (سنة)','age',1)}${inp('الطول (سم)','ht',1)}${inp('الوزن (كجم)','bw',0.5)}${inp('نسبة الدهون % (اختياري)','bf',0.5)}
-    ${sel('مستوى النشاط','set','act',ACTS.some(a=>a[0]===+s.act)?ACTS:ACTS.concat([[+s.act,'مخصص ×'+s.act]]),+s.act)}
+    body=`<p class="note">بياناتك: ${profLine(s)} · <button class="lnk" data-act="tab" data-v="me/profile">تعديل</button></p>
     <h4>معادلة الحساب</h4>
-    ${sel('معادلة BMR','sset','eq',s.eqs.map(e=>[e.id,e.name]),s.eq)}<p class="note" style="margin:0">${esc(eqOf(s).note||'')} (تعديل الأسماء والمعاملات وإضافة معادلة: من «إدارة المعادلات والأهداف» أسفل)</p>
+    ${sel('معادلة BMR','sset','eq',s.eqs.map(e=>[e.id,e.name]),s.eq)}<p class="note" style="margin:0">${esc(eqOf(s).note||'')} (تعديل الأسماء والمعاملات وإضافة معادلة: من حسابي › متقدم)</p>
     ${inp('TDEE يدوي (اختياري، يتجاوز المعادلة)','tdeeM',10)}
     <h4>${esc(gl.name)}</h4>
     ${gl.sign===0?'':sel('طريقة تحديد '+adjL,'gp','mode',[['pct','نسبة % من TDEE'],['kcal','سعرات ثابتة يومياً'],['rate','معدل تغيّر الوزن']],g.mode)+num(adjL,'gp','val',g.val,0.05,unit)}
@@ -861,10 +879,70 @@ function vCloud(){const c=cloud,on=!!c.sess;
   <div class="btns"><button data-act="clogin">تسجيل الدخول</button><button data-act="csignup">إنشاء حساب</button></div><div class="btns" style="margin-top:6px"><button data-act="cforgot">نسيت كلمة المرور؟ أرسل رابط استعادة</button></div>`}
   <p class="note" id="cst">${esc(c.last||'')}</p></div>`;
 }
-function vSet(){
-  const s=S(),hi=targets({mode:'high'}),lo=targets({mode:'low'});
-  return goalUI(s,hi,lo)+vEqMgmt(s)+vCloud()+`
-  <div class="card"><h3 style="margin:0 0 6px">البيانات</h3><p class="note">لكل مستخدم إعداداته وأصنافه وخطته، ويُحفظ كل يوم بأصنافه في مفتاح مستقل داخل هذا المتصفح، ويُحفظ الفعلي لكل تاريخ في تبويب «السجل» ويدخل في التصدير. المستخدم الحالي: <b>${esc(curUser().name)}</b>. صدّر نسخة احتياطية قبل تغيير الجهاز.</p><div class="btns"><button data-act="export">تصدير كل المستخدمين</button><button data-act="import">استيراد</button></div><div class="btns" style="margin-top:6px"><button class="btn dan" data-act="reset">إعادة ضبط المستخدم الحالي</button></div></div>`;
+// ---------- حسابي ----------
+const ICON={
+ day:'<rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/><circle cx="12" cy="15.5" r="1.8" fill="currentColor" stroke="none"/>',
+ week:'<rect x="3" y="4" width="18" height="17" rx="3"/><path d="M8 2v4M16 2v4M3 10h18M7.5 14h2M14.5 14h2M7.5 17.5h2M14.5 17.5h2"/>',
+ hist:'<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+ foods:'<path d="M12 7.5c-1.6-1.4-5-1.6-6.4 1C4.2 11 5 15.2 7 18c1.2 1.7 2.6 2.9 4 2.3.6-.3 1.4-.3 2 0 1.4.6 2.8-.6 4-2.3 2-2.8 2.8-7 1.4-9.5-1.4-2.6-4.8-2.4-6.4-1z"/><path d="M12 7.5c0-2 1-3.6 3-4.5"/>',
+ me:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+ chev:'<path d="M15 6l-6 6 6 6"/>',back:'<path d="M9 6l6 6-6 6"/>',
+ profile:'<rect x="4" y="3" width="16" height="18" rx="3"/><circle cx="12" cy="10" r="3"/><path d="M7.5 17c1-2 2.6-3 4.5-3s3.5 1 4.5 3"/>',
+ goals:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".8" fill="currentColor"/>',
+ family:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5 6.5-5s5.5 1.5 6.5 5"/><circle cx="17" cy="9" r="2.6"/><path d="M16.5 14.5c2.5 0 4.2 1.4 5 4"/>',
+ sync:'<path d="M7 18h10a4 4 0 00.6-7.95A6 6 0 006.2 9.1 4.5 4.5 0 007 18z"/><path d="M12 11v5M9.5 13.5L12 11l2.5 2.5"/>',
+ data:'<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>',
+ advanced:'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+ reset:'<path d="M4 12a8 8 0 108-8H8"/><path d="M8 1l-3 3 3 3"/>',
+ trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+ logout:'<path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3M10 16l-4-4 4-4M6 12h10"/>'
+};
+const ico=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
+const TABS=[['day','اليوم'],['week','الخطة'],['hist','التقدم'],['foods','الأصناف'],['me','حسابي']];
+const SUBS={profile:'ملفي الشخصي',goals:'أهدافي',family:'أفراد العائلة',sync:'الحساب والمزامنة',data:'بياناتي',advanced:'متقدم'};
+// عناوين الرابط: #/plan، #/me/goals … (اليوم بلا عنوان)
+const RT={day:'today',week:'plan',hist:'progress',foods:'foods',me:'me'};
+function routeHash(){const r=RT[ui.tab]||'today';return r==='today'?'':'#/'+r+(ui.tab==='me'&&ui.sub?'/'+ui.sub:'')}
+function fromHash(){const m=location.hash.match(/^#\/([a-z]+)(?:\/([a-z]+))?$/);if(!m)return false;
+  const t=Object.keys(RT).find(k=>RT[k]===m[1]);if(!t)return false;ui.tab=t;ui.sub=t==='me'&&SUBS[m[2]]?m[2]:'';return true}
+function syncHash(){const h=routeHash(),cur=location.hash;
+  if(cur&&!cur.startsWith('#/'))return;   // رابط تأكيد/استعادة Supabase: يعالجه cHash
+  if(h===cur)return;try{history.pushState(null,'',h||location.pathname+location.search)}catch(e){}}
+const li=(ic,t,sub,v,act,cls)=>`<button class="li ${cls||''}" data-act="${act||'tab'}" ${v?`data-v="${v}"`:''}><span class="ic">${ico(ic)}</span><span class="g"><b>${t}</b>${sub?`<small>${sub}</small>`:''}</span>${act?'':`<span class="chev">${ico('chev')}</span>`}</button>`;
+function profLine(s){return `${s.sex==='f'?'أنثى':'ذكر'} · ${s.age} سنة · ${s.ht} سم · ${s.bw} كجم`}
+function vMe(){
+  const s=S(),u=curUser(),on=!!cloud.sess,k=rd(targets(state.days[ui.day]).k),nU=meta.users.length;
+  return `<div class="card prof"><span class="av" aria-hidden="true">${esc(u.name.trim().charAt(0)||'؟')}</span><div style="flex:1;min-width:0"><b style="font-size:17px">${esc(u.name)}</b><div class="note">${esc(goalOf(s).name)} · هدف اليوم ${k} سعرة</div></div><span class="pill ${on?'':'off'}">${on?'متزامن':'على هذا الجهاز'}</span></div>
+  <div class="grp">أنا</div><div class="list">${li('profile','ملفي الشخصي',profLine(s),'me/profile')}${li('goals','أهدافي',esc(goalOf(s).name)+' · السعرات والماكروز ودورة الكارب','me/goals')}</div>
+  <div class="grp">الحساب</div><div class="list">${li('family','أفراد العائلة',nU+(nU>1?' مستخدمين':' مستخدم')+' على هذا الجهاز','me/family')}${li('sync','الحساب والمزامنة',on?esc(cloud.email||'مسجّل الدخول'):'غير مفعّلة','me/sync')}</div>
+  <div class="grp">البيانات</div><div class="list">${li('data','بياناتي','تصدير واستيراد','me/data')}${li('advanced','متقدم','معادلات BMR والأهداف المخصصة','me/advanced')}</div>
+  <div class="grp">منطقة الخطر</div><div class="list">${li('reset','إعادة ضبط «'+esc(u.name)+'»','الإعدادات والأصناف والخطة','','reset','dz')}${li('trash','حذف «'+esc(u.name)+'»','مع كل خطته وسجله','','udel','dz')}${on?li('logout','تسجيل الخروج من السحابة','','','clogout','dz'):''}</div>`;
+}
+function vProfile(){
+  const s=S(),inp=(l,k,st)=>`<label>${l}<input type="number" step="${st||0.1}" value="${s[k]}" data-ch="set" data-k="${k}"></label>`,
+    sel=(l,ch,k,arr,cur)=>`<label>${l}<select data-ch="${ch}" data-k="${k}">${arr.map(([v,t])=>`<option value="${v}" ${String(v)===String(cur)?'selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
+  return `<div class="card set"><p class="note" style="margin:0 0 4px">تُستخدم لحساب سعرات الهدف في «أهدافي».</p>
+  ${sel('الجنس','sset','sex',[['m','ذكر'],['f','أنثى']],s.sex)}${inp('العمر (سنة)','age',1)}${inp('الطول (سم)','ht',1)}${inp('الوزن (كجم)','bw',0.5)}${inp('نسبة الدهون % (اختياري)','bf',0.5)}
+  ${sel('مستوى النشاط','set','act',ACTS.some(a=>a[0]===+s.act)?ACTS:ACTS.concat([[+s.act,'مخصص ×'+s.act]]),+s.act)}</div>`;
+}
+function vFamily(){
+  return `<div class="list">${meta.users.map(u=>`<button class="li" data-act="uswitch" data-v="${u.id}" aria-pressed="${u.id===meta.cur}"><span class="av" style="width:36px;height:36px;font-size:14px;${u.id===meta.cur?'':'background:#f0f0f2;color:var(--tx)'}" aria-hidden="true">${esc(u.name.trim().charAt(0)||'؟')}</span><span class="g"><b>${esc(u.name)}</b><small>${u.id===meta.cur?'المستخدم الحالي':'اضغط للتبديل'}</small></span></button>`).join('')}</div>
+  <div class="btns"><button data-act="uadd">＋ إضافة فرد</button><button data-act="uren">تعديل اسم «${esc(curUser().name)}»</button></div>
+  <p class="note">لكل فرد أهدافه وأصنافه وخطته وسجله. الحذف من «منطقة الخطر» في حسابي.</p>`;
+}
+function vData(){return `
+  <div class="card"><h3 style="margin:0 0 6px">النسخ الاحتياطي</h3><p class="note">لكل مستخدم إعداداته وأصنافه وخطته، ويُحفظ كل يوم بأصنافه في مفتاح مستقل داخل هذا المتصفح، ويُحفظ الفعلي لكل تاريخ في «التقدم» ويدخل في التصدير. المستخدم الحالي: <b>${esc(curUser().name)}</b>. صدّر نسخة احتياطية قبل تغيير الجهاز.</p><div class="btns"><button data-act="export">تصدير كل المستخدمين</button><button data-act="import">استيراد</button></div></div>`;
+}
+function vMeSub(){const s=S();
+  switch(ui.sub){
+    case 'profile':return vProfile();
+    case 'goals':return goalUI(s,targets({mode:'high'}),targets({mode:'low'}));
+    case 'family':return vFamily();
+    case 'sync':return vCloud();
+    case 'data':return vData();
+    case 'advanced':return vEqMgmt(s);
+  }
+  return vMe();
 }
 function hFoot(r){
   const past=r.date<weekKey();
@@ -948,7 +1026,7 @@ function renderModal(){
     <h4>الانحرافات عن الخطة</h4>${L.dev.length?L.dev.map(v=>`<div class="dv"><span>${ic[v.t]} ${esc(v.txt)}</span>${v.dk?`<b class="${v.dk>0?'d-hi':'d-lo'}">${sg(v.dk)} kcal</b>`:''}</div>`).join(''):'<p class="note">لا انحرافات مسجلة.</p>'}
     ${hr?hFoot(hr):`<div class="btns" style="margin-top:10px"><button data-act="logrest">تسجيل الباقي كما في الخطة</button><button data-act="logclear">مسح تسجيل اليوم</button></div>
     <button class="btn" style="width:100%;margin-top:6px" data-act="close">إغلاق</button>
-    <p class="note">يُحفظ سجل كل يوم بتاريخه تلقائياً، ويبقى في تبويب «السجل» بعد انتهاء الأسبوع.</p>`}</div>`;
+    <p class="note">يُحفظ سجل كل يوم بتاريخه تلقائياً، ويبقى في «التقدم» بعد انتهاء الأسبوع.</p>`}</div>`;
   }else if(modal.type==='scan'){
     m.innerHTML=scanHtml();
   }else if(modal.type==='swap'){
@@ -973,9 +1051,12 @@ function renderAddList(q){
     +(q?`<button class="btn" style="width:100%;margin-top:6px" data-act="newfromq">＋ إضافة «${esc(q)}» يدوياً</button>`:'');
 }
 function render(){
-  $('#ubar').innerHTML=`<select data-ch="user" aria-label="المستخدم">${meta.users.map(u=>`<option value="${u.id}" ${u.id===meta.cur?'selected':''}>👤 ${esc(u.name)}</option>`).join('')}</select><button class="ib" title="مستخدم جديد" aria-label="مستخدم جديد" data-act="uadd">＋</button><button class="ib" title="تعديل الاسم" aria-label="تعديل اسم المستخدم" data-act="uren">✎</button><button class="ib" title="حذف المستخدم" aria-label="حذف المستخدم" data-act="udel">🗑</button>`;
-  $('#tabs').innerHTML=[['day','اليوم'],['week','الأسبوع'],['hist','السجل'],['foods','الأصناف'],['set','إعدادات']].map(([k,l])=>`<button class="${ui.tab===k?'on':''}" data-act="tab" data-v="${k}">${l}</button>`).join('');
-  $('#app').innerHTML=ui.tab==='day'?vDay():ui.tab==='week'?vWeek():ui.tab==='hist'?vHist():ui.tab==='foods'?vFoods():vSet();
+  if(ui.tab==='me'&&!SUBS[ui.sub])ui.sub='';
+  const sub=ui.tab==='me'&&ui.sub,u=curUser(),title=sub?SUBS[ui.sub]:(TABS.find(t=>t[0]===ui.tab)||TABS[0])[1];
+  $('#top').innerHTML=`<div class="top">${sub?`<button class="bk" data-act="back" aria-label="رجوع إلى حسابي">${ico('back')}</button>`:''}<h1>${title}${ui.tab==='me'?'':`<small>${esc(u.name)}</small>`}</h1>${ui.tab==='me'?'':`<button class="av" data-act="tab" data-v="me" aria-label="حسابي: ${esc(u.name)}">${esc(u.name.trim().charAt(0)||'؟')}</button>`}</div>`;
+  $('#nav').innerHTML=TABS.map(([k,l])=>`<button data-act="tab" data-v="${k}" ${ui.tab===k?'aria-current="page"':''}><span>${ico(k)}</span>${l}</button>`).join('');
+  $('#app').innerHTML=ui.tab==='day'?vDay():ui.tab==='week'?vWeek():ui.tab==='hist'?vHist():ui.tab==='foods'?vFoods():vMeSub();
+  syncHash();
   renderModal();
 }
 
@@ -983,7 +1064,9 @@ function render(){
 function act(a,ds){
   const d=state.days[ui.day];
   switch(a){
-    case 'tab':ui.tab=ds.v;break;
+    case 'tab':{const [t,sb]=String(ds.v).split('/');ui.tab=t;ui.sub=sb||'';document.documentElement.scrollTop=0;break}
+    case 'back':ui.sub='';document.documentElement.scrollTop=0;break;
+    case 'uswitch':if(ds.v!==meta.cur){switchUser(ds.v);toast('تم التبديل إلى «'+curUser().name+'»')}return;
     case 'day':ui.day=+ds.v;break;
     case 'goday':ui.day=+ds.v;ui.tab='day';window.scrollTo(0,0);break;
     case 'mode':{const v=ds.v,di=ui.day;if(d.mode!==v)ask('تغيير النوع يعيد بناء اليوم من القالب. متابعة؟',()=>{state.days[di]=buildDay(di,v,state.days[di].prot)});return}
@@ -1273,7 +1356,7 @@ async function cHash(){ // رابط التأكيد/الاستعادة من Supab
     const u=await cFetch('/auth/v1/user',{token:at});
     cSess({access_token:at,refresh_token:q.get('refresh_token'),expires_in:+q.get('expires_in')||3600,user:u});
     cloud.email=u.email||cloud.email;cSave();
-    ui.tab='set';ui.recov=q.get('type')==='recovery';
+    ui.tab='me';ui.sub='sync';ui.recov=q.get('type')==='recovery';
     cMsg(ui.recov?'تم التحقق من الرابط — اكتب كلمة المرور الجديدة':'تم تأكيد الحساب وتسجيل الدخول');
     return true;
   }catch(e){cMsg('رابط غير صالح أو منتهٍ: '+(e.message||e));return false}
@@ -1335,8 +1418,10 @@ if(!state){state=defaultState();const id=uid();meta={users:[{id,name:'المست
   });
   if(fx.length){save();setTimeout(()=>toast('تم تصحيح سعرات: '+fx.join('، ')),400)}})();
 if(rollWeek())save();
+fromHash();
+window.addEventListener('popstate',()=>{if(location.hash&&!location.hash.startsWith('#/'))return;if(!fromHash()){ui.tab='day';ui.sub=''}modal=null;render()});
 render();
-if(/access_token=/.test(location.hash))cHash().then(r=>{if(r||ui.tab==='set')render()});
+if(/access_token=/.test(location.hash))cHash().then(r=>{if(r||ui.sub==='sync')render()});
 </script>
 </body>
 </html>

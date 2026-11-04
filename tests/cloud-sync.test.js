@@ -19,7 +19,7 @@ const w=d.window,$=s=>w.document.querySelector(s),ev=(el,t)=>el.dispatchEvent(ne
 const click=s=>$(s).dispatchEvent(new w.MouseEvent('click',{bubbles:true})),E=s=>w.eval(s),sleep=ms=>new Promise(r=>setTimeout(r,ms));
 let ok=0,bad=0;const T=(n,c,x)=>{c?ok++:(bad++,console.log('FAIL',n,x===undefined?'':x))};
 (async()=>{
- click('[data-act="tab"][data-v="set"]');
+ click('#nav [data-act="tab"][data-v="me"]');click('[data-act="tab"][data-v="me/sync"]');
  T('cloud card',$('#app').textContent.includes('المزامنة السحابية'));
  // no config -> message
  const set=(id,v)=>{$(id).value=v;ev($(id),'change')};

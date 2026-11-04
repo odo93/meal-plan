@@ -9,7 +9,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));let ok=0,bad=0;const T=(n,c,x)=
 (async()=>{
  let d=mk('https://odo93.github.io/meal-plan/#access_token=AT9&refresh_token=RT9&expires_in=3600&type=recovery');let w=d.window,$=s=>w.document.querySelector(s);
  await sleep(200);
- T('hash cleared',w.location.hash==='');
+ T('hash cleared',!/access_token/.test(w.location.hash));
  T('session from hash',w.eval('cloud.sess&&cloud.sess.uid')==='uid-9'&&w.eval('cloud.sess.at')==='AT9');
  T('recovery shows new pw',!!$('#cl_np'),$('#app').textContent.slice(0,80));
  T('user call used hash token',log.some(l=>l[1]==='/auth/v1/user'&&l[2]==='Bearer AT9'));
@@ -20,7 +20,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));let ok=0,bad=0;const T=(n,c,x)=
  T('new pw box gone',!$('#cl_np'));
  // forgot
  d=mk('https://odo93.github.io/meal-plan/');w=d.window;$=s=>w.document.querySelector(s);
- $('[data-act="tab"][data-v="set"]').dispatchEvent(new w.MouseEvent('click',{bubbles:true}));
+ $('#nav [data-act="tab"][data-v="me"]').dispatchEvent(new w.MouseEvent('click',{bubbles:true}));$('[data-act="tab"][data-v="me/sync"]').dispatchEvent(new w.MouseEvent('click',{bubbles:true}));
  $('#cl_em').value='x@y.z';$('[data-act="cforgot"]').dispatchEvent(new w.MouseEvent('click',{bubbles:true}));await sleep(100);
  T('recover POST',log.some(l=>l[0]==='POST'&&l[1]==='/auth/v1/recover'&&l[3].includes('x@y.z')),log.map(l=>l[1]));
  T('msg',$('#cst').textContent.includes('أُرسل'));
