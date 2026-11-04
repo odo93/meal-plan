@@ -86,6 +86,9 @@ h1 small{display:block;font-size:12px;font-weight:400;color:var(--mu)}
 details.fold{background:var(--card);border-radius:14px;margin:10px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
 details.fold>summary{padding:12px;cursor:pointer;font-weight:600;min-height:48px;display:flex;align-items:center}
 details.fold>div{padding:0 12px 12px}
+.shi select{max-width:42%}
+.shi input{min-height:40px}
+details.fold .set label{margin:8px 0}
 .lnk{border:0;background:none;color:var(--act);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;padding:0}
 .ib.on{background:var(--ok);border-color:var(--ok);color:#fff}
 .tag.sk{background:#fde8e8;color:var(--hi)}.tag.ok2{background:#e3f5ea;color:var(--ok)}.tag.x{background:#e8eefc;color:#3a5bd9}
@@ -913,57 +916,59 @@ function goalUI(s,hi,lo){
   const inp=(l,k,st)=>`<label>${l}<input type="number" step="${st||0.1}" value="${s[k]}" data-ch="set" data-k="${k}"></label>`;
   const sel=(l,ch,k,arr,cur)=>`<label>${l}<select data-ch="${ch}" data-k="${k}">${arr.map(([v,t])=>`<option value="${v}" ${String(v)===String(cur)?'selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
   const num=(l,ch,k,val,st,unit)=>`<label>${l}<span><input type="number" step="${st||0.1}" value="${val}" data-ch="${ch}" data-k="${k}"> ${unit||''}</span></label>`;
-  const chips=s.goals.map(x=>`<button class="${s.goal===x.id?'on':''}" data-act="goal" data-v="${x.id}">${esc(x.name)}</button>`).join('');
-  const bySel=`<label>مطابقة البدائل افتراضياً<select data-ch="by"><option value="auto" ${s.by==='auto'?'selected':''}>الماكرو الرئيسي للصنف</option><option value="kcal" ${s.by==='kcal'?'selected':''}>السعرات</option></select></label>`;
-  const tbl=`<table style="margin-top:8px"><tr><th></th><th>سعرات</th><th>P</th><th>C</th><th>F</th></tr><tr><td>يوم عادي</td><td>${rd(hi.k)}</td><td>${rd(hi.p)}</td><td>${rd(hi.c)}</td><td>${rd(hi.f)}</td></tr><tr><td>يوم قليل</td><td>${rd(lo.k)}</td><td>${rd(lo.p)}</td><td>${rd(lo.c)}</td><td>${rd(lo.f)}</td></tr></table>`;
-  let body;
+  const fold=(t,sub,body,open)=>`<details class="fold"${open?' open':''}><summary><span style="flex:1">${t}${sub?`<small style="display:block;font-weight:400;color:var(--mu);font-size:12px">${sub}</small>`:''}</span></summary><div class="set">${body}</div></details>`;
+  const chips=`<div class="chips" role="radiogroup" aria-label="الهدف">${s.goals.map(x=>`<button class="${s.goal===x.id?'on':''}" role="radio" aria-checked="${s.goal===x.id}" data-act="goal" data-v="${x.id}">${esc(x.name)}</button>`).join('')}</div>`;
+  const dayTiles=(l,t)=>`<div class="grp" style="margin-top:10px">${l}</div><div class="tiles" style="grid-template-columns:repeat(4,1fr)"><div class="tile"><b>${rd(t.k)}</b><small>سعرة</small></div><div class="tile"><b>${rd(t.p)}</b><small>بروتين</small></div><div class="tile"><b>${rd(t.c)}</b><small>كارب</small></div><div class="tile"><b>${rd(t.f)}</b><small>دهون</small></div></div>`;
+  const cycOn=!!s.cyc.on,nH=state.days.filter(x=>x.mode==='high').length;
+  let head,secs='';
   if(isM){
-    body=`<p class="note">من الريل: بروتين = الوزن × 2 · دهون = الوزن × 0.8 · كارب = ×2 (عادي) أو ×1 (قليل). عدّل المضاعفات كما تريد.</p>${inp('وزن الجسم (كجم)','bw',0.5)}${inp('بروتين × الوزن','pM')}${inp('كارب (يوم عادي) × الوزن','cH')}${inp('كارب (يوم قليل) × الوزن','cL')}${inp('دهون × الوزن','fM')}`;
+    head=`<p class="note" style="margin:0">«${esc(gl.name)}»: البروتين والكارب والدهون مضاعفات ثابتة لوزن الجسم.</p>`;
+    secs+=fold('المضاعفات',`وزن ${s.bw} كجم`,`<p class="note">من الريل: بروتين = الوزن × 2 · دهون = الوزن × 0.8 · كارب = ×2 (عادي) أو ×1 (قليل).</p>${inp('وزن الجسم (كجم)','bw',0.5)}${inp('بروتين × الوزن','pM')}${inp('كارب (يوم عادي) × الوزن','cH')}${inp('كارب (يوم قليل) × الوزن','cL')}${inp('دهون × الوزن','fM')}`,true);
   }else{
-    const G=goalCore(s),w=+s.bw||70,nH=state.days.filter(x=>x.mode==='high').length;
-    const adjL=gl.sign>0?'الفائض':'العجز',unit=g.mode==='kcal'?'سعرة/يوم':g.mode==='rate'?(gl.sign>0?'% من الوزن/شهر':'% من الوزن/أسبوع'):'% من TDEE';
-    body=`<p class="note">بياناتك: ${profLine(s)} · <button class="lnk" data-act="tab" data-v="me/profile">تعديل</button></p>
-    <h4>معادلة الحساب</h4>
-    ${sel('معادلة BMR','sset','eq',s.eqs.map(e=>[e.id,e.name]),s.eq)}<p class="note" style="margin:0">${esc(eqOf(s).note||'')} (تعديل الأسماء والمعاملات وإضافة معادلة: من حسابي › متقدم)</p>
-    ${inp('TDEE يدوي (اختياري، يتجاوز المعادلة)','tdeeM',10)}
-    <h4>${esc(gl.name)}</h4>
-    ${gl.sign===0?'':sel('طريقة تحديد '+adjL,'gp','mode',[['pct','نسبة % من TDEE'],['kcal','سعرات ثابتة يومياً'],['rate','معدل تغيّر الوزن']],g.mode)+num(adjL,'gp','val',g.val,0.05,unit)}
-    ${num('البروتين','gp','pr',g.pr,0.1,'جم/كجم')}${sel('أساس البروتين','gp','prB',[['bw','وزن الجسم'],['lbm','الكتلة الخالية (تحتاج نسبة دهون)']],g.prB)}
-    ${num('الدهون','gp','fat',g.fat,1,g.fatM==='kg'?'جم/كجم':'% من السعرات')}${sel('أساس الدهون','gp','fatM',[['pct','% من السعرات'],['kg','جم لكل كجم']],g.fatM)}
-    <p class="note" style="margin:4px 0 0">الكارب = المتبقي من السعرات بعد البروتين والدهون.</p>
-    <h4>دورة الكارب</h4>
-    <label><span><input type="checkbox" data-ch="cyc" data-k="on" ${s.cyc.on?'checked':''} style="width:auto"> تفعيل (المتوسط الأسبوعي ثابت)</span></label>
-    ${num('كارب اليوم القليل = ٪ من اليوم العادي','cyc','r',rd(s.cyc.r*100),5,'%')}
-    <p class="note" style="margin:0">خطتك الحالية: ${nH} أيام كارب عادي و${7-nH} كارب قليل. عند التعطيل يتساوى هدف الكارب في كل الأيام.</p>
-    <h4>النتيجة</h4>
-    <table><tr><td>BMR (${esc(eqOf(s).name)})</td><td>${rd(G.bmr)}</td></tr><tr><td>TDEE ${+s.tdeeM>0?'(يدوي)':'(× '+s.act+')'}</td><td>${rd(G.tdee)}</td></tr>${gl.sign===0?'':`<tr><td>${adjL}</td><td>${sg(G.adj)}</td></tr>`}<tr class="avg"><td>سعرات الهدف (المتوسط اليومي)</td><td>${rd(G.k)}</td></tr><tr><td>تغيّر الوزن المتوقع (تقريبي)</td><td>${G.rate>0?'+':''}${G.rate.toFixed(2)} كجم/أسبوع (${(G.rate/w*100).toFixed(2)}%)</td></tr></table>
-    ${G.flags.map(f=>`<p class="note" style="color:var(--hi)">⚠ ${esc(f)}</p>`).join('')}`;
+    const G=goalCore(s),w=+s.bw||70,adjL=gl.sign>0?'الفائض':'العجز',unit=g.mode==='kcal'?'سعرة/يوم':g.mode==='rate'?(gl.sign>0?'% من الوزن/شهر':'% من الوزن/أسبوع'):'% من TDEE';
+    head=`<div class="sum" style="position:static">${ring(G.k,G.tdee).replace(/aria-label="[^"]*"/,`aria-label="سعرات الهدف ${rd(G.k)} من احتياجك ${rd(G.tdee)}"`).replace(/من (\d+)<\/text>/,'من $1</text>')}<div class="mcs"><p class="motiv">${rd(G.k)} سعرة يومياً في المتوسط</p><span class="note" style="margin:0">احتياجك ${rd(G.tdee)}${gl.sign===0?'':' · '+adjL+' '+sg(G.adj)}</span><span class="note" style="margin:0">تغيّر الوزن المتوقع ${G.rate>0?'+':''}${G.rate.toFixed(2)} كجم أسبوعياً</span></div></div>${G.flags.map(f=>`<p class="note" style="color:var(--hi);margin:6px 0 0">⚠ ${esc(f)}</p>`).join('')}`;
+    secs+=fold(gl.sign===0?'البروتين والدهون':adjL+' والماكروز',`بروتين ${g.pr} جم/كجم · دهون ${g.fat}${g.fatM==='kg'?' جم/كجم':'%'}`,
+      `${gl.sign===0?'':sel('طريقة تحديد '+adjL,'gp','mode',[['pct','نسبة % من TDEE'],['kcal','سعرات ثابتة يومياً'],['rate','معدل تغيّر الوزن']],g.mode)+num(adjL,'gp','val',g.val,0.05,unit)}
+      ${num('البروتين','gp','pr',g.pr,0.1,'جم/كجم')}${sel('أساس البروتين','gp','prB',[['bw','وزن الجسم'],['lbm','الكتلة الخالية (تحتاج نسبة دهون)']],g.prB)}
+      ${num('الدهون','gp','fat',g.fat,1,g.fatM==='kg'?'جم/كجم':'% من السعرات')}${sel('أساس الدهون','gp','fatM',[['pct','% من السعرات'],['kg','جم لكل كجم']],g.fatM)}
+      <p class="note" style="margin:4px 0 0">الكارب = المتبقي من السعرات بعد البروتين والدهون.</p>`);
+    secs+=fold('طريقة الحساب',`${esc(eqOf(s).name)} · BMR ${rd(G.bmr)} · ${+s.tdeeM>0?'احتياج يدوي':'نشاط × '+s.act}`,
+      `<p class="note">بياناتك: ${profLine(s)} · <button class="lnk" data-act="tab" data-v="me/profile">تعديل</button></p>
+      ${sel('معادلة BMR','sset','eq',s.eqs.map(e=>[e.id,e.name]),s.eq)}<p class="note" style="margin:0">${esc(eqOf(s).note||'')} (المعاملات وإضافة معادلة: من حسابي › متقدم)</p>
+      ${inp('احتياج يومي يدوي TDEE (اختياري، يتجاوز المعادلة)','tdeeM',10)}`);
   }
-  return `<div class="card set"><h3 style="margin:0 0 6px">الهدف ومعادلة الحساب</h3><div class="gch">${chips}</div>${body}${bySel}${tbl}
-  <div class="btns" style="margin-top:10px"><button data-act="refitweek">ضبط الكميات على الأهداف</button><button data-act="rebuildweek">إعادة بناء الأسبوع</button></div>
-  <details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">النطاقات المرجعية المستخدمة</summary>
-  <ul class="note" style="padding-inline-start:18px">
+  secs+=fold('دورة الكارب',cycOn?`مفعّلة · اليوم القليل ${rd(s.cyc.r*100)}% من العادي`:'معطّلة',
+    `<label><span><input type="checkbox" data-ch="cyc" data-k="on" ${cycOn?'checked':''} style="width:auto"> تفعيل (المتوسط الأسبوعي ثابت)</span></label>
+    ${num('كارب اليوم القليل = ٪ من اليوم العادي','cyc','r',rd(s.cyc.r*100),5,'%')}
+    <p class="note" style="margin:0">خطتك الحالية: ${nH} أيام كارب عادي و${7-nH} كارب قليل. نوع كل يوم يُغيَّر من «اليوم» › ⋯.</p>`);
+  secs+=fold('البدائل','مطابقة البدائل: '+(s.by==='kcal'?'السعرات':'الماكرو الرئيسي'),`<label>مطابقة البدائل افتراضياً<select data-ch="by"><option value="auto" ${s.by==='auto'?'selected':''}>الماكرو الرئيسي للصنف</option><option value="kcal" ${s.by==='kcal'?'selected':''}>السعرات</option></select></label>`);
+  secs+=fold('النطاقات المرجعية','مصادر الأرقام الافتراضية',`<ul class="note" style="padding-inline-start:18px;margin:0">
   <li>BMR: Mifflin-St Jeor الأكثر اعتماداً (≈82% من غير المصابين بالسمنة ضمن ±10% من القياس في إحدى المراجعات). Katch-McArdle وCunningham تعتمدان على الكتلة الخالية فتحتاجان نسبة دهون دقيقة.</li>
   <li>التنحيف: فقد 0.5–1% من وزن الجسم أسبوعياً للحفاظ على العضلات؛ بروتين 2.3–3.1 جم/كجم كتلة خالية؛ دهون 15–30% من السعرات (Helms وآخرون 2014، تحضير المسابقات).</li>
   <li>البروتين عموماً: 1.4–2.0 جم/كجم من وزن الجسم لمعظم الرياضيين، وأكثر عند تقييد السعرات (ISSN 2017).</li>
   <li>زيادة الوزن: فائض 5–20% من التثبيت (≈250–500 سعرة)، والمتقدمون عند الطرف الأدنى؛ وزيادة وزن الجسم نحو 0.25–0.5% أسبوعياً. تقديرات بحسب الخبرة (شهرياً): مبتدئ 1–1.5%، متوسط 0.5–1%، متقدم 0.25–0.5%.</li>
+  <li>بناء العضلات: فائض أصغر (5–10%) مع بروتين 1.6–2.2 جم/كجم لتقليل الدهون المكتسبة.</li>
   <li>إظهار العضلات: الإعداد الافتراضي (عجز 10% وبروتين مرتفع) اجتهاد مقترح وليس رقماً منصوصاً في المصادر؛ عدّله حسب استجابتك.</li>
-  <li>تحويل التغيّر إلى وزن يعتمد التقريب 7700 سعرة ≈ 1 كجم؛ وهو تقدير، والمرجع هو اتجاه وزنك الفعلي.</li>
-  </ul></details></div>`;
+  <li>تحويل التغيّر إلى وزن يعتمد التقريب 7700 سعرة ≈ 1 كجم؛ وهو تقدير، والمرجع هو اتجاه وزنك الفعلي.</li></ul>`);
+  return `${chips}<div class="card">${head}${dayTiles(cycOn?'يوم كارب عادي':'كل يوم',hi)}${cycOn?dayTiles('يوم كارب قليل',lo):''}</div>
+  ${secs}
+  <button class="btn pri" style="width:100%;margin-top:4px" data-act="refitweek">ضبط كميات الأسبوع على هذه الأهداف</button>
+  <p class="note" style="margin:6px 2px">تغيير الهدف لا يغيّر كميات الأيام حتى تضغط الزر أعلاه.</p>`;
 }
 const SIGNS=[[-1,'عجز'],[0,'ثبات'],[1,'فائض']];
 function vEqMgmt(s){
-  const goals=s.goals.map(gl=>`<div class="eqr"><div class="fr2"><input value="${esc(gl.name)}" data-ch="gln" data-id="${gl.id}" data-k="name" aria-label="اسم الهدف">${gl.kind==='manual'?'<span class="tag">مضاعفات ثابتة</span>':`<select data-ch="gln" data-id="${gl.id}" data-k="sign" aria-label="اتجاه الهدف">${SIGNS.map(([v,t])=>`<option value="${v}" ${gl.sign===v?'selected':''}>${t}</option>`).join('')}</select>`}<button class="ib" title="حذف" aria-label="حذف الهدف ${esc(gl.name)}" data-act="gldel" data-id="${gl.id}">✕</button></div></div>`).join('');
-  const eqs=s.eqs.map(e=>{const pv=bmrWith(e,s);
-    const co=e.type==='lin'?`<table class="coef"><tr><th></th><th>الوزن</th><th>الطول</th><th>العمر</th><th>كتلة خالية</th><th>ثابت</th></tr>${['m','f'].map(sx=>`<tr><td>${sx==='m'?'ذكر':'أنثى'}</td>${['w','h','a','l','c'].map(k=>`<td><input type="number" step="any" value="${e[sx][k]}" data-ch="eqc" data-id="${e.id}" data-sx="${sx}" data-k="${k}"></td>`).join('')}</tr>`).join('')}</table><p class="note">BMR = الوزن×م + الطول×م + العمر×م + الكتلة الخالية×م + الثابت. أي معامل للكتلة الخالية يتطلب نسبة دهون.</p>`:'<p class="note">معادلة بحسب الفئة العمرية (جدول WHO)؛ معاملاتها ثابتة ويمكن تغيير اسمها وحذفها.</p>';
-    return `<div class="eqr"><div class="fr2"><input value="${esc(e.name)}" data-ch="eqn" data-id="${e.id}" data-k="name" aria-label="اسم المعادلة"><b class="pv" title="BMR لبياناتك">${pv==null?'—':rd(pv)}</b><button class="ib" title="حذف" aria-label="حذف المعادلة ${esc(e.name)}" data-act="eqdel" data-id="${e.id}">✕</button></div><details ${ui.eqo===e.id?'open':''}><summary>الملاحظة والمعاملات</summary><label style="display:block">ملاحظة<input value="${esc(e.note||'')}" data-ch="eqn" data-id="${e.id}" data-k="note" style="width:100%"></label>${co}</details></div>`}).join('');
-  return `<div class="card set"><h3 style="margin:0 0 6px">إدارة المعادلات والأهداف</h3>
-  <h4>الأهداف (تنحيف / تثبيت / …)</h4>${goals}
-  <div class="fr2"><input id="gl_n" placeholder="اسم هدف جديد"><select id="gl_s">${SIGNS.map(([v,t])=>`<option value="${v}">${t}</option>`).join('')}</select><button class="btn" style="flex:0 0 auto" data-act="gladd">＋ إضافة</button></div>
-  <h4>معادلات BMR <small class="note">(الرقم = BMR لبياناتك الحالية)</small></h4>${eqs}
-  <div class="btns" style="margin-top:8px"><button data-act="eqadd">＋ معادلة جديدة (نسخة من المحددة)</button></div>
-  <div class="btns" style="margin-top:6px"><button class="btn dan" data-act="glreset">استعادة الأهداف الافتراضية</button><button class="btn dan" data-act="eqreset">استعادة المعادلات الافتراضية</button></div>
-  <p class="note">الاستعادة تعيد القوائم فقط ولا تمس بياناتك. حذف هدف لا يغيّر كميات الأيام؛ استخدم «ضبط الكميات على الأهداف» بعد أي تغيير.</p></div>`;
+  const goals=s.goals.map(gl=>`<div class="shi"><input value="${esc(gl.name)}" data-ch="gln" data-id="${gl.id}" data-k="name" aria-label="اسم الهدف" style="flex:1;min-width:0">${gl.kind==='manual'?'<span class="tag">مضاعفات ثابتة</span>':`<select data-ch="gln" data-id="${gl.id}" data-k="sign" aria-label="اتجاه الهدف ${esc(gl.name)}">${SIGNS.map(([v,t])=>`<option value="${v}" ${gl.sign===v?'selected':''}>${t}</option>`).join('')}</select>`}<button class="more" aria-label="حذف الهدف ${esc(gl.name)}" data-act="gldel" data-id="${gl.id}">✕</button></div>`).join('');
+  const eqs=s.eqs.map(e=>{const pv=bmrWith(e,s),cur=s.eq===e.id;
+    const co=e.type==='lin'?`<div style="overflow-x:auto"><table class="coef"><tr><th></th><th>الوزن</th><th>الطول</th><th>العمر</th><th>كتلة خالية</th><th>ثابت</th></tr>${['m','f'].map(sx=>`<tr><td>${sx==='m'?'ذكر':'أنثى'}</td>${['w','h','a','l','c'].map(k=>`<td><input type="number" step="any" value="${e[sx][k]}" data-ch="eqc" data-id="${e.id}" data-sx="${sx}" data-k="${k}" aria-label="معامل ${k} ${sx==='m'?'ذكر':'أنثى'}"></td>`).join('')}</tr>`).join('')}</table></div><p class="note">BMR = الوزن×م + الطول×م + العمر×م + الكتلة الخالية×م + الثابت. أي معامل للكتلة الخالية يتطلب نسبة دهون.</p>`:'<p class="note">معادلة بحسب الفئة العمرية (جدول WHO)؛ معاملاتها ثابتة ويمكن تغيير اسمها وحذفها.</p>';
+    return `<details class="fold"${ui.eqo===e.id?' open':''}><summary><span style="flex:1">${esc(e.name)}${cur?' <span class="pill">المستخدمة</span>':''}<small style="display:block;font-weight:400;color:var(--mu);font-size:12px">BMR لبياناتك: ${pv==null?'غير متاح (تحتاج نسبة دهون أو عمر ضمن النطاق)':rd(pv)}</small></span></summary><div class="set">
+    <label>الاسم<input value="${esc(e.name)}" data-ch="eqn" data-id="${e.id}" data-k="name"></label><label style="display:block">ملاحظة<input value="${esc(e.note||'')}" data-ch="eqn" data-id="${e.id}" data-k="note" style="width:100%"></label>${co}
+    <button class="btn dan" style="margin-top:8px" data-act="eqdel" data-id="${e.id}">حذف المعادلة</button></div></details>`}).join('');
+  return `<div class="grp">الأهداف</div><div class="list">${goals}</div>
+  <div class="card"><div class="fr2"><input id="gl_n" placeholder="اسم هدف جديد" aria-label="اسم هدف جديد"><select id="gl_s" aria-label="اتجاه الهدف الجديد">${SIGNS.map(([v,t])=>`<option value="${v}">${t}</option>`).join('')}</select><button class="btn pri" style="flex:0 0 auto" data-act="gladd">إضافة</button></div></div>
+  <div class="grp">معادلات BMR</div>${eqs}
+  <button class="add" data-act="eqadd">+ معادلة جديدة (نسخة من المستخدمة)</button>
+  <div class="grp">منطقة الخطر</div><div class="list"><button class="li dz" data-act="glreset"><span class="g"><b>استعادة الأهداف الافتراضية</b><small>تُحذف الأهداف المخصصة وتعديلاتها</small></span></button><button class="li dz" data-act="eqreset"><span class="g"><b>استعادة المعادلات الافتراضية</b><small>تُحذف المعادلات المخصصة وتعديلاتها</small></span></button></div>
+  <p class="note">الاستعادة تعيد القوائم فقط ولا تمس بياناتك. بعد أي تغيير استخدم «ضبط كميات الأسبوع» من «أهدافي».</p>`;
 }
 function vCloud(){const c=cloud,on=!!c.sess;
   return `<div class="card set"><h3 style="margin:0 0 6px">المزامنة السحابية (اختيارية)</h3>
