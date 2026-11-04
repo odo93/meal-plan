@@ -241,3 +241,6 @@ grant execute on function public.mp_accept_invite(text), public.mp_shared_with_m
 insert into public.app_admins (user_id)
   select id from auth.users where lower(email) = 'mahmoud.gomma93@gmail.com'
 on conflict do nothing;
+-- mp_can تُستخدم في سياسات المسجّلين فقط؛ لا حاجة لأن يستدعيها الزائر غير المسجّل
+revoke execute on function public.mp_can(uuid, text, boolean) from public, anon;
+grant execute on function public.mp_can(uuid, text, boolean) to authenticated;
