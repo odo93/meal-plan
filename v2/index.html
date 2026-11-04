@@ -66,6 +66,26 @@ h1 small{display:block;font-size:12px;font-weight:400;color:var(--mu)}
 .more{width:40px;height:40px;border:0;background:none;border-radius:10px;color:var(--mu);cursor:pointer;flex:0 0 auto;font-size:20px;line-height:1}
 .mft{display:flex;gap:8px;margin-top:8px}.mft .btn{flex:1}.mft .btn.pri{flex:1.4}
 .raw{color:var(--mu);font-size:11px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{background:var(--bg);border-radius:12px;padding:10px 8px;text-align:center}
+.tile b{display:block;font-size:20px;font-variant-numeric:tabular-nums}.tile small{color:var(--mu);font-size:12px}
+.motiv{font-weight:700;margin:0}
+.hbar{height:6px;background:#eee;border-radius:4px;overflow:hidden;margin-top:6px}.hbar i{display:block;height:100%;background:var(--ok);border-radius:4px}
+.hbar i.mid{background:var(--ac)}.hbar i.low{background:var(--hi)}
+.li .num{font-variant-numeric:tabular-nums;color:var(--mu);font-size:13px;flex:0 0 auto}
+.dl{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:#f0f0f2;color:var(--tx);flex:0 0 auto}
+.dl.ok{background:var(--ok);color:#fff}.dl.td{background:var(--ac);color:var(--on-ac)}
+.shi{display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--ln);min-height:52px}
+.shi:first-child{border-top:0}.shi .g{flex:1;min-width:0}.shi.have .g b{text-decoration:line-through;color:var(--mu)}
+.shi .qb{border:1px solid var(--ln);background:#fff;border-radius:10px;padding:6px 10px;font:inherit;font-size:13px;min-height:40px;cursor:pointer;font-variant-numeric:tabular-nums}
+.srch{display:flex;gap:8px;align-items:center}.srch input{flex:1;min-width:0;min-height:46px;border-radius:12px;padding:8px 12px}
+.scanb{width:46px;height:46px;border-radius:12px;background:var(--ac);color:var(--on-ac);display:grid;place-items:center;cursor:pointer;flex:0 0 auto;font-size:20px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px}
+.chips button{flex:0 0 auto;border:1px solid var(--ln);background:#fff;border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;font-weight:600;min-height:36px;cursor:pointer;color:var(--tx)}
+.chips button.on{background:var(--ac2);border-color:var(--ac);color:var(--act)}
+details.fold{background:var(--card);border-radius:14px;margin:10px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+details.fold>summary{padding:12px;cursor:pointer;font-weight:600;min-height:48px;display:flex;align-items:center}
+details.fold>div{padding:0 12px 12px}
 .lnk{border:0;background:none;color:var(--act);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;padding:0}
 .ib.on{background:var(--ok);border-color:var(--ok);color:#fff}
 .tag.sk{background:#fde8e8;color:var(--hi)}.tag.ok2{background:#e3f5ea;color:var(--ok)}.tag.x{background:#e8eefc;color:#3a5bd9}
@@ -831,23 +851,45 @@ function shopping(){
   return out;
 }
 function shopQty(f,g){return f.u&&f.ug?`${rd(g/f.ug)} ${f.u}`:(g>=1000?(g/1000).toFixed(2)+' كجم':rd(g)+' جم')}
+// قائمة مشتريات الأسبوع: تُحسب من الخطة، وتعديلات المستخدم (عندي / حذف / كمية / إضافات) تُحفظ لكل أسبوع في الإعدادات
+function shopState(){const s=S(),wk=weekKey();if(!s.shop||s.shop.wk!==wk)s.shop={wk,have:{},del:{},q:{},extra:[]};return s.shop}
+function shopLines(){const sh=shopping(),st=shopState(),out=[];
+  Object.keys(GROUPS).forEach(g=>(sh[g]||[]).sort((a,b)=>b[1]-a[1]).forEach(([f,g2])=>{if(!st.del[f.id])out.push({id:f.id,g,n:f.n,q:st.q[f.id]||shopQty(f,g2),have:!!st.have[f.id]})}));
+  st.extra.forEach((x,i)=>out.push({id:'x'+i,g:'extra',n:x.n,q:x.q||'',have:!!x.have}));return out}
+function weekStats(){const days=state.days,a=adh(days),T=days.reduce((x,d)=>x+targets(d).k,0)/7,K=days.reduce((x,d)=>x+sum(d.meals.flatMap(m=>m.items)).k,0)/7;
+  let streak=0;for(let i=todayIdx();i>=0;i--){if(dayDone(days[i]))streak++;else if(i!==todayIdx())break}
+  return{pct:a.pct,done:a.done,streak,k:K,t:T}}
+const todayIdx=()=>{for(let i=0;i<7;i++)if(dateOfDay(i)===todayISO())return i;return 6};
 function vWeek(){
-  const rows=state.days.map((d,i)=>{const t=sum(d.meals.flatMap(m=>m.items));return{d,i,t,T:targets(d)}});
-  const av=k=>rd(rows.reduce((a,r)=>a+r.t[k],0)/7);
-  let h=`<div class="card"><table><tr><th>اليوم</th><th>النوع</th><th>سعرات</th><th>P</th><th>C</th><th>F</th></tr>${rows.map(r=>`<tr class="clk" data-act="goday" data-v="${r.i}"><td>${r.d.name}<br><small class="note">${PL[r.d.prot]}</small></td><td>${r.d.mode==='high'?'عادي':'قليل'}</td><td>${rd(r.t.k)}</td><td>${rd(r.t.p)}</td><td>${rd(r.t.c)}</td><td>${rd(r.t.f)}</td></tr>`).join('')}<tr class="avg"><td>المتوسط</td><td></td><td>${av('k')}</td><td>${av('p')}</td><td>${av('c')}</td><td>${av('f')}</td></tr></table></div>`;
-  const sh=shopping();
-  h+=`<div class="card sh"><h3 style="margin:0">قائمة المشتريات للأسبوع</h3><p class="note">الأوزان كما في الخطة (الأرز والمكرونة نيئة، اللحوم مطبوخة).</p>${Object.keys(GROUPS).filter(g=>sh[g]).map(g=>`<h4>${GROUPS[g]}</h4>${sh[g].sort((a,b)=>b[1]-a[1]).map(([f,g2])=>`<div><span>${esc(f.n)}</span><b>${shopQty(f,g2)}</b></div>`).join('')}`).join('')}<div class="btns" style="margin-top:10px"><button data-act="copyshop">نسخ القائمة</button><button data-act="print">طباعة</button></div></div>`;
+  const seg=`<div class="seg" role="tablist"><button role="tab" aria-selected="${ui.wk!=='shop'}" class="${ui.wk!=='shop'?'on':''}" data-act="wk" data-v="week">الأسبوع</button><button role="tab" aria-selected="${ui.wk==='shop'}" class="${ui.wk==='shop'?'on':''}" data-act="wk" data-v="shop">المشتريات</button></div>`;
+  if(ui.wk==='shop')return seg+vShop();
+  const W=weekStats(),msg=W.pct>=90?'ممتاز، استمر على هذا!':W.pct>=70?'أداء جيد هذا الأسبوع':W.pct>0?'كل وجبة تسجّلها تقرّبك من هدفك':'ابدأ بتسجيل أول وجبة اليوم';
+  let h=seg+`<div class="dhead"><b>الأسبوع <small>${dateLabel(dateOfDay(0))} – ${dateLabel(dateOfDay(6))}</small></b><button class="more" data-act="weekopts" aria-label="خيارات الأسبوع" aria-haspopup="dialog">⋯</button></div>
+  <div class="card sum" style="position:static">${ring(W.pct,100).replace('من 100</text>','%</text>').replace(/aria-label="[^"]*"/,'aria-label="التزام الأسبوع '+W.pct+'%"')}<div class="mcs"><p class="motiv">${msg}</p><span class="note" style="margin:0">التزامك هذا الأسبوع ${W.pct}% · ${W.done} من 7 أيام مكتملة${W.streak>1?' · '+W.streak+' أيام متتالية':''}</span><span class="note" style="margin:0">متوسط الخطة ${rd(W.k)} من ${rd(W.t)} سعرة يومياً</span></div></div>
+  <div class="list">${state.days.map((d,i)=>{const a=adh([d]),t=sum(d.meals.flatMap(m=>m.items)),isT=dateOfDay(i)===todayISO(),dn=dayDone(d);
+    return `<button class="li" data-act="goday" data-v="${i}"><span class="dl ${dn?'ok':isT?'td':''}" aria-hidden="true">${dn?'✓':'سحنثرخج'[i]}</span><span class="g"><b>${esc(d.name)} <small style="display:inline;font-weight:400">${dateLabel(dateOfDay(i))}${isT?' · اليوم':''}</small></b><small>${d.mode==='high'?'كارب عادي':'كارب قليل'} · ${PL[d.prot]}</small><span class="hbar" aria-label="التزام ${a.pct}%"><i class="${a.pct>=80?'':a.pct>=40?'mid':a.pct?'low':''}" style="width:${a.pct}%"></i></span></span><span class="num">${rd(t.k)}<br><small>سعرة</small></span></button>`}).join('')}</div>`;
+  const rows=state.days.map(d=>sum(d.meals.flatMap(m=>m.items))),av=k=>rd(rows.reduce((a,r)=>a+r[k],0)/7);
+  h+=`<details class="fold"><summary>متوسط الماكروز في الخطة</summary><div><div class="tiles"><div class="tile"><b>${av('p')}</b><small>بروتين جم</small></div><div class="tile"><b>${av('c')}</b><small>كارب جم</small></div><div class="tile"><b>${av('f')}</b><small>دهون جم</small></div></div></div></details>`;
   return h;
 }
+function vShop(){
+  const L=shopLines(),st=shopState(),left=L.filter(x=>!x.have).length,nd=Object.keys(st.del).length;
+  const grp=g=>{const xs=L.filter(x=>x.g===g);return xs.length?`<div class="grp">${g==='extra'?'إضافات':GROUPS[g]}</div><div class="list">${xs.map(x=>`<div class="shi${x.have?' have':''}"><button class="chk${x.have?' on':''}" data-act="shave" data-v="${x.id}" aria-pressed="${x.have}" aria-label="${x.have?'موجود عندي':'تعليم كموجود عندي'}: ${esc(x.n)}">✓</button><span class="g"><b>${esc(x.n)}</b></span><button class="qb" data-act="shq" data-v="${x.id}" aria-label="تعديل كمية ${esc(x.n)}">${esc(x.q||'كمية')}</button><button class="more" data-act="shdel" data-v="${x.id}" aria-label="حذف ${esc(x.n)} من القائمة">✕</button></div>`).join('')}</div>`:''};
+  return `<div class="dhead"><b>المشتريات <small>${left} متبقٍ من ${L.length}</small></b></div>
+  <p class="note" style="margin:0 2px">من خطة الأسبوع: الأرز والمكرونة نيئة، واللحوم بوزنها مطبوخة. علّم ما عندك، عدّل الكمية، أو احذف وأضف.</p>
+  ${Object.keys(GROUPS).map(grp).join('')}${grp('extra')}
+  <div class="card"><div class="fr2"><input id="sh_n" placeholder="أضف بنداً: مناديل، توابل…" aria-label="اسم البند"><input id="sh_q" placeholder="الكمية" style="max-width:90px" aria-label="الكمية"><button class="btn pri" style="flex:0 0 auto" data-act="shadd">إضافة</button></div></div>
+  <div class="btns"><button class="btn pri" data-act="copyshop">نسخ القائمة</button>${nd?`<button data-act="shrestore">استعادة المحذوف (${nd})</button>`:''}<button data-act="shreset">إعادة من الخطة</button></div>`;
+}
 function foodRows(list,g){const f0=ui.fu==='unit';
-  return `<div class="card"><h3 style="margin:0 0 6px">${GROUPS[g]}</h3><div class="fr fh"><span>الصنف</span><span>سعرات</span><span>P</span><span>C</span><span>F</span><span></span></div>${list.map(f=>{const pu=f0&&f.u&&f.ug,val=k=>pu?+(f[k]*f.ug/100).toFixed(2):f[k];
-    return `<div class="fr"><input class="n" value="${esc(f.n)}" data-ch="food" data-id="${f.id}" data-fld="n">${['k','p','c','f'].map(k=>`<input type="number" step="any" value="${val(k)}" data-ch="food" data-id="${f.id}" data-fld="${k}">`).join('')}<button class="ib" title="حذف الصنف" aria-label="حذف الصنف ${esc(f.n)}" data-act="delfood" data-id="${f.id}">✕</button></div>${(f.u||String(f.id).startsWith('c'))?`<div class="fr"><span class="note">${pu?'⬆ القيم لكل '+esc(f.u):'وحدة / وزنها'}</span><input value="${esc(f.u||'')}" data-ch="food" data-id="${f.id}" data-fld="u" placeholder="الوحدة" style="grid-column:span 2"><input type="number" step="any" value="${f.ug||''}" data-ch="food" data-id="${f.id}" data-fld="ug" placeholder="جم" style="grid-column:span 2"><span></span></div>`:''}`}).join('')}</div>`;
+  return `<div class="grp">${GROUPS[g]}</div><div class="list">${list.map(f=>{const pu=f0&&f.u&&f.ug,m=k=>rd(pu?f[k]*f.ug/100:f[k]);
+    return `<button class="li" data-act="fedit" data-id="${f.id}"><span class="g"><b>${esc(f.n)}</b><small>${m('k')} سعرة · P ${m('p')} · C ${m('c')} · F ${m('f')} / ${pu?esc(f.u):'100 جم'}${f.u&&!pu?' · '+esc(f.u)+' = '+rd(f.ug)+' جم':''}</small></span><span class="chev">${ico('chev')}</span></button>`}).join('')}</div>`;
 }
 function fqInfo(){const q=(ui.fq||'').trim(),L=q?searchFoods(q):state.foods;return{q,L,txt:q?(L.length?L.length+' نتيجة':'لا توجد نتائج لـ «'+q+'» — يمكنك إضافته من النموذج أسفل'):''}}
 function foodsList(){
   const L=fqInfo().L;
   const q=(ui.fq||'').trim();
-  return Object.keys(GROUPS).map(g=>{const list=L.filter(f=>f.grp===g);return list.length?foodRows(list,g):''}).join('')
+  return Object.keys(GROUPS).filter(g=>!ui.fg||ui.fg===g).map(g=>{const list=L.filter(f=>f.grp===g);return list.length?foodRows(list,g):''}).join('')
     +(q?`<div class="card">${extraHtml(q,'','addc')}</div>`:'');
 }
 function nfForm(){
@@ -858,10 +900,13 @@ function nfForm(){
   <button class="btn pri" style="width:100%;margin-top:8px" data-act="addfood">إضافة</button></div>`;
 }
 function vFoods(){
-  return `<div class="card"><input id="fq" type="search" placeholder="🔍 ابحث في الأصناف (يتجاهل التشكيل والهمزات)" value="${esc(ui.fq||'')}"><p class="note" id="fqc" style="margin:4px 0 0">${esc(fqInfo().txt)}</p>
-  <div class="addm"><label class="btn" style="margin:0;flex:1">📷 صورة ملصق / باركود<input type="file" id="nf_img" accept="image/*" style="display:none"></label><button class="btn" style="flex:1" data-act="nftxt">📝 لصق نص ملصق</button></div>
-  <p class="note" style="margin:8px 0 6px">القيم المخزّنة لكل 100 جم. للأصناف ذات الوحدة (حبة/قطعة) يمكنك عرضها وتعديلها <b>لكل وحدة</b>. تعديل أي قيمة يتحدّث في كل الخطة فوراً.</p><div class="seg"><button class="${ui.fu!=='unit'?'on':''}" data-act="fu" data-v="g">لكل 100 جم</button><button class="${ui.fu==='unit'?'on':''}" data-act="fu" data-v="unit">لكل وحدة (للأصناف ذات الوحدة)</button></div></div>
-  <div id="foodList">${foodsList()}</div>${nfForm()}${srcCard()}`;
+  const ch=(v,l)=>`<button class="${(ui.fg||'')===v?'on':''}" data-act="fgrp" data-v="${v}" aria-pressed="${(ui.fg||'')===v}">${l}</button>`;
+  return `<div class="srch"><input id="fq" type="search" placeholder="ابحث: لبنة، شوفان، تونة…" aria-label="بحث في الأصناف" value="${esc(ui.fq||'')}"><label class="scanb" aria-label="مسح باركود أو صورة ملصق" title="مسح باركود أو ملصق">${'⌗'}<input type="file" id="nf_img" accept="image/*" style="display:none"></label></div>
+  <p class="note" id="fqc" style="margin:4px 2px 0">${esc(fqInfo().txt)}</p>
+  <div class="chips">${ch('','الكل')}${Object.keys(GROUPS).map(g=>ch(g,GROUPS[g])).join('')}<button class="${ui.fu==='unit'?'on':''}" data-act="fu" data-v="${ui.fu==='unit'?'g':'unit'}" aria-pressed="${ui.fu==='unit'}">لكل وحدة</button></div>
+  <div id="foodList">${foodsList()}</div>
+  <div class="btns"><button class="btn pri" data-act="nfopen">+ صنف جديد</button><button data-act="nftxt">لصق نص ملصق</button></div>
+  <div ${ui.nfOpen?'':'hidden'}>${nfForm()}</div>`;
 }
 function goalUI(s,hi,lo){
   const gl=goalOf(s),isM=gl.kind==='manual',g=s.g[gl.id]||{};
@@ -981,7 +1026,7 @@ function banners(){
 }
 // ---------- الشخص المشارك: يُحمَّل من السحابة ولا يُكتب في هذا الجهاز ----------
 const canWrite=()=>!!ui.remote&&ui.remote.role!=='viewer';
-const NAV_ACTS=new Set(['dayopts','itemopts','mopen','tab','back','day','goday','close','hopen','hr','cmp','who','whopick','whome','whoload','yes','undo','annx','reload','umode','copyshop','print','fu','by','agrp','gaccept','gleave','share','grevoke','gcreate','gcopy','scanclose','eqo']);
+const NAV_ACTS=new Set(['weekopts','wk','fgrp','fedit','nfopen','dayopts','itemopts','mopen','tab','back','day','goday','close','hopen','hr','cmp','who','whopick','whome','whoload','yes','undo','annx','reload','umode','copyshop','print','fu','by','agrp','gaccept','gleave','share','grevoke','gcreate','gcopy','scanclose','eqo']);
 const LOG_ACTS=new Set(['mfinish','qlog','log','logsave','logskip','logclr','hlog','hdel','logrest','logclear']);
 const LOCAL_ACTS=new Set(['uadd','uren','usave','udel','uswitch','reset','import','export','cpush','cpull','rebuildweek']);
 function remoteBlock(a){if(!ui.remote||NAV_ACTS.has(a))return '';
@@ -1079,6 +1124,7 @@ function vClients(){
 function vData(){return `
   <div class="card"><h3 style="margin:0 0 6px">النسخ الاحتياطي</h3><p class="note">لكل مستخدم إعداداته وأصنافه وخطته، ويُحفظ كل يوم بأصنافه في مفتاح مستقل داخل هذا المتصفح، ويُحفظ الفعلي لكل تاريخ في «التقدم» ويدخل في التصدير. المستخدم الحالي: <b>${esc(curUser().name)}</b>. صدّر نسخة احتياطية قبل تغيير الجهاز.</p><div class="btns"><button data-act="export">تصدير كل المستخدمين</button><button data-act="import">استيراد</button></div></div>`;
 }
+function vMeSubData(){return vData()+srcCard()}
 function vMeSub(){const s=S();
   switch(ui.sub){
     case 'profile':return vProfile();
@@ -1087,7 +1133,7 @@ function vMeSub(){const s=S();
     case 'clients':return vClients();
     case 'mode':return vMode();
     case 'sync':return vCloud();
-    case 'data':return vData();
+    case 'data':return vMeSubData();
     case 'advanced':return vEqMgmt(s);
   }
   return vMe();
@@ -1122,11 +1168,12 @@ function vHist(){
   const r4=(l,t,cls)=>`<tr${cls?` class="${cls}"`:''}><td>${l}</td><td>${rd(t.k)}</td><td>${rd(t.p)}</td><td>${rd(t.c)}</td><td>${rd(t.f)}</td></tr>`;
   const max=Math.max(1,...A.map(x=>Math.max(x.L.eaten.k,x.L.plan.k,x.r.tg.k)));
   const cur=ui.hr||'7',chip=(v,l)=>`<button class="${cur===v?'on':''}" data-act="hr" data-v="${v}">${l}</button>`;
-  let h=`<div class="card"><h3 style="margin:0 0 8px">إحصاءات الفعلي</h3>
-  <div class="seg" style="margin-bottom:6px">${chip('7','7 أيام')}${chip('30','30 يوماً')}${chip('all','الكل')}${chip('custom','فترة')}</div>
+  let h=`<div class="seg">${chip('7','7 أيام')}${chip('30','30 يوماً')}${chip('all','الكل')}${chip('custom','فترة')}</div>
   ${cur==='custom'?`<div class="lbl"><span>من</span><input type="date" data-ch="hf" value="${esc(ui.hf||'')}"><span>إلى</span><input type="date" data-ch="ht" value="${esc(ui.ht||'')}"></div>`:''}`;
-  if(!rs.length)return h+`<p class="note">لا سجلات في هذه الفترة. سجّل ما تأكله من تبويب «اليوم» (✓ أو 📝) وسيُحفظ هنا بتاريخه.</p></div>`;
-  h+=`<div class="dv"><span>أيام مسجّلة</span><b>${rs.length} (مكتملة ${n})</b></div>`;
+  if(!rs.length)return h+`<div class="card"><b>لا سجلات في هذه الفترة</b><p class="note">سجّل ما تأكله من «اليوم» بزر ✓ أو «إنهاء الوجبة»، وسيظهر هنا بتاريخه.</p><button class="btn pri" data-act="tab" data-v="day">إلى اليوم</button></div>`;
+  h+=`<div class="card"><div class="tiles"><div class="tile"><b>${rs.length}</b><small>أيام مسجّلة</small></div><div class="tile"><b>${n?rd(adh)+'%':'—'}</b><small>الالتزام بالسعرات</small></div><div class="tile"><b>${n?ph+'/'+n:'—'}</b><small>أيام البروتين</small></div></div>
+  ${n?`<p class="note" style="margin:8px 0 0">متوسط اليوم المكتمل: ${rd(aE.k)} سعرة فعلياً مقابل هدف ${rd(aT.k)}.</p>`:`<p class="note" style="margin:8px 0 0">لا يوجد يوم مكتمل التسجيل بعد؛ الأيام الجزئية معلَّمة بـ *.</p>`}</div>
+  <details class="fold"><summary>التفاصيل والمتوسطات</summary><div>`;
   if(n){
     h+=`<table style="margin:6px 0"><tr><th>متوسط يوم مكتمل</th><th>سعرات</th><th>P</th><th>C</th><th>F</th></tr>${r4('الفعلي',aE,'avg')}${r4('الخطة',aP)}${r4('الهدف',aT)}<tr><td>الفعلي − الهدف</td><td>${dc(aE.k-aT.k,aT.k)}</td><td>${dc(aE.p-aT.p,aT.p)}</td><td>${dc(aE.c-aT.c,aT.c)}</td><td>${dc(aE.f-aT.f,aT.f)}</td></tr></table>
     <div class="dv"><span>الالتزام بسعرات الخطة</span><b>${rd(adh)}%</b></div>
@@ -1135,8 +1182,8 @@ function vHist(){
   }else h+=`<p class="note">لا يوجد يوم مكتمل التسجيل بعد، فلا متوسطات (الأيام الجزئية تظهر في القائمة بعلامة *).</p>`;
   h+=`<div class="dv"><span>أكثر الأصناف تركاً</span><b style="direction:rtl">${topSk}</b></div>
   <div class="dv"><span>خارج الخطة</span><b>${ex.n} مرة · ${rd(ex.k)} kcal</b></div>
-  <div class="dv"><span>أصناف نُقلت بين الوجبات</span><b>${mv}</b></div></div>
-  <div class="card"><h3 style="margin:0 0 4px">الأيام (سعرات الفعلي، الخط الأسود = الخطة)</h3><p class="note" style="margin:0 0 4px">اضغط على يوم لعرض تفاصيله${'' } · * يوم غير مكتمل التسجيل</p>`;
+  <div class="dv"><span>أصناف نُقلت بين الوجبات</span><b>${mv}</b></div></div></details>
+  <div class="dhead"><b>الأيام <small>الشريط = الفعلي، الخط = الخطة</small></b></div><div class="card" style="padding:4px 12px">`;
   h+=A.map(({r,L})=>{const pc=Math.min(100,L.eaten.k/max*100),pp=Math.min(100,L.plan.k/max*100),part=!(L.total>0&&L.logged===L.total);
     return `<div class="hr" data-act="hopen" data-d="${r.date}"><span>${r.date.slice(5).replace('-','/')} ${esc(r.name)}</span><div class="hb"><i class="${part?'part':''}" style="width:${pc}%"></i><u style="inset-inline-start:${pp}%"></u></div><b>${rd(L.eaten.k)}${part?'*':''}</b></div>`}).join('')+`</div>`;
   return h;
@@ -1175,6 +1222,24 @@ function renderModal(){
     ${hr?hFoot(hr):`<div class="btns" style="margin-top:10px"><button data-act="logrest">تسجيل الباقي كما في الخطة</button><button data-act="logclear">مسح تسجيل اليوم</button></div>
     <button class="btn" style="width:100%;margin-top:6px" data-act="close">إغلاق</button>
     <p class="note">يُحفظ سجل كل يوم بتاريخه تلقائياً، ويبقى في «التقدم» بعد انتهاء الأسبوع.</p>`}</div>`;
+  }else if(modal.type==='food'){
+    const f=F(modal.id);if(!f){modal=null;m.className='';m.innerHTML='';return}
+    const pu=ui.fu==='unit'&&f.u&&f.ug,val=k=>pu?+(f[k]*f.ug/100).toFixed(2):f[k];
+    m.innerHTML=`<div class="sheet" role="dialog" aria-label="تعديل ${esc(f.n)}"><h3>تعديل الصنف</h3>
+    <label class="lbl" style="flex-direction:column;align-items:stretch">الاسم<input value="${esc(f.n)}" data-ch="food" data-id="${f.id}" data-fld="n"></label>
+    <p class="note">القيم ${pu?'لكل '+esc(f.u):'لكل 100 جم'} — أي تعديل يتحدّث في كل الخطة فوراً.</p>
+    <div class="tiles" style="grid-template-columns:repeat(4,1fr)">${[['k','سعرات'],['p','بروتين'],['c','كارب'],['f','دهون']].map(([k,l])=>`<label class="sc"><span>${l}</span><input type="number" step="any" inputmode="decimal" value="${val(k)}" data-ch="food" data-id="${f.id}" data-fld="${k}"></label>`).join('')}</div>
+    <div class="tiles" style="grid-template-columns:1fr 1fr;margin-top:8px"><label class="sc"><span>الوحدة (اختياري)</span><input value="${esc(f.u||'')}" placeholder="حبة" data-ch="food" data-id="${f.id}" data-fld="u"></label><label class="sc"><span>وزن الوحدة جم</span><input type="number" step="any" value="${f.ug||''}" data-ch="food" data-id="${f.id}" data-fld="ug"></label></div>
+    <div class="btns" style="margin-top:10px"><button class="btn pri" data-act="close">تم</button><button class="btn dan" data-act="delfood" data-id="${f.id}">حذف الصنف</button></div></div>`;
+  }else if(modal.type==='weekopts'){
+    m.innerHTML=`<div class="sheet" role="dialog" aria-label="خيارات الأسبوع"><h3>خيارات الأسبوع</h3><div class="list" style="box-shadow:none;border:1px solid var(--ln)">
+    <button class="li" data-act="refitweek"><span class="g"><b>ضبط كميات الأسبوع على الأهداف</b><small>يُبقي الأصناف</small></span></button>
+    <button class="li" data-act="print"><span class="g"><b>طباعة الأسبوع</b></span></button>
+    <button class="li dz" data-act="rebuildweek"><span class="g"><b>إعادة بناء الأسبوع من القوالب</b><small>يُفقد أي تعديل يدوي</small></span></button></div>
+    <div class="btns" style="margin-top:8px"><button data-act="close">إغلاق</button></div></div>`;
+  }else if(modal.type==='shq'){
+    const x=shopLines().find(z=>z.id===modal.id)||{n:'',q:''};
+    m.innerHTML=`<div class="sheet" role="dialog" aria-label="كمية ${esc(x.n)}"><h3>${esc(x.n)}</h3><label class="lbl">الكمية<input id="shq_v" value="${esc(x.q)}" style="max-width:60%"></label><div class="btns"><button class="btn pri" data-act="shqsave">حفظ</button><button data-act="close">إلغاء</button></div></div>`;
   }else if(modal.type==='dayopts'){
     const d=state.days[ui.day],L=dayLog(d);
     m.innerHTML=`<div class="sheet" role="dialog" aria-label="خيارات اليوم"><h3>خيارات ${esc(d.name)}</h3>
@@ -1305,6 +1370,18 @@ function act(a,ds){
     case 'by':modal.by=ds.v;break;
     case 'applyswap':{const it=d.meals[modal.m].items[modal.i];it.f=ds.f;it.g=+ds.g;it.b=it.g;delete it.e;delete it.em;modal=null;break}
     case 'dayopts':modal={type:'dayopts'};break;
+    case 'weekopts':modal={type:'weekopts'};break;
+    case 'wk':ui.wk=ds.v;render();return;
+    case 'fgrp':ui.fg=ds.v;render();return;
+    case 'fedit':modal={type:'food',id:ds.id};render();return;
+    case 'nfopen':ui.nfOpen=!ui.nfOpen;render();if(ui.nfOpen){const e=$('#nf_n');if(e)e.focus()}return;
+    case 'shave':{const st=shopState(),id=ds.v;if(id[0]==='x'){const x=st.extra[+id.slice(1)];if(x)x.have=!x.have}else{if(st.have[id])delete st.have[id];else st.have[id]=1}break}
+    case 'shdel':{const st=shopState(),id=ds.v,n=(shopLines().find(z=>z.id===id)||{}).n||'';if(id[0]==='x'){const i=+id.slice(1),[x]=st.extra.splice(i,1);toast('حُذف «'+n+'»',()=>{shopState().extra.splice(i,0,x)})}else{st.del[id]=1;toast('حُذف «'+n+'»',()=>{delete shopState().del[id]})}break}
+    case 'shq':modal={type:'shq',id:ds.v};render();return;
+    case 'shqsave':{const st=shopState(),id=modal.id,v=(($('#shq_v')||{}).value||'').trim();if(id[0]==='x'){const x=st.extra[+id.slice(1)];if(x)x.q=v}else{if(v)st.q[id]=v;else delete st.q[id]}modal=null;break}
+    case 'shadd':{const n=(($('#sh_n')||{}).value||'').trim();if(!n){toast('اكتب اسم البند');return}shopState().extra.push({n,q:(($('#sh_q')||{}).value||'').trim()});toast('أُضيف «'+n+'»');break}
+    case 'shrestore':shopState().del={};break;
+    case 'shreset':ask('إعادة القائمة من الخطة؟ تُلغى العلامات والكميات المعدلة والإضافات.',()=>{delete S().shop});return;
     case 'itemopts':modal={type:'item',m:+ds.m,i:+ds.i};break;
     case 'mopen':{const cur=openMeal(d),mi=+ds.m;ui.open={d:ui.day,m:cur===mi?-1:mi};render();return}
     case 'mfinish':{const mi=+ds.m,mm=d.meals[mi];
@@ -1318,11 +1395,11 @@ function act(a,ds){
     case 'undo':{const u=toast.u;toast.u=null;clearTimeout(toast.t);$('#toast').style.display='none';if(u)u();break}
     case 'add':ui.aq='';ui.ag='';ui.xt=false;modal={type:'add',m:+ds.m};break;
     case 'agrp':ui.xt=!!($('#xtra')&&$('#xtra').checked);ui.aq=($('#q')||{}).value||'';ui.ag=ds.v;break;
-    case 'newfromq':ui.nfd=Object.assign({},ui.nfd,{n:ui.aq||'',g:ui.ag||(ui.nfd||{}).g});ui.tab='foods';modal=null;setTimeout(()=>{const e=$('#nfcard');if(e&&e.scrollIntoView)e.scrollIntoView()},60);break;
+    case 'newfromq':ui.nfd=Object.assign({},ui.nfd,{n:ui.aq||'',g:ui.ag||(ui.nfd||{}).g});ui.tab='foods';ui.nfOpen=true;modal=null;setTimeout(()=>{const e=$('#nfcard');if(e&&e.scrollIntoView)e.scrollIntoView()},60);break;
     case 'pick':{const f=F(ds.id),g=f.u&&f.ug?f.ug:100,xt=!!($('#xtra')&&$('#xtra').checked);
       d.meals[modal.m].items.push(xt?{f:f.id,g:0,b:0,r:'x',s:'',x:true,e:g}:{f:f.id,g,b:g,r:'x',s:''});if(xt)d.lw=weekKey();modal=null;break}
     case 'close':modal=(modal&&modal.type==='hlog')?{type:'hdetail',date:modal.date}:null;break;
-    case 'delfood':{const used=state.days.some(x=>x.meals.some(m=>m.items.some(i=>i.f===ds.id)));if(used){toast('الصنف مستخدم في الخطة. استبدله أولاً.');return}const fi=state.foods.findIndex(f=>f.id===ds.id);if(fi<0)return;const [rf]=state.foods.splice(fi,1);toast('حُذف الصنف «'+rf.n+'»',()=>{state.foods.splice(fi,0,rf)});break}
+    case 'delfood':{modal=null;const used=state.days.some(x=>x.meals.some(m=>m.items.some(i=>i.f===ds.id)));if(used){toast('الصنف مستخدم في الخطة. استبدله أولاً.');return}const fi=state.foods.findIndex(f=>f.id===ds.id);if(fi<0)return;const [rf]=state.foods.splice(fi,1);toast('حُذف الصنف «'+rf.n+'»',()=>{state.foods.splice(fi,0,rf)});break}
     case 'nftxt':ui.scan={busy:false,d:{b:'g'},txt:'',warn:[],from:null,sug:''};modal={type:'scan'};break;
     case 'online':{const q=(modal&&modal.type==='add'?ui.aq:ui.fq)||'';if(!q.trim()){toast('اكتب كلمة البحث أولاً');return}doOnline(q.trim());return}
     case 'addc':{const c=ui.cands[+ds.ci];if(!c)return;candFood(c);toast('أُضيف «'+c.n+'» إلى أصنافي');break}
@@ -1357,8 +1434,8 @@ function act(a,ds){
       state.foods.push({id:'c'+Date.now(),n,grp:$('#nf_g').value,k,p,c,f,u:U,ug:UG});ui.nfd={};ui.nfT=false;ui.ocr='';ui.fq='';toast('تمت الإضافة');break}
     case 'fu':ui.fu=ds.v;break;
     case 'rebuildweek':ask('إعادة بناء كل الأيام؟ سيُفقد أي تعديل يدوي على الكميات والبدائل.',()=>{state.days=state.days.map((x,i)=>buildDay(i,x.mode,x.prot))});return;
-    case 'copyshop':{const sh=shopping();const t=Object.keys(GROUPS).filter(g=>sh[g]).map(g=>GROUPS[g]+':\n'+sh[g].map(([f,g2])=>'- '+f.n+': '+shopQty(f,g2)).join('\n')).join('\n\n');
-      try{navigator.clipboard.writeText(t).then(()=>toast('تم النسخ'),()=>toast('تعذّر النسخ'))}catch(e){toast('تعذّر النسخ')}return}
+    case 'copyshop':{const L=shopLines().filter(x=>!x.have),gs=Object.keys(GROUPS).concat('extra');const t=gs.filter(g=>L.some(x=>x.g===g)).map(g=>(g==='extra'?'إضافات':GROUPS[g])+':\n'+L.filter(x=>x.g===g).map(x=>'- '+x.n+(x.q?': '+x.q:'')).join('\n')).join('\n\n');
+      try{navigator.clipboard.writeText(t).then(()=>toast('تم نسخ '+L.length+' بنداً'),()=>toast('تعذّر النسخ'))}catch(e){toast('تعذّر النسخ')}return}
     case 'print':window.print();return;
     case 'export':{const all={v:2,meta:{cur:meta.cur},users:meta.users.map(u=>({id:u.id,name:u.name,data:u.id===meta.cur?state:loadUser(u.id),hist:hAll(u.id)}))};
       const b=new Blob([JSON.stringify(all,null,1)],{type:'application/json'}),a2=document.createElement('a');a2.href=URL.createObjectURL(b);a2.download='meal-plan-all-users.json';a2.click();return}

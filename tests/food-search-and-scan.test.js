@@ -71,7 +71,7 @@ const typ=(w,el,v)=>{el.value=v;el.dispatchEvent(new w.Event('input',{bubbles:tr
  T('addc adds food',w.eval("state.foods.some(f=>f.n==='كاجو'&&f.k===553)"));
  click(w,$('#foodList [data-act="online"]'));await sleep(60);T('foods tab online shows',$('#foodList').textContent.includes('Open Food Facts')||$('#foodList').textContent.includes('USDA'));
  // 6) usda key
- typ(w,$('#usda_key'),'MYKEY123');T('key saved',JSON.parse(w.localStorage.getItem('mp3_src')).usda==='MYKEY123');
+ w.eval("ui.tab='me';ui.sub='data';render()");typ(w,$('#usda_key'),'MYKEY123');w.eval("ui.tab='foods';ui.sub='';render()");T('key saved',JSON.parse(w.localStorage.getItem('mp3_src')).usda==='MYKEY123');
  urls.length=0;click(w,$('#foodList [data-act="online"]'));await sleep(60);T('custom key used',urls.some(u=>u.includes('api_key=MYKEY123')),urls);
  // 7) scan via OCR
  w.Tesseract={createWorker:async()=>({setParameters:async()=>{},recognize:async()=>({data:{text:OCR}}),terminate:async()=>{}})};
