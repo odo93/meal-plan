@@ -22,7 +22,7 @@
 ## الأوامر
 - `npm install && npm test`
 - فحص الصياغة بعد التعديل: `node --check v2/js/<الملف>.js` (وللـ v1 والإدارة: استخرج وسم `<script>` ثم `node --check`).
-- عند نشر v2: ارفع `APP_VER` و`?v=` في `index.html` و`VER` في `sw.js` معاً.
+- عند نشر v2: ارفع `APP_VER` و`?v=` في `index.html` و`VER`/`CACHE` في `sw.js` و`v` في `v2/version.json` معاً، واكتب في `notes` ما الجديد للمستخدمين (يظهر في بانر «تحديث جديد جاهز»).
 - تشغيل محلي: افتح `v2/index.html` من خادم ثابت (`npx serve .` أو `python3 -m http.server`).
 
 ## ما لم يُتحقق منه بعد (يحتاج متصفحاً حقيقياً)

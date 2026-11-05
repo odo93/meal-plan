@@ -36,8 +36,10 @@
    - `.github/workflows/keepalive.yml`
 4. سجّل حسابك من التطبيق، ثم اجعله مديراً من SQL Editor:
    `insert into public.app_admins (user_id) select id from auth.users where email = 'بريدك';`
-5. ارفع الإصدار (`APP_VER`، و`?v=` في `v2/index.html`، و`VER` و`CACHE` في `v2/sw.js`) ثم `npm run build` وانشر.
+5. ارفع الإصدار (`APP_VER`، و`?v=` في `v2/index.html`، و`VER` و`CACHE` في `v2/sw.js`، و`v` في `v2/version.json`) ثم `npm run build` وانشر.
 > المفتاح العام وحده يوضع في الصفحات. **لا تضع مفتاح service_role في أي ملف.**
 
 ## تحديث النسخة المنشورة لاحقاً
+ارفع رقم الإصدار في الأماكن الأربعة واكتب «ما الجديد» في `v2/version.json` → يظهر للمستخدمين بانر «تحديث جديد جاهز» بزر «تحديث الآن» خلال 30 دقيقة أو عند فتح التطبيق، فيحفظ بياناتهم ويرفعها ثم يحمّل النسخة الجديدة.
+
 `npm test` ← `npm run build` ← ارفع `dist/site` من جديد (أو ادفع إلى `main` لـ GitHub Pages).

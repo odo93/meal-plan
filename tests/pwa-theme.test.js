@@ -24,6 +24,8 @@ const appVer=(fs.readFileSync(path.join(V2,'js','views-me.js'),'utf8').match(/AP
 T('index loads css + js files',refs.length>=10&&refs.some(r=>r[1]==='css/app.css'),refs.length);
 T('all ?v= stamps equal APP_VER and sw VER',appVer&&refs.every(r=>r[2]===appVer)&&(sw.match(/const VER = '([^']+)'/)||[])[1]===appVer,appVer+' '+refs.map(r=>r[2]).join());
 T('sw caches every split file',refs.every(r=>core.includes(r[1])),refs.filter(r=>!core.includes(r[1])).map(r=>r[1]).join());
+const vj=JSON.parse(fs.readFileSync(path.join(V2,'version.json'),'utf8'));
+T('version.json matches APP_VER (update banner)',vj.v===appVer&&Array.isArray(vj.notes),vj.v+' vs '+appVer);
 T('no inline app script left in index.html',(raw.match(/<script>/g)||[]).length===1);
 const js=fs.readdirSync(path.join(V2,'js')).filter(f=>f.endsWith('.js'));
 T('every js file is loaded',js.every(f=>refs.some(r=>r[1]==='js/'+f)),js.filter(f=>!refs.some(r=>r[1]==='js/'+f)).join());

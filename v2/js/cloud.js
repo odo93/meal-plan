@@ -75,6 +75,23 @@ async function cDeleteAccount(){
   Object.keys(localStorage).filter(k=>k.startsWith('mp3_')&&k!=='mp3_theme'&&k!=='mp3_imported').forEach(lsDel);  // mp3_imported يمنع إعادة نسخ بيانات v1
   cloud={url:SB_URL,key:SB_KEY,email:'',phone:'',sess:null,last:''};
   setTimeout(reloadApp,50);return 'حُذف حسابك'}
+// ---------- التحديثات: version.json يحمل رقم آخر نسخة و«ما الجديد» ----------
+// يُفحص عند الفتح، وعند الرجوع للتطبيق (مرة كل 10 دقائق على الأكثر)، وكل 30 دقيقة.
+async function checkUpdate(){
+  if(navigator.onLine===false)return false;checkUpdate.at=Date.now();
+  try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return false;const j=await r.json();
+    if(j&&typeof j.v==='string'&&verLt(APP_VER,j.v)){const was=ui.upd&&ui.upd.v;ui.upd={v:j.v,notes:Array.isArray(j.notes)?j.notes.slice(0,5).map(String):[]};if(was!==j.v)render();return true}
+  }catch(e){}return false}
+// التحديث الآن: يحفظ في الجهاز، ويُنهي أي رفع معلّق إلى الحساب (بحد 5 ثوانٍ)، ثم يحمّل النسخة الجديدة. البيانات لا تُمس.
+async function updateNow(){
+  ui.updBusy=true;render();
+  try{if(!ui.remote)saveMeta(),saveUser(meta.cur,state)}catch(e){}
+  const wait=p=>Promise.race([p.catch(()=>{}),new Promise(r=>setTimeout(r,5000))]);
+  if(cloud.sess&&!ui.remote){clearTimeout(cT);await wait(cPush())}
+  else if(ui.remote&&canWrite()){clearTimeout(rT);await wait(rPush())}
+  try{const reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();if(reg)await wait(reg.update())}catch(e){}
+  reloadApp();
+}
 async function cSetPhone(){const ph=normPhone(($('#cl_ph')||{}).value);if(!ph)return 'أدخل رقم جوال صحيحاً (8–15 رقماً)';
   await cFetch('/auth/v1/user',{method:'PUT',body:{data:{phone:ph}}});cloud.phone=ph;cSave();render();return 'تم حفظ رقم الجوال'}
 async function cHash(){ // رابط التأكيد/الاستعادة من Supabase يعود إلى التطبيق ومعه الرمز في #hash

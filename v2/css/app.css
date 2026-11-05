@@ -140,6 +140,7 @@ i.ok{background:var(--okf)}i.hi{background:var(--hi)}i.lo{background:var(--lo)}
 .mprow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) 70px 44px;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid var(--ln)}.mprow .mpn{grid-column:1/-1;text-align:start}
 .set .mprow input,.set .mprow select{width:100%;max-width:none;min-width:0}.mprow .mpp{display:flex;align-items:center;gap:3px}.set .mprow .mpp input{text-align:center}
 .mtime{font-weight:400;color:var(--mu);font-size:12px;margin-inline-start:4px}.meal.now{box-shadow:0 0 0 2px var(--ac)}
+.bnr.upd ul{margin:4px 0;padding-inline-start:18px;font-size:13px}
 .tag{background:var(--ac2);color:var(--act);border-radius:6px;font-size:11px;padding:1px 6px;margin-inline-start:4px}
 .qty{display:flex;align-items:center;gap:4px}
 .qty input{width:70px;text-align:center}

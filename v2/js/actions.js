@@ -19,7 +19,8 @@ function act(a,ds){
     case 'whome':leaveRemote();modal=null;toast('رجعت إلى ملفك');break;
     case 'umode':meta.mode=ds.v;if(cloud.sess){meta.modePending=true;cFetch('/rest/v1/rpc/mp_set_mode',{method:'POST',body:{p_mode:ds.v}}).then(r=>{delete meta.modePending;saveMeta();if(r)lsSet('mp3_acct',{mode:r.mode,features:r.features||{}});render()}).catch(()=>{})}saveMeta();toast('نوع الاستخدام: '+MODES.find(x=>x[0]===ds.v)[1]);if(isCoach())loadShared().then(render);break;
     case 'annx':{const sn=lsGet('mp3_ann_seen')||[];sn.push(+ds.v);lsSet('mp3_ann_seen',sn);render();return}
-    case 'reload':location.reload();return;
+    case 'reload':case 'updnow':if(!ui.updBusy)updateNow();return;
+    case 'updlater':ui.updLater=ui.upd&&ui.upd.v;break;
     case 'share':modal={type:'share',user:ds.v,role:isCoach()?'coach':'viewer'};render();return;
     case 'srole':modal.role=ds.v;render();return;
     case 'gcreate':{const M=modal;M.busy=true;render();
