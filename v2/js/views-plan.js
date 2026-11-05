@@ -193,6 +193,6 @@ function vCloud(){const c=cloud,on=!!c.sess,up=ui.authM==='up';
   ${up?`<label>رقم الجوال<input id="cl_ph" type="tel" name="tel" dir="ltr" inputmode="tel" autocomplete="tel" spellcheck="false" placeholder="+9665xxxxxxxx" style="width:100%"></label>`:''}
   <label>كلمة المرور${up?' (6 أحرف فأكثر)':''}<input id="cl_pw" type="password" name="password" dir="ltr" autocomplete="${up?'new-password':'current-password'}" style="width:100%"></label>
   <div class="btns">${up?'<button class="btn pri" data-act="csignup">إنشاء الحساب</button>':'<button class="btn pri" data-act="clogin">تسجيل الدخول</button>'}</div>
-  ${up?'<p class="note">سنرسل رابط تفعيل إلى بريدك. التفعيل برمز على الجوال قريباً. بإنشاء الحساب توافق على <a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a>.</p>':'<div class="btns" style="margin-top:6px"><button data-act="cforgot">نسيت كلمة المرور؟ أرسل رابط استعادة</button></div>'}
+  ${up?'<p class="note">سنرسل رابط تفعيل إلى بريدك. التفعيل برمز على الجوال قريباً. بإنشاء الحساب توافق على <a href="terms.html" target="_blank" rel="noopener">شروط الاستخدام</a> و<a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a>.</p>':'<div class="btns" style="margin-top:6px"><button data-act="cforgot">نسيت كلمة المرور؟ أرسل رابط استعادة</button></div>'}
   <p class="note" id="cst">${esc(c.last||'')}</p></div>`;
 }

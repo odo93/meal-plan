@@ -10,6 +10,7 @@ const mk=()=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.
     if(p==='/auth/v1/token')return body.password==='pw'?R({access_token:'AT',refresh_token:'RT',expires_in:3600,user:{email:'m@x.y'}}):R({error_description:'Invalid login credentials'},400);
     if(p==='/rest/v1/rpc/is_admin')return R(ADMIN);
     if(p==='/rest/v1/rpc/admin_stats')return R({accounts:3,registered:2,anonymous:1,active_7d:1,people:3,history_days:14,active_grants:1,pending_grants:0});
+    if(p==='/rest/v1/app_errors'&&(o.method||'GET')==='GET')return R([{id:1,at:'2026-11-05T08:00:00Z',ver:'2.8',msg:'TypeError: boom',src:'/meal-plan/v2/js/render.js',line:12,uid:'u1'},{id:2,at:'2026-11-05T09:00:00Z',ver:'2.9',msg:'TypeError: boom',src:'/meal-plan/v2/js/render.js',line:12,uid:'u2'}]);
     if(p==='/rest/v1/rpc/admin_insights')return R({days:12,weights:3,top_eaten:[{n:'بيض',c:9}],top_skipped:[{n:'خبز',c:4}],extra:[],by_dow:[{dow:6,adh:71,n:2}],weekly:[{wk:'2026-11-02',days:5}],goals:[{goal:'cut',c:2}],modes:[{mode:'coach',c:1}]});
     if(p==='/rest/v1/rpc/admin_accounts')return R([{id:'a1',phone:'+966501234567',confirmed:false,email:'m@x.y',created_at:'2026-11-02T00:00:00Z',last_sign_in_at:null,people:2,last_update:null,is_admin:true,mode:'coach',features:{scan:false}},{id:'a2',email:null,phone:null,confirmed:false,anon:true,created_at:'2026-11-05T00:00:00Z',people:1,is_admin:false,mode:null,features:{}}]);
     if(p==='/rest/v1/announcements'&&(o.method||'GET')==='GET')return R([{id:3,title:'قديم',body:'',level:'info',active:true,ends_at:null}]);
@@ -27,6 +28,10 @@ const mk=()=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.
  T('stats split registered / temporary',$('#app').textContent.includes('حسابات مؤقتة')&&$('#app').textContent.includes('حسابات ببريد'));
  T('stats shown',$('#app').textContent.includes('كل الحسابات')&&$('#app').textContent.includes('14'));
  T('session not holding password',!JSON.stringify(w.localStorage).includes('"pw"'));
+ click('[data-v="errors"]');await sleep(40);
+ T('errors grouped',/TypeError: boom/.test($('#app').textContent)&&$('#app tbody').children.length===1&&/2\.8, 2\.9|2\.9, 2\.8/.test($('#app').textContent));
+ click('[data-act="errclr"]');await sleep(10);click('[data-act="errclr"]');await sleep(40);
+ T('errors cleared on second press',log.some(l=>l[0]==='DELETE'&&l[1].startsWith('/rest/v1/app_errors')));
  click('[data-v="insights"]');await sleep(40);
  T('insights tab',/أكثر الأصناف أكلاً/.test($('#app').textContent)&&/بيض/.test($('#app').textContent)&&/الجمعة/.test($('#app').textContent)&&/تنحيف/.test($('#app').textContent)&&/مدرب مستقل/.test($('#app').textContent));
  click('[data-act="insd"][data-v="30"]');await sleep(40);
@@ -38,7 +43,7 @@ const mk=()=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.
  const pa=log.find(l=>l[0]==='POST'&&l[1]==='/rest/v1/announcements');
  T('announcement posted',pa&&pa[3].title==='تحديث جديد'&&pa[3].level==='info'&&pa[3].ends_at===null);
  click('[data-act="adel"]');await sleep(20);
- T('delete needs second press',!log.some(l=>l[0]==='DELETE'));
+ T('delete needs second press',!log.some(l=>l[0]==='DELETE'&&l[1].startsWith('/rest/v1/announcements')));
  click('[data-act="adel"]');await sleep(40);
  T('delete on second press',log.some(l=>l[0]==='DELETE'&&l[1]==='/rest/v1/announcements?id=eq.3'));
  click('[data-v="config"]');await sleep(40);
@@ -51,6 +56,10 @@ const mk=()=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.
  $('#ft_scan_family').checked=false;submit('#cff');await sleep(40);
  const pm=log.filter(l=>l[0]==='PATCH'&&l[1].startsWith('/rest/v1/app_config')).pop();
  T('features saved per type',pm&&pm[3].features.scan.family===false&&pm[3].features.scan.self===true&&pm[3].features.share.self===false&&Object.keys(pm[3].features).length===6);
+ $('#c_cap').value='bad key!';submit('#cfc');await sleep(20);
+ T('invalid captcha key rejected',!log.some(l=>l[0]==='PATCH'&&l[3]&&'captcha_site_key' in l[3]));
+ $('#c_cap').value='0x4AAAAAAAabcDEF';submit('#cfc');await sleep(40);
+ T('captcha key saved',log.some(l=>l[0]==='PATCH'&&l[3]&&l[3].captcha_site_key==='0x4AAAAAAAabcDEF'));
  T('defaults shown',$('#d_goal').value==='cut'&&$('#d_cut_pr').value==='2.5'&&$('#d_bulk_pr').value===''&&$('#d_bulk_pr').placeholder==='1.6');
  T('pattern defaults shown (app default alternate)',$('#d_cyc_on').checked&&!$('#d_pat_0').checked&&$('#d_pat_1').checked);
  $('#d_pat_6').checked=true;$('#d_cyc_r').value='40';

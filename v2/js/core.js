@@ -1,6 +1,22 @@
 // v2/js/core.js — الثوابت والحالة العامة وقوالب الوجبات والتواريخ ولقطة اليوم
 // سكربت عادي (ليس module): كل الملفات تتشارك نطاقاً عاماً واحداً وتُحمَّل بالترتيب في index.html.
 // لا تستدعِ عند التحميل دالة من ملف لاحق؛ الاستدعاء داخل الدوال مسموح.
+// أخطاء التطبيق تُسجَّل في قاعدة البيانات (app_errors) فتظهر في لوحة الإدارة ← «الأخطاء».
+// 5 أخطاء على الأكثر لكل جلسة وبلا تكرار؛ تُتجاهل أخطاء الإضافات وانقطاع الشبكة.
+(function(){const seen=new Set();let n=0;
+  function rep(msg,src,line){try{
+    msg=String(msg||'').slice(0,500);src=String(src||'');
+    if(!msg||/^Script error\.?$/.test(msg)||/Failed to fetch|NetworkError|Load failed|network/i.test(msg)||n>=5)return;
+    if(src&&!src.startsWith(location.origin))return;
+    const k=msg+'|'+line;if(seen.has(k))return;seen.add(k);n++;
+    setTimeout(()=>{if(typeof cloud==='undefined'||!cloud.url)return;
+      const tok=cloud.sess&&cloud.sess.at&&cloud.sess.exp>Date.now()?cloud.sess.at:cloud.key;
+      fetch(cloud.url+'/rest/v1/app_errors',{method:'POST',headers:{apikey:cloud.key,Authorization:'Bearer '+tok,'Content-Type':'application/json',Prefer:'return=minimal'},
+        body:JSON.stringify({ver:typeof APP_VER!=='undefined'?APP_VER:'',msg,src:src.replace(location.origin,'').slice(0,300),line:+line||null,path:location.hash.slice(0,200),ua:navigator.userAgent.slice(0,300)})}).catch(()=>{})},0);
+  }catch(e){}}
+  window.addEventListener('error',e=>rep(e.message,e.filename,e.lineno));
+  window.addEventListener('unhandledrejection',e=>{const r=e.reason;rep('Promise: '+((r&&r.message)||r),r&&r.stack?((String(r.stack).match(/https?:\/\/[^\s)]+?\.js/)||[''])[0]):'',0)});
+  window.mpReport=rep;})();
 const KEY='mealplan_v1';
 // ---- استيراد بيانات النسخة الأولى (نسخ فقط، لا تعديل ولا حذف) ----
 (function(){try{if(localStorage.getItem('mp3_imported'))return;

@@ -140,7 +140,7 @@ function act(a,ds){
     case 'cphone':cRun(cSetPhone);return;
     case 'acctpull':modal=null;cPull.now=true;cRun(cPull);return;
     case 'acctpush':modal=null;render();cRun(cPush);return;
-    case 'cforgot':cRun(async()=>{const em=(($('#cl_em')||{}).value||cloud.email||'').trim();if(!em)return 'اكتب بريدك أولاً';cloud.email=em;cSave();await cFetch('/auth/v1/recover'+RET(),{method:'POST',anon:true,body:{email:em}});return 'أُرسل رابط الاستعادة إلى '+em+' — افتحه من نفس الجهاز'});return;
+    case 'cforgot':cRun(async()=>{const em=(($('#cl_em')||{}).value||cloud.email||'').trim();if(!em)return 'اكتب بريدك أولاً';cloud.email=em;cSave();await cFetch('/auth/v1/recover'+RET(),{method:'POST',anon:true,body:await withCap({email:em})});return 'أُرسل رابط الاستعادة إلى '+em+' — افتحه من نفس الجهاز'});return;
     case 'cnewpw':cRun(async()=>{const pw=($('#cl_np')||{}).value||'';if(pw.length<6)return 'كلمة المرور 6 أحرف على الأقل';await cFetch('/auth/v1/user',{method:'PUT',body:{password:pw}});ui.recov=false;setTimeout(render,0);return 'تم تغيير كلمة المرور — يمكنك الرفع الآن'});return;
     case 'clogout':if(cloud.anon)return;leaveRemote();cloud.sess=null;cloud.anon=false;ui.shared=null;ui.grants=null;cSave();break;
     case 'cpush':cRun(cPush);return;

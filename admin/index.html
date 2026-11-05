@@ -65,7 +65,7 @@ const GOALS=[['manual','كارب أقل'],['cut','تنحيف'],['maint','تثب�
 const ACTS=[[1.2,'خامل'],[1.375,'خفيف'],[1.55,'متوسط'],[1.725,'عالٍ'],[1.9,'شديد']];
 const DAYS=['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة'],PAT0=['high','low','high','low','high','low','high'];
 const GD={cut:{val:0.75,u:'كجم/أسبوع عجز',pr:2.2,fat:25},maint:{pr:1.8,fat:25},recomp:{val:10,u:'% عجز',pr:2.2,fat:25},bulk:{val:15,u:'% فائض',pr:1.6,fat:25},lean:{val:7,u:'% فائض',pr:2.2,fat:25}};
-const TABS=[['stats','نظرة عامة'],['insights','الرؤى'],['accounts','الحسابات'],['ann','الإعلانات'],['config','إعدادات التطبيق'],['foods','الأصناف المشتركة']];
+const TABS=[['stats','نظرة عامة'],['insights','الرؤى'],['errors','الأخطاء'],['accounts','الحسابات'],['ann','الإعلانات'],['config','إعدادات التطبيق'],['foods','الأصناف المشتركة']];
 let sess=lsGet(SK),ui={tab:'stats',busy:false},data={};
 function msg(t){const e=$('#msg');e.textContent=t;e.style.display='block';clearTimeout(msg.t);msg.t=setTimeout(()=>e.style.display='none',3500)}
 async function api(path,o){o=o||{};
@@ -85,6 +85,7 @@ async function load(tab){ui.busy=true;render();
   try{
     if(tab==='stats')data.stats=await rpc('admin_stats');
     if(tab==='accounts')data.accounts=await rpc('admin_accounts');
+    if(tab==='errors')data.errors=await api('/rest/v1/app_errors?select=*&order=at.desc&limit=300');
     if(tab==='insights')data.ins=await rpc('admin_insights',{p_days:+(ui.insDays||90)});
     if(tab==='ann')data.ann=await api('/rest/v1/announcements?select=*&order=id.desc');
     if(tab==='config')data.cfg=(await api('/rest/v1/app_config?select=*&id=eq.1'))[0];
@@ -120,6 +121,12 @@ function vInsights(){const I=data.ins;if(!I)return '<p class="note">جارٍ ا�
   <div class="card"><h2>أيام مسجّلة أسبوعياً</h2>${wk.length?`<div class="tbl"><table style="min-width:0"><tbody>${wk.map(x=>`<tr><td dir="ltr" style="text-align:end">${esc(x.wk)}</td><td style="width:60%">${bar(x.days,wmax)}</td><td class="n">${x.days}</td></tr>`).join('')}</tbody></table></div>`:'<p class="note">لا بيانات بعد.</p>'}</div>
   ${lst('أكثر الأصناف أكلاً',I.top_eaten)}${lst('أكثر الأصناف تركاً',I.top_skipped)}${lst('أكثر ما يُؤكل خارج الخطة',I.extra)}
   ${lst('الأهداف',(I.goals||[]).map(x=>({n:gName(x.goal),c:x.c})),'ملف')}${lst('أنواع الاستخدام',(I.modes||[]).map(x=>({n:mName(x.mode),c:x.c})),'حساب')}`}
+function vErrors(){const E=data.errors;if(!E)return '<p class="note">جارٍ التحميل…</p>';
+  const g={};E.forEach(e=>{const k=e.msg+'|'+(e.src||'')+'|'+(e.line||'');const x=g[k]||(g[k]={e,c:0,vers:new Set(),users:new Set(),last:e.at});x.c++;if(e.ver)x.vers.add(e.ver);if(e.uid)x.users.add(e.uid);if(e.at>x.last)x.last=e.at});
+  const G=Object.values(g).sort((a,b)=>a.last<b.last?1:-1);
+  return `<div class="card"><h2>أخطاء التطبيق (${E.length})</h2><p class="note">تُسجَّل تلقائياً من أجهزة المستخدمين (آخر 300). المتكرر مجمّع.</p>
+  ${G.length?`<div class="tbl"><table><thead><tr><th>الخطأ</th><th>المكان</th><th>مرات</th><th>حسابات</th><th>الإصدار</th><th>آخر مرة</th></tr></thead><tbody>${G.map(x=>`<tr><td dir="ltr" style="text-align:end;max-width:320px;overflow-wrap:anywhere">${esc(x.e.msg)}</td><td dir="ltr" style="text-align:end">${esc((x.e.src||'').split('/').pop()||'—')}${x.e.line?':'+x.e.line:''}</td><td class="n">${x.c}</td><td class="n">${x.users.size}</td><td dir="ltr">${esc([...x.vers].join(', ')||'—')}</td><td>${fmtD(x.last)}</td></tr>`).join('')}</tbody></table></div>
+  <div class="btns"><button class="btn dan" data-act="errclr" data-id="all">مسح الكل</button></div>`:'<p class="note">لا أخطاء مسجّلة. 👍</p>'}</div>`}
 function vAnn(){const A=data.ann||[];
   return `<div class="card"><h2>إعلان جديد</h2><form id="af"><label>العنوان<input id="a_t" required maxlength="80"></label><label>النص<input id="a_b" maxlength="240"></label>
   <div class="row"><label>النوع<select id="a_l"><option value="info">معلومة</option><option value="warn">تنبيه</option></select></label><label>ينتهي في (اختياري)<input id="a_e" type="date"></label></div>
@@ -131,7 +138,9 @@ function vConfig(){const c=data.cfg;if(!c)return '<p class="note">جارٍ ال�
   return `<div class="card"><h2>الإصدارات</h2><form id="cf"><div class="row"><label>أحدث إصدار<input id="c_l" value="${esc(c.latest_version)}" dir="ltr" pattern="[0-9.]+" required></label><label>أقل إصدار مسموح<input id="c_m" value="${esc(c.min_version)}" dir="ltr" pattern="[0-9.]+" required></label></div>
   <p class="note">من يفتح نسخة أقدم من «أقل إصدار مسموح» يرى «تحديث مطلوب». رقم الإصدار في التطبيق هو APP_VER.</p>
   <div class="btns"><button class="btn pri" type="submit">حفظ</button></div><p class="note">آخر تعديل: ${fmtD(c.updated_at)}</p></form></div>
-  ${vFeatures(c)}${vDefaults(c)}${vConn()}`}
+  ${vFeatures(c)}${vDefaults(c)}${vCaptcha(c)}${vConn()}`}
+function vCaptcha(c){return `<div class="card"><h2>الحماية من الحسابات الوهمية (CAPTCHA)</h2><form id="cfc"><label>المفتاح العام من Cloudflare Turnstile (Site key)<input id="c_cap" dir="ltr" spellcheck="false" autocomplete="off" value="${esc(c.captcha_site_key||'')}" placeholder="0x4AAAAAAA…"></label>
+  <div class="btns"><button class="btn pri" type="submit">حفظ</button></div><p class="note">الترتيب مهم: (1) احفظ المفتاح العام هنا، (2) ثم في Supabase ← Authentication ← Attack Protection فعّل CAPTCHA وأدخل المفتاح السري (Secret key) هناك فقط. لو فُعّل في Supabase قبل حفظه هنا يتعطل تسجيل الدخول. اترك الخانة فارغة لإيقافه في التطبيق.</p></form></div>`}
 function vConn(){return `<div class="card"><h2>الاتصال بقاعدة البيانات</h2><p class="note">يستخدمه التطبيق ولوحة الإدارة ثابتاً، ولا يظهر للمستخدمين. المفتاح العام (anon) مسموح ظهوره في الصفحة؛ الحماية في سياسات RLS. لا تضع مفتاح service_role في أي صفحة أبداً.</p>
   <label>رابط المشروع<input id="cn_url" dir="ltr" readonly value="${esc(SB.url)}"></label>
   <label>المفتاح العام (anon)<textarea id="cn_key" dir="ltr" readonly rows="3" style="min-height:0;font-size:12px">${esc(SB.key)}</textarea></label>
@@ -165,7 +174,7 @@ function render(){
   if(!sess){$('#app').innerHTML=vLogin();return}
   if(ui.admin===false){$('#app').innerHTML=`<div class="card login"><h2>لا توجد صلاحية</h2><p class="note">الحساب ${esc(sess.email)} ليس ضمن مديري التطبيق.</p><div class="btns"><button class="btn" data-act="out">تسجيل الخروج</button></div></div>`;return}
   if(ui.admin==null){$('#app').innerHTML='<p class="note">جارٍ التحقق من الصلاحية…</p>';return}
-  $('#app').innerHTML={insights:vInsights,stats:vStats,accounts:vAccounts,ann:vAnn,config:vConfig,foods:vFoods}[ui.tab]();
+  $('#app').innerHTML={errors:vErrors,insights:vInsights,stats:vStats,accounts:vAccounts,ann:vAnn,config:vConfig,foods:vFoods}[ui.tab]();
 }
 async function boot(){render();if(!sess)return;
   try{ui.admin=!!(await rpc('is_admin'))}catch(e){ui.admin=false;msg(e.message)}
@@ -180,6 +189,7 @@ document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target
   if(f.id==='cf')run(()=>api('/rest/v1/app_config?id=eq.1',{method:'PATCH',prefer:'return=minimal',body:{latest_version:$('#c_l').value.trim(),min_version:$('#c_m').value.trim(),updated_at:new Date().toISOString()}}),'تم حفظ الإصدارات');
   if(f.id==='cff'){const ft={};FEATS.forEach(([k])=>{const o={};MODES.forEach(([m])=>{o[m]=$('#ft_'+k+'_'+m).checked});ft[k]=o});
     run(()=>api('/rest/v1/app_config?id=eq.1',{method:'PATCH',prefer:'return=minimal',body:{features:ft,updated_at:new Date().toISOString()}}),'تم حفظ الميزات')}
+  if(f.id==='cfc'){const v=$('#c_cap').value.trim();if(v&&!/^[0-9A-Za-z_\-]{10,100}$/.test(v)){msg('المفتاح غير صحيح');return}run(()=>api('/rest/v1/app_config?id=eq.1',{method:'PATCH',prefer:'return=minimal',body:{captcha_site_key:v||null,updated_at:new Date().toISOString()}}),'تم حفظ مفتاح CAPTCHA')}
   if(f.id==='cfd'){const D={},g={};if($('#d_goal').value)D.goal=$('#d_goal').value;if($('#d_act').value)D.act=+$('#d_act').value;
     Object.keys(GD).forEach(k=>{const o={};['val','pr','fat'].forEach(x=>{const e=$('#d_'+k+'_'+x);if(e&&e.value!=='')o[x]=+e.value});if(Object.keys(o).length)g[k]=o});if(Object.keys(g).length)D.g=g;
     const r=$('#d_cyc_r').value;D.cyc={on:$('#d_cyc_on').checked,pat:[0,1,2,3,4,5,6].map(i=>$('#d_pat_'+i).checked?'low':'high')};if(r!=='')D.cyc.r=Math.min(100,Math.max(0,+r))/100;
@@ -196,6 +206,7 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(
   if(a==='tab'){ui.tab=t.dataset.v;ui.acc=null;render();load(ui.tab)}
   if(a==='acedit'){ui.acc=ui.acc===id?null:id;render();const c=$('#acc_ed');if(c&&c.scrollIntoView)c.scrollIntoView({block:'start'})}
   if(a==='acclose'){ui.acc=null;render()}
+  if(a==='errclr'&&twice())run(()=>api('/rest/v1/app_errors?id=gt.0',{method:'DELETE'}),'مُسحت الأخطاء');
   if(a==='insd'){ui.insDays=+t.dataset.v;load('insights')}
   if(a==='copy'){const el=$('#'+t.dataset.v);if(el){el.select();try{(navigator.clipboard?navigator.clipboard.writeText(el.value):Promise.reject()).then(()=>msg('تم النسخ'),()=>{document.execCommand('copy');msg('تم النسخ')})}catch(x){}}}
   if(a==='out'){sess=null;ui.admin=null;try{localStorage.removeItem(SK)}catch(x){}render()}

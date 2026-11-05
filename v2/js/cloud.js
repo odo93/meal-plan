@@ -20,6 +20,15 @@ async function cFetch(path,o){o=o||{};
 }
 function cSess(j){cloud.sess={at:j.access_token,rt:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000,uid:(j.user&&j.user.id)||(cloud.sess&&cloud.sess.uid)};cSave()}
 async function cToken(){const s=cloud.sess;if(s.exp-Date.now()>60000)return s.at;cSess(await cFetch('/auth/v1/token?grant_type=refresh_token',{method:'POST',anon:true,body:{refresh_token:s.rt}}));return cloud.sess.at}
+// CAPTCHA: يعمل فقط إن وضع المدير المفتاح العام في لوحة الإدارة (app_config.captcha_site_key)
+let tsP=null;
+function tsLoad(){return tsP||(tsP=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';s.async=true;s.onload=()=>res(window.turnstile);s.onerror=()=>{tsP=null;rej(new Error('تعذّر تحميل التحقق — تأكد من الاتصال'))};document.head.appendChild(s)}))}
+async function captcha(){const k=pubCfg().captcha_site_key;if(!k)return '';
+  const ts=await tsLoad();
+  return new Promise((res,rej)=>{let box=document.getElementById('capbox');if(!box){box=document.createElement('div');box.id='capbox';document.body.appendChild(box)}box.innerHTML='';
+    const done=()=>setTimeout(()=>{const b=document.getElementById('capbox');if(b)b.remove()},0);
+    ts.render(box,{sitekey:k,language:'ar',callback:t=>{done();res(t)},'error-callback':()=>{done();rej(new Error('تعذّر التحقق — حاول مرة أخرى'))}})})}
+const withCap=async b=>{const t=await captcha();return t?Object.assign({},b,{gotrue_meta_security:{captcha_token:t}}):b};
 // رقم الجوال: أرقام فقط مع + اختيارية في البداية، 8–15 رقماً
 const normPhone=v=>{const s=String(v||'').replace(/[\s\-()]/g,'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));return /^\+?\d{8,15}$/.test(s)?s:''};
 async function cAuth(signup){
@@ -27,7 +36,7 @@ async function cAuth(signup){
   if(!email||!pw)return 'أدخل البريد وكلمة المرور';
   let phone='';if(signup){phone=normPhone(($('#cl_ph')||{}).value);if(!phone)return 'أدخل رقم جوال صحيحاً (8–15 رقماً، مثل ‎+9665xxxxxxxx)';if(pw.length<6)return 'كلمة المرور 6 أحرف فأكثر'}
   cloud.email=email;if(phone)cloud.phone=phone;
-  const j=await cFetch(signup?'/auth/v1/signup'+RET():'/auth/v1/token?grant_type=password',{method:'POST',anon:true,body:signup?{email,password:pw,data:{phone}}:{email,password:pw}});
+  const j=await cFetch(signup?'/auth/v1/signup'+RET():'/auth/v1/token?grant_type=password',{method:'POST',anon:true,body:await withCap(signup?{email,password:pw,data:{phone}}:{email,password:pw})});
   if(j&&j.access_token){cSess(j);cloud.anon=false;delete cloud.pendEmail;cSave();afterLogin(j.user);return 'تم تسجيل الدخول'}
   return 'تم إنشاء الحساب. افتح الرسالة في بريدك واضغط رابط التفعيل، ثم سجّل الدخول';
 }
@@ -45,7 +54,7 @@ async function anonSignIn(){
   if(cloud.sess||!meta||meta.consent!=='yes'||navigator.onLine===false)return false;
   if(cloud.anonTry&&Date.now()-cloud.anonTry<864e5)return false;
   cloud.anonTry=Date.now();cSave();
-  try{const j=await cFetch('/auth/v1/signup',{method:'POST',anon:true,body:{data:{}}});
+  try{const j=await cFetch('/auth/v1/signup',{method:'POST',anon:true,body:await withCap({data:{}})});
     if(!j||!j.access_token)return false;
     cSess(j);cloud.anon=true;cloud.email='';delete cloud.anonTry;cSave();await afterLogin(j.user);return true;
   }catch(e){return false}

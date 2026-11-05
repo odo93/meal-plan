@@ -1,0 +1,17 @@
+# فحص كل 3 أيام: يتأكد أن التطبيق وقاعدة البيانات يعملان، ويمنع إيقاف مشروع Supabase المجاني لعدم النشاط.
+# إن فشل، يرسل GitHub بريداً لصاحب المستودع. يمكن حذفه بعد الترقية إلى Supabase Pro (يبقى مفيداً كمراقبة).
+# المفتاح هنا هو المفتاح العام (anon) نفسه الموجود في التطبيق — ليس سراً.
+name: keepalive
+on:
+  schedule:
+    - cron: '17 6 */3 * *'
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: App page
+        run: curl -fsS -o /dev/null -w "app %{http_code}\n" https://odo93.github.io/meal-plan/v2/
+      - name: Database
+        run: |
+          curl -fsS -o /dev/null -w "db %{http_code}\n"             "https://exznecnhvsihdelwsibv.supabase.co/rest/v1/app_config?select=latest_version"             -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4em5lY25odnNpaGRlbHdzaWJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1OTY4NzAsImV4cCI6MjEwOTE3Mjg3MH0.8TP92hVmjHt9KrnaWzWDWvzdgBIctk2BkBphxjzRCK0" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4em5lY25odnNpaGRlbHdzaWJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1OTY4NzAsImV4cCI6MjEwOTE3Mjg3MH0.8TP92hVmjHt9KrnaWzWDWvzdgBIctk2BkBphxjzRCK0"

@@ -22,7 +22,7 @@ const ICON={
 const ico=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
 const TABS=[['day','اليوم'],['week','الخطة'],['hist','التقدم'],['foods','الأصناف'],['me','حسابي']];
 const SUBS={profile:'ملفي الشخصي',goals:'أهدافي',family:'الأشخاص والمشاركة',clients:'متدربيني',mode:'نوع الاستخدام',sync:'حسابي',data:'بياناتي',advanced:'متقدم'};
-const APP_VER='2.8';
+const APP_VER='2.9';
 // نوع الاستخدام: يحدد ما يظهر في «حسابي»، ويمكن تغييره في أي وقت
 const MODES=[['self','لنفسي','خطتي وحدي'],['family','لي ولعائلتي','أفراد وأطفال تديرهم'],['coach','مدرب مستقل','متابعة متدربين'],['org','مؤسسة','مدربون وأخصائيو تغذية']];
 const isCoach=()=>meta.mode==='coach'||meta.mode==='org';
@@ -118,8 +118,8 @@ async function loadShared(){if(!cloud.sess)return;
 const CODE_AB='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const mkCode=()=>{const a=new Uint32Array(6);(window.crypto||{getRandomValues:x=>x.map(()=>Math.random()*4e9)}).getRandomValues(a);return [...a].map(n=>CODE_AB[n%CODE_AB.length]).join('')};
 async function loadPublic(){ // إعدادات التطبيق والإعلانات والأصناف المشتركة (بدون تسجيل دخول)
-  try{const [C,A,F]=await Promise.all([cFetch('/rest/v1/app_config?select=latest_version,min_version,features,defaults',{anon:true}),cFetch('/rest/v1/announcements?select=id,title,body,level&order=id.desc&limit=5',{anon:true}),cFetch('/rest/v1/shared_foods?select=id,n,grp,k,p,c,f,u,ug&active=eq.true',{anon:true})]);
-    ui.pub={cfg:Array.isArray(C)?C[0]:null,ann:Array.isArray(A)?A.filter(x=>x&&x.title):[]};if(ui.pub.cfg)lsSet('mp3_pub',{features:ui.pub.cfg.features||{},defaults:ui.pub.cfg.defaults||{}});if(Array.isArray(F)){lsSet('mp3_sfoods',F);addShared(F)}render();
+  try{const [C,A,F]=await Promise.all([cFetch('/rest/v1/app_config?select=latest_version,min_version,features,defaults,captcha_site_key',{anon:true}),cFetch('/rest/v1/announcements?select=id,title,body,level&order=id.desc&limit=5',{anon:true}),cFetch('/rest/v1/shared_foods?select=id,n,grp,k,p,c,f,u,ug&active=eq.true',{anon:true})]);
+    ui.pub={cfg:Array.isArray(C)?C[0]:null,ann:Array.isArray(A)?A.filter(x=>x&&x.title):[]};if(ui.pub.cfg)lsSet('mp3_pub',{features:ui.pub.cfg.features||{},defaults:ui.pub.cfg.defaults||{},captcha_site_key:ui.pub.cfg.captcha_site_key||''});if(Array.isArray(F)){lsSet('mp3_sfoods',F);addShared(F)}render();
   }catch(e){}
 }
 function addShared(F){(F||[]).forEach(x=>{if(!CAT.some(r=>r.sid===x.id)){const r=[x.n,'','',x.grp,+x.k,+x.p,+x.c,+x.f,x.u||'',+x.ug||0];r.sid=x.id;CAT.push(r)}})}
@@ -137,6 +137,7 @@ function vMe(){
   <div class="grp">الحساب</div><div class="list">${li('advanced','نوع الاستخدام',(MODES.find(x=>x[0]===meta.mode)||[0,'لم يُحدَّد بعد'])[1],'me/mode')}${isCoach()&&feat('clients')?li('family','متدربيني',(ui.shared||[]).length+' مشارك معك','me/clients'):''}${li('family','الأشخاص والمشاركة',nU+(nU>1?' ملفات':' ملف')+' على هذا الجهاز'+(on?'':' · المشاركة تحتاج تسجيل الدخول'),'me/family')}${li('sync','حسابي',on?(cloud.anon?'حساب مؤقت — أضف بريدك وجوالك':esc(cloud.email||'مسجّل الدخول')):'لم تسجّل بعد — بياناتك على هذا الجهاز فقط','me/sync')}</div>
   <div class="grp">المظهر</div><div class="card">${themeSeg()}</div>
   <div class="grp">البيانات</div><div class="list">${li('data','بياناتي','تصدير واستيراد','me/data')}${li('advanced','متقدم','معادلات BMR والأهداف المخصصة','me/advanced')}</div>
+  <p class="note" style="text-align:center;margin:12px 0 0"><a href="terms.html" target="_blank" rel="noopener">شروط الاستخدام</a> · <a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a> · التطبيق ليس بديلاً عن استشارة طبية</p>
   <div class="grp">منطقة الخطر</div><div class="list">${li('reset','إعادة ضبط «'+esc(u.name)+'»','الإعدادات والأصناف والخطة','','reset','dz')}${li('trash','حذف «'+esc(u.name)+'»','مع كل خطته وسجله','','udel','dz')}${on&&!cloud.anon?li('logout','تسجيل الخروج','','','clogout','dz'):''}${on?li('trash','حذف حسابي نهائياً','بريدك وجوالك وكل ملفاتك','','cdelacct','dz'):''}</div>`;
 }
 function vProfile(){
