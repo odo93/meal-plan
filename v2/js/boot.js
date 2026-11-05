@@ -10,11 +10,12 @@ if(!state){state=defaultState();const id=uid();meta={users:[{id,name:'المست
   });
   if(fx.length){save();setTimeout(()=>toast('تم تصحيح سعرات: '+fx.join('، ')),400)}})();
 if(rollWeek())save();
+{const at=autoTdee();if(at){save();setTimeout(()=>toast('حُدّث احتياجك الفعلي: '+at+' سعرة'),600)}}
 fromHash();
 addShared(lsGet('mp3_sfoods'));
 window.addEventListener('popstate',()=>{if(location.hash&&!location.hash.startsWith('#/'))return;if(!fromHash()){ui.tab='day';ui.sub=''}modal=null;render()});
 render();
-loadPublic();if(cloud.sess)loadShared().then(render);
+loadPublic();if(cloud.sess)loadShared().then(render);else anonSignIn().then(ok=>{if(ok)render()});
 if(/access_token=/.test(location.hash))cHash().then(r=>{if(r||ui.sub==='sync')render()});
 applyTheme(themeNow());
 window.addEventListener("online",()=>{render();if(cloud.sess&&!ui.remote)cSched()});window.addEventListener("offline",()=>render());

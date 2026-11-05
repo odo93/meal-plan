@@ -128,7 +128,7 @@ function goalUI(s,hi,lo){
     secs+=fold('طريقة الحساب',`${esc(eqOf(s).name)} · BMR ${rd(G.bmr)} · ${+s.tdeeM>0?'احتياج يدوي':'نشاط × '+s.act}`,
       `<p class="note">بياناتك: ${profLine(s)} · <button class="lnk" data-act="tab" data-v="me/profile">تعديل</button></p>
       ${sel('معادلة BMR','sset','eq',s.eqs.map(e=>[e.id,e.name]),s.eq)}<p class="note" style="margin:0">${esc(eqOf(s).note||'')} (المعاملات وإضافة معادلة: من حسابي › متقدم)</p>
-      ${inp('احتياج يومي يدوي TDEE (اختياري، يتجاوز المعادلة)','tdeeM',10)}`);
+      ${inp('احتياج يومي يدوي TDEE (اختياري، يتجاوز المعادلة)','tdeeM',10)}${s.tdeeAuto?'<p class="note" style="margin:0">يُحدَّث تلقائياً كل أسبوع من احتياجك الفعلي («التقدم»).</p>':''}`);
   }
   const pat=s.cyc.pat,nLo=pat.filter(x=>x==='low').length,ovl=DAYS.map((n,i)=>{const o=dayOv(i);return o?`${n} (${o.rep?'كل أسبوع':'هذا الأسبوع'}: ${ovDesc(o)})`:''}).filter(Boolean);
   const patUI=`<div class="grp" style="margin-top:4px">نمط الأسبوع</div><div class="pat" role="group" aria-label="نمط الأسبوع">${DAYS.map((n,i)=>`<button type="button" data-act="patday" data-v="${i}" class="${pat[i]}" aria-pressed="${pat[i]==='low'}" aria-label="${n}: ${ML[pat[i]]}"><b>${'سحنثرخج'[i]}</b><small>${pat[i]==='low'?'قليل':'عادي'}</small></button>`).join('')}</div>
@@ -168,6 +168,17 @@ function vEqMgmt(s){
   <p class="note">الاستعادة تعيد القوائم فقط ولا تمس بياناتك. بعد أي تغيير استخدم «ضبط كميات الأسبوع» من «أهدافي».</p>`;
 }
 function vCloud(){const c=cloud,on=!!c.sess,up=ui.authM==='up';
+  if(on&&c.anon&&!ui.recov)return `<div class="card set"><h2 style="margin:0 0 6px">حسابك</h2>
+  <p class="note" style="margin:0 0 8px">✓ بياناتك تُحفظ تلقائياً في حساب مؤقت مرتبط بهذا الجهاز. أضف بريدك وجوالك لتثبيته، فتدخل من أي جهاز وتشارك مدربك أو عائلتك.</p>
+  ${c.pendEmail?`<div class="bnr info"><span class="g"><b>بانتظار تأكيد ${esc(c.pendEmail)}</b>افتح الرابط في بريدك من هذا الجهاز، ثم اختر كلمة مرور.</span></div>`:''}
+  <label>البريد<input id="cl_em" dir="ltr" type="email" name="email" autocomplete="email" spellcheck="false" value="${esc(c.pendEmail||'')}" style="width:100%"></label>
+  <label>رقم الجوال<input id="cl_ph" type="tel" name="tel" dir="ltr" inputmode="tel" autocomplete="tel" spellcheck="false" placeholder="+9665xxxxxxxx" value="${esc(c.phone||'')}" style="width:100%"></label>
+  <div class="btns"><button class="btn pri" data-act="cupgrade">${c.pendEmail?'إعادة إرسال الرابط':'تثبيت الحساب'}</button><button data-act="cpush">حفظ الآن</button></div>
+  <p class="note" id="cst">${esc(c.last||'')}</p>
+  <details class="fold" style="box-shadow:none"><summary>لديك حساب ببريدك؟ سجّل الدخول</summary><div class="set">
+  <label>البريد<input id="cl_lem" dir="ltr" type="email" autocomplete="username" spellcheck="false" style="width:100%"></label>
+  <label>كلمة المرور<input id="cl_pw" type="password" dir="ltr" autocomplete="current-password" style="width:100%"></label>
+  <div class="btns"><button class="btn" data-act="clogin">تسجيل الدخول</button></div><p class="note">ستُسأل أي البيانات تبقى: بيانات حسابك أم بيانات هذا الجهاز.</p></div></details></div>`;
   if(on)return `<div class="card set"><h2 style="margin:0 0 6px">حسابك</h2>
   ${ui.recov?`<label>كلمة مرور جديدة (6 أحرف فأكثر)<input id="cl_np" type="password" dir="ltr" autocomplete="new-password" style="width:100%"></label><div class="btns" style="margin:6px 0"><button class="btn pri" data-act="cnewpw">حفظ كلمة المرور الجديدة</button></div>`:''}
   <p style="margin:0 0 6px">البريد: <b dir="ltr">${esc(c.email||'')}</b></p>
@@ -182,6 +193,6 @@ function vCloud(){const c=cloud,on=!!c.sess,up=ui.authM==='up';
   ${up?`<label>رقم الجوال<input id="cl_ph" type="tel" name="tel" dir="ltr" inputmode="tel" autocomplete="tel" spellcheck="false" placeholder="+9665xxxxxxxx" style="width:100%"></label>`:''}
   <label>كلمة المرور${up?' (6 أحرف فأكثر)':''}<input id="cl_pw" type="password" name="password" dir="ltr" autocomplete="${up?'new-password':'current-password'}" style="width:100%"></label>
   <div class="btns">${up?'<button class="btn pri" data-act="csignup">إنشاء الحساب</button>':'<button class="btn pri" data-act="clogin">تسجيل الدخول</button>'}</div>
-  ${up?'<p class="note">سنرسل رابط تفعيل إلى بريدك. التفعيل برمز على الجوال قريباً.</p>':'<div class="btns" style="margin-top:6px"><button data-act="cforgot">نسيت كلمة المرور؟ أرسل رابط استعادة</button></div>'}
+  ${up?'<p class="note">سنرسل رابط تفعيل إلى بريدك. التفعيل برمز على الجوال قريباً. بإنشاء الحساب توافق على <a href="privacy.html" target="_blank" rel="noopener">سياسة الخصوصية</a>.</p>':'<div class="btns" style="margin-top:6px"><button data-act="cforgot">نسيت كلمة المرور؟ أرسل رابط استعادة</button></div>'}
   <p class="note" id="cst">${esc(c.last||'')}</p></div>`;
 }

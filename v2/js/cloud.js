@@ -23,12 +23,12 @@ async function cToken(){const s=cloud.sess;if(s.exp-Date.now()>60000)return s.at
 // رقم الجوال: أرقام فقط مع + اختيارية في البداية، 8–15 رقماً
 const normPhone=v=>{const s=String(v||'').replace(/[\s\-()]/g,'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));return /^\+?\d{8,15}$/.test(s)?s:''};
 async function cAuth(signup){
-  const email=(($('#cl_em')||{}).value||cloud.email||'').trim(),pw=($('#cl_pw')||{}).value||'';
+  const email=(($('#cl_lem')||{}).value||($('#cl_em')||{}).value||cloud.email||'').trim(),pw=($('#cl_pw')||{}).value||'';
   if(!email||!pw)return 'أدخل البريد وكلمة المرور';
   let phone='';if(signup){phone=normPhone(($('#cl_ph')||{}).value);if(!phone)return 'أدخل رقم جوال صحيحاً (8–15 رقماً، مثل ‎+9665xxxxxxxx)';if(pw.length<6)return 'كلمة المرور 6 أحرف فأكثر'}
   cloud.email=email;if(phone)cloud.phone=phone;
   const j=await cFetch(signup?'/auth/v1/signup'+RET():'/auth/v1/token?grant_type=password',{method:'POST',anon:true,body:signup?{email,password:pw,data:{phone}}:{email,password:pw}});
-  if(j&&j.access_token){cSess(j);afterLogin(j.user);return 'تم تسجيل الدخول'}
+  if(j&&j.access_token){cSess(j);cloud.anon=false;delete cloud.pendEmail;cSave();afterLogin(j.user);return 'تم تسجيل الدخول'}
   return 'تم إنشاء الحساب. افتح الرسالة في بريدك واضغط رابط التفعيل، ثم سجّل الدخول';
 }
 // بعد الدخول: إن كان الحساب فارغاً تُحفظ بيانات الجهاز فيه، وإن كان فيه بيانات يختار المستخدم أيّهما يبقى
@@ -38,6 +38,26 @@ async function afterLogin(user){
   try{const r=await cFetch('/rest/v1/mp_users?select=id&owner=eq.'+ENC(cloud.sess.uid)+'&limit=1');
     if(Array.isArray(r)&&r.length){modal={type:'acctdata'};render()}else cRun(cPush);
   }catch(e){}
+}
+// حساب في الخلفية بعد موافقة المستخدم (meta.consent): يُنشأ بلا بريد فتُحفظ البيانات في قاعدة البيانات من اليوم الأول.
+// يحتاج تفعيل «Anonymous sign-ins» في Supabase؛ إن لم يكن مفعّلاً تبقى البيانات في الجهاز ويُعاد المحاولة مرة يومياً.
+async function anonSignIn(){
+  if(cloud.sess||!meta||meta.consent!=='yes'||navigator.onLine===false)return false;
+  if(cloud.anonTry&&Date.now()-cloud.anonTry<864e5)return false;
+  cloud.anonTry=Date.now();cSave();
+  try{const j=await cFetch('/auth/v1/signup',{method:'POST',anon:true,body:{data:{}}});
+    if(!j||!j.access_token)return false;
+    cSess(j);cloud.anon=true;cloud.email='';delete cloud.anonTry;cSave();await afterLogin(j.user);return true;
+  }catch(e){return false}
+}
+// تثبيت الحساب المؤقت: إضافة البريد والجوال (رابط تأكيد على البريد، ثم اختيار كلمة مرور)
+async function cUpgrade(){
+  const email=(($('#cl_em')||{}).value||'').trim(),phone=normPhone(($('#cl_ph')||{}).value);
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))return 'أدخل بريداً صحيحاً';
+  if(!phone)return 'أدخل رقم جوال صحيحاً (8–15 رقماً)';
+  await cFetch('/auth/v1/user'+RET(),{method:'PUT',body:{email,data:{phone}}});
+  cloud.pendEmail=email;cloud.phone=phone;cSave();render();
+  return 'أرسلنا رابط تأكيد إلى '+email+'. افتحه من هذا الجهاز ثم اختر كلمة مرور.';
 }
 async function cSetPhone(){const ph=normPhone(($('#cl_ph')||{}).value);if(!ph)return 'أدخل رقم جوال صحيحاً (8–15 رقماً)';
   await cFetch('/auth/v1/user',{method:'PUT',body:{data:{phone:ph}}});cloud.phone=ph;cSave();render();return 'تم حفظ رقم الجوال'}
@@ -49,8 +69,9 @@ async function cHash(){ // رابط التأكيد/الاستعادة من Supab
     const u=await cFetch('/auth/v1/user',{token:at});
     cSess({access_token:at,refresh_token:q.get('refresh_token'),expires_in:+q.get('expires_in')||3600,user:u});
     cloud.email=u.email||cloud.email;cSave();
-    ui.tab='me';ui.sub='sync';ui.recov=q.get('type')==='recovery';if(!ui.recov)setTimeout(()=>afterLogin(u),0);
-    cMsg(ui.recov?'تم التحقق من الرابط — اكتب كلمة المرور الجديدة':'تم تأكيد الحساب وتسجيل الدخول');
+    const ty=q.get('type');if(u&&!u.is_anonymous){cloud.anon=false;delete cloud.pendEmail;cSave()}
+    ui.tab='me';ui.sub='sync';ui.recov=ty==='recovery'||ty==='email_change';if(ty!=='recovery'&&ty!=='email_change')setTimeout(()=>afterLogin(u),0);
+    cMsg(ty==='email_change'?'تم تأكيد بريدك — اختر كلمة مرور لتدخل بها من أي جهاز':ui.recov?'تم التحقق من الرابط — اكتب كلمة المرور الجديدة':'تم تأكيد الحساب وتسجيل الدخول');
     return true;
   }catch(e){cMsg('رابط غير صالح أو منتهٍ: '+(e.message||e));return false}
 }

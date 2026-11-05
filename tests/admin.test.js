@@ -9,8 +9,8 @@ const mk=()=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.
   win.fetch=async(url,o)=>{o=o||{};const u=new URL(url),p=u.pathname,body=o.body?JSON.parse(o.body):null;log.push([o.method||'GET',p+u.search,o.headers.Authorization,body]);
     if(p==='/auth/v1/token')return body.password==='pw'?R({access_token:'AT',refresh_token:'RT',expires_in:3600,user:{email:'m@x.y'}}):R({error_description:'Invalid login credentials'},400);
     if(p==='/rest/v1/rpc/is_admin')return R(ADMIN);
-    if(p==='/rest/v1/rpc/admin_stats')return R({accounts:2,active_7d:1,people:3,history_days:14,active_grants:1,pending_grants:0});
-    if(p==='/rest/v1/rpc/admin_accounts')return R([{id:'a1',phone:'+966501234567',confirmed:false,email:'m@x.y',created_at:'2026-11-02T00:00:00Z',last_sign_in_at:null,people:2,last_update:null,is_admin:true,mode:'coach',features:{scan:false}}]);
+    if(p==='/rest/v1/rpc/admin_stats')return R({accounts:3,registered:2,anonymous:1,active_7d:1,people:3,history_days:14,active_grants:1,pending_grants:0});
+    if(p==='/rest/v1/rpc/admin_accounts')return R([{id:'a1',phone:'+966501234567',confirmed:false,email:'m@x.y',created_at:'2026-11-02T00:00:00Z',last_sign_in_at:null,people:2,last_update:null,is_admin:true,mode:'coach',features:{scan:false}},{id:'a2',email:null,phone:null,confirmed:false,anon:true,created_at:'2026-11-05T00:00:00Z',people:1,is_admin:false,mode:null,features:{}}]);
     if(p==='/rest/v1/announcements'&&(o.method||'GET')==='GET')return R([{id:3,title:'قديم',body:'',level:'info',active:true,ends_at:null}]);
     if(p==='/rest/v1/app_config')return (o.method||'GET')==='GET'?R([{id:1,latest_version:'2.1',min_version:'2.0',features:{share:{self:false,family:true,coach:true,org:true}},defaults:{goal:'cut',g:{cut:{pr:2.5}}},updated_at:null}]):R(undefined,204);
     if(p==='/rest/v1/shared_foods'&&(o.method||'GET')==='GET')return R([]);
@@ -23,7 +23,8 @@ const mk=()=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.
  T('wrong password message',$('#lmsg').textContent.includes('غير صحيحة'));
  $('#pw').value='pw';submit('#lf');await sleep(80);
  T('admin checked via rpc',log.some(l=>l[1]==='/rest/v1/rpc/is_admin'&&l[2]==='Bearer AT'));
- T('stats shown',$('#app').textContent.includes('حسابات مسجّلة')&&$('#app').textContent.includes('14'));
+ T('stats split registered / temporary',$('#app').textContent.includes('حسابات مؤقتة')&&$('#app').textContent.includes('حسابات ببريد'));
+ T('stats shown',$('#app').textContent.includes('كل الحسابات')&&$('#app').textContent.includes('14'));
  T('session not holding password',!JSON.stringify(w.localStorage).includes('"pw"'));
  click('[data-v="accounts"]');await sleep(40);
  T('accounts table',$('#app').textContent.includes('m@x.y')&&$('#app').textContent.includes('مدير'));
@@ -53,6 +54,7 @@ const mk=()=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.
  T('pattern defaults saved',pd&&pd[3].defaults.cyc.on===true&&pd[3].defaults.cyc.r===0.4&&pd[3].defaults.cyc.pat.join()==='high,low,high,low,high,low,low');
  T('defaults saved (blank = app default)',pd&&pd[3].defaults.goal==='cut'&&pd[3].defaults.act===1.375&&pd[3].defaults.g.bulk.val===12&&!pd[3].defaults.g.cut);
  click('[data-v="accounts"]');await sleep(40);
+ T('temporary account labelled',$('#app').textContent.includes('حساب مؤقت')&&!$('#app').textContent.includes('null'));
  T('accounts show phone + activation',$('#app').textContent.includes('+966501234567')&&$('#app').textContent.includes('لم يفعّل البريد'));
  T('accounts show type + override',$('#app').textContent.includes('مدرب مستقل')&&$('#app').textContent.includes('المسح بالصورة'));
  click('[data-act="acedit"]');await sleep(10);

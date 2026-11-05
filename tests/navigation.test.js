@@ -39,7 +39,7 @@ const mk=url=>new JSDOM(html,{runScripts:'dangerously',url,virtualConsole:vc,pre
  // 5) family
  click('#nav [data-v="me"]');click('[data-v="me/family"]');
  T('family lists user',$$('#app .list')[0].querySelectorAll('.li').length===1);
- T('sharing needs sign-in',$('#app').textContent.includes('المشاركة تحتاج تسجيل الدخول')&&!$('#app [data-act="share"]'));
+ T('sharing needs sign-in',$('#app').textContent.includes('المشاركة تحتاج حساباً ببريدك')&&$('#app').textContent.includes('سجّل الدخول أولاً')&&!$('#app [data-act="share"]'));
  click('[data-act="uadd"]');$('#un').value='سارة';$('#ukid').checked=true;click('[data-act="usave"]');
  T('child profile created',E('curUser().kind')==='child'&&E('meta.users.length')===2);
  click('#nav [data-v="me"]');click('[data-v="me/family"]');

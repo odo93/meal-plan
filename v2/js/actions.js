@@ -60,6 +60,10 @@ function act(a,ds){
     case 'hlog':modal={type:'hlog',date:ds.d,m:+ds.m,i:+ds.i};break;
     case 'hdel':{const dt=ds.d;ask('حذف سجل '+dateLabel(dt)+' نهائياً؟',()=>hDel(meta.cur,dt));return}
     case 'hr':ui.hr=ds.v;break;
+    case 'wsave':{const v=+(($('#w_in')||{}).value||'').replace(',','.');if(!wAdd(todayISO(),v)){toast('اكتب وزناً صحيحاً بالكجم');return}toast('تم حفظ وزن اليوم: '+v+' كجم');break}
+    case 'wdel':wDel(ds.d);toast('حُذف الوزن');break;
+    case 'tdeeuse':{const r=realTdee();if(!r.v)return;S().tdeeM=rd(r.v);S().tdeeWk=weekKey();toast('أهدافك الآن على احتياجك الفعلي: '+rd(r.v)+' سعرة');break}
+    case 'repopen':lsSet(repKey(),weekKey());ui.tab='hist';ui.sub='';break;
     case 'goal':S().goal=ds.v;break;
     case 'refitweek':ask('ضبط كميات كل الأيام (مع إبقاء الأصناف) على الأهداف الحالية؟',()=>{state.days.forEach(x=>fitDay(x,true))});return;
     case 'cmp':modal={type:'cmp'};break;
@@ -130,12 +134,14 @@ function act(a,ds){
     case 'clogin':cRun(()=>cAuth(false));return;
     case 'csignup':cRun(()=>cAuth(true));return;
     case 'cauthm':ui.authM=ds.v;break;
+    case 'consent':if(ds.v==='yes'){meta.consent='yes';meta.consentAt=new Date().toISOString();delete meta.consentAsk;saveMeta();render();anonSignIn().then(ok=>{if(ok)toast('بياناتك تُحفظ الآن في حسابك');render()})}else{meta.consentAsk=Date.now()+14*864e5;saveMeta();render()}return;
+    case 'cupgrade':cRun(cUpgrade);return;
     case 'cphone':cRun(cSetPhone);return;
     case 'acctpull':modal=null;cPull.now=true;cRun(cPull);return;
     case 'acctpush':modal=null;render();cRun(cPush);return;
     case 'cforgot':cRun(async()=>{const em=(($('#cl_em')||{}).value||cloud.email||'').trim();if(!em)return 'اكتب بريدك أولاً';cloud.email=em;cSave();await cFetch('/auth/v1/recover'+RET(),{method:'POST',anon:true,body:{email:em}});return 'أُرسل رابط الاستعادة إلى '+em+' — افتحه من نفس الجهاز'});return;
     case 'cnewpw':cRun(async()=>{const pw=($('#cl_np')||{}).value||'';if(pw.length<6)return 'كلمة المرور 6 أحرف على الأقل';await cFetch('/auth/v1/user',{method:'PUT',body:{password:pw}});ui.recov=false;setTimeout(render,0);return 'تم تغيير كلمة المرور — يمكنك الرفع الآن'});return;
-    case 'clogout':leaveRemote();cloud.sess=null;cloud.auto=false;ui.shared=null;ui.grants=null;cSave();break;
+    case 'clogout':if(cloud.anon)return;leaveRemote();cloud.sess=null;cloud.anon=false;ui.shared=null;ui.grants=null;cSave();break;
     case 'cpush':cRun(cPush);return;
     case 'cpull':cRun(cPull);return;
     case 'addfood':{const n=$('#nf_n').value.trim();if(!n){toast('اكتب الاسم');return}
@@ -188,6 +194,7 @@ document.addEventListener('change',e=>{
   else if(c==='eqn'){const e=S().eqs.find(x=>x.id===t.dataset.id);if(e){const k=t.dataset.k;e[k]=t.value.trim()||(k==='name'?e.name:'');ui.eqo=e.id}}
   else if(c==='eqc'){const e=S().eqs.find(x=>x.id===t.dataset.id);if(e&&e[t.dataset.sx]){e[t.dataset.sx][t.dataset.k]=+t.value||0;ui.eqo=e.id}}
   else if(c==='gln'){const g=S().goals.find(x=>x.id===t.dataset.id);if(g){if(t.dataset.k==='name')g.name=t.value.trim()||g.name;else g.sign=+t.value}}
+  else if(c==='tdeeauto'){S().tdeeAuto=t.checked;if(t.checked){const v=autoTdee();if(v)toast('حُدّث احتياجك الفعلي: '+v+' سعرة')}}
   else if(c==='cl'){const k=t.dataset.k;if(k==='email'){cloud.email=t.value.trim();cSave()}return}
   else if(c==='gp'){const ss=S(),k=t.dataset.k;ss.g[ss.goal][k]=(k==='mode'||k==='prB'||k==='fatM')?t.value:(+t.value||0)}
   else if(c==='cyc'){const ss=S(),k=t.dataset.k;ss.cyc[k]=k==='on'?t.checked:Math.min(100,Math.max(0,+t.value||0))/100}
