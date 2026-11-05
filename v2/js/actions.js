@@ -60,6 +60,11 @@ function act(a,ds){
     case 'hlog':modal={type:'hlog',date:ds.d,m:+ds.m,i:+ds.i};break;
     case 'hdel':{const dt=ds.d;ask('حذف سجل '+dateLabel(dt)+' نهائياً؟',()=>hDel(meta.cur,dt));return}
     case 'hr':ui.hr=ds.v;break;
+    case 'usualweek':{if(!Object.keys(usualByGroup()).length){modal=null;toast('سجّل ما تأكله أسبوعاً على الأقل لنعرف أصنافك المعتادة');break}
+      ask('في أيام الأسبوع التي لم يبدأ تسجيلها: يُستبدل كل صنف بصنف من أصنافك المعتادة من نفس النوع، ثم تُضبط الكميات على أهدافك. متابعة؟',()=>{
+        const before=clone(state.days),r=planFromUsual();
+        if(!r.items){toast('خطتك مبنية أصلاً على أصنافك المعتادة');return}
+        toast(`تم: ${r.items} صنفاً في ${r.days} ${r.days===1?'يوم':'أيام'}`,()=>{state.days=before;save();render()})});return}
     case 'wsave':{const v=+(($('#w_in')||{}).value||'').replace(',','.');if(!wAdd(todayISO(),v)){toast('اكتب وزناً صحيحاً بالكجم');return}toast('تم حفظ وزن اليوم: '+v+' كجم');break}
     case 'wdel':wDel(ds.d);toast('حُذف الوزن');break;
     case 'tdeeuse':{const r=realTdee();if(!r.v)return;S().tdeeM=rd(r.v);S().tdeeWk=weekKey();toast('أهدافك الآن على احتياجك الفعلي: '+rd(r.v)+' سعرة');break}

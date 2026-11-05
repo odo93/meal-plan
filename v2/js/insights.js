@@ -58,6 +58,45 @@ function weekReport(){
 }
 const repKey=()=>'mp3_rep_'+meta.cur;
 
+// ---------- نتائج المتدرب للمدرب: الالتزام وتغيّر الوزن مقابل الهدف (آخر 4 أسابيع) ----------
+const CR_ST={ok:['على المسار','ok2'],slow:['أبطأ من الهدف','x'],fast:['أسرع من الهدف','sk'],drift:['يبتعد عن التثبيت','x'],idle:['يحتاج متابعة','sk'],nodata:['بيانات غير كافية','']};
+function coachRes(settings,hist){
+  const s=fixSettings(clone(settings||{})),to=todayISO(),from=iso(addDays(new Date(),-27));
+  const A=(hist||[]).filter(r=>r&&r.date>=from&&r.date<=to&&Array.isArray(r.meals)).map(r=>({r,L:dayLog(r)})).filter(x=>x.L.logged>0);
+  const done=A.filter(x=>x.L.total>0&&x.L.logged===x.L.total);
+  const adh=done.length?done.reduce((a,x)=>a+(x.L.plan.k?Math.min(150,x.L.eaten.k/x.L.plan.k*100):0),0)/done.length:null;
+  const W=(Array.isArray(s.wlog)?s.wlog:[]).filter(x=>x&&x.d>=from&&x.d<=to).sort((a,b)=>a.d<b.d?-1:1);
+  const span=W.length?daysBetween(W[0].d,W[W.length-1].d):0,rate=W.length>=2&&span>=7?wSlope(W)*7:null;
+  const gl=goalOf(s),goalRate=gl.kind==='manual'?null:goalCore(s).rate;
+  const lastD=[...A.map(x=>x.r.date),...W.map(x=>x.d)].sort().pop()||null,idle=lastD?daysBetween(lastD,to):null;
+  let st='nodata';
+  if(idle==null||idle>=4)st='idle';
+  else if(rate!=null&&goalRate!=null){const d=rate-goalRate;
+    if(Math.abs(goalRate)<0.05)st=Math.abs(rate)<=0.25?'ok':'drift';
+    else if(Math.abs(d)<=Math.max(0.15,Math.abs(goalRate)*0.4))st='ok';
+    else st=(goalRate<0?d>0:d<0)?'slow':'fast';}
+  return{adh,done:done.length,logged:A.length,rate,goalRate,goal:gl.name,lastW:W.length?W[W.length-1].w:(+s.bw||null),idle,st};
+}
+const kgw=v=>(v>0?'+':'')+v.toFixed(2)+' كجم/أسبوع';
+
+// ---------- بناء خطة الأسبوع من أصنافك المعتادة ----------
+// كل صنف في الأيام غير المسجّلة يُستبدل بصنف معتاد من نفس النوع (بنفس الماكرو الرئيسي)، مع تنويع بين الأيام، ثم تُضبط الكميات على الأهداف.
+function usualByGroup(){const by={};myTopFoods(40).forEach(({f})=>{(by[f.grp]=by[f.grp]||[]).push(f)});return by}
+function planFromUsual(){
+  const by=usualByGroup();let items=0,days=0;
+  state.days.forEach((d,di)=>{
+    if(d.meals.some(m=>m.items.some(it=>gE(it)!=null)))return;  // يوم بدأ تسجيله لا يُمس
+    let ch=false;
+    d.meals.forEach(m=>{const used=new Set(m.items.map(it=>it.f));
+      m.items.forEach(it=>{if(it.x)return;const f=F(it.f),pool=f&&by[f.grp];if(!pool||!pool.length||pool.some(p=>p.id===f.id))return;
+        const key=KEYM[f.grp],ov=f[key]*it.g/100;
+        const c=pool.map((p,k)=>pool[(k+di)%pool.length]).find(p=>!used.has(p.id)&&p[key]>0);if(!c)return;
+        const g=roundG(c,ov/c[key]*100);used.delete(it.f);used.add(c.id);it.f=c.id;it.g=g;it.b=g;ch=true;items++})});
+    if(ch){fitDay(d);days++}
+  });
+  return{items,days,groups:Object.keys(by).length};
+}
+
 // ---------- أصنافك المعتادة: أكثر ما أكلته فعلاً آخر 60 يوماً (من سجلك) ----------
 function myTopFoods(n,grp){
   const from=iso(addDays(new Date(),-59)),cnt={};

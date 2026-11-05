@@ -22,7 +22,7 @@ const ICON={
 const ico=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
 const TABS=[['day','اليوم'],['week','الخطة'],['hist','التقدم'],['foods','الأصناف'],['me','حسابي']];
 const SUBS={profile:'ملفي الشخصي',goals:'أهدافي',family:'الأشخاص والمشاركة',clients:'متدربيني',mode:'نوع الاستخدام',sync:'حسابي',data:'بياناتي',advanced:'متقدم'};
-const APP_VER='2.9';
+const APP_VER='2.10';
 // نوع الاستخدام: يحدد ما يظهر في «حسابي»، ويمكن تغييره في أي وقت
 const MODES=[['self','لنفسي','خطتي وحدي'],['family','لي ولعائلتي','أفراد وأطفال تديرهم'],['coach','مدرب مستقل','متابعة متدربين'],['org','مؤسسة','مدربون وأخصائيو تغذية']];
 const isCoach=()=>meta.mode==='coach'||meta.mode==='org';
@@ -112,7 +112,11 @@ async function loadShared(){if(!cloud.sess)return;
     ui.grants=arr(await cFetch('/rest/v1/rpc/mp_my_grants',{method:'POST',body:{}}));
     if(isCoach()&&ui.shared.length){const or=ui.shared.map(x=>'and(owner.eq.'+x.owner+',user_id.eq.'+ENC(x.user_id)+')').join(',');
       const D=await cFetch('/rest/v1/mp_days?select=owner,user_id,idx,data&or=('+or+')')||[];ui.adh={};
-      ui.shared.forEach(x=>{ui.adh[x.owner+'/'+x.user_id]=adh(D.filter(r=>r.owner===x.owner&&r.user_id===x.user_id).map(r=>r.data))})}
+      ui.shared.forEach(x=>{ui.adh[x.owner+'/'+x.user_id]=adh(D.filter(r=>r.owner===x.owner&&r.user_id===x.user_id).map(r=>r.data))});
+      // نتائج آخر 4 أسابيع: الإعدادات (الوزن والهدف) والسجل
+      try{const orU=ui.shared.map(x=>'and(owner.eq.'+x.owner+',id.eq.'+ENC(x.user_id)+')').join(','),from=iso(addDays(new Date(),-27));
+        const U=await cFetch('/rest/v1/mp_users?select=owner,id,settings&or=('+orU+')')||[],H=await cFetch('/rest/v1/mp_history?select=owner,user_id,date,data&date=gte.'+from+'&or=('+or+')')||[];ui.cres={};
+        ui.shared.forEach(x=>{const u=U.find(r=>r.owner===x.owner&&r.id===x.user_id);ui.cres[x.owner+'/'+x.user_id]=coachRes(u&&u.settings,H.filter(r=>r.owner===x.owner&&r.user_id===x.user_id).map(r=>Object.assign({date:r.date},r.data)))})}catch(e){}}
   }catch(e){ui.shared=ui.shared||[];ui.grants=ui.grants||[]}
 }
 const CODE_AB='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -195,7 +199,12 @@ function vClients(){
   const L=ui.shared||[];
   if(!cloud.sess)return `<div class="bnr info"><span class="g"><b>سجّل الدخول أولاً</b>المتدربون يظهرون هنا بعد أن يشاركوا ملفاتهم معك.</span><button class="btn" data-act="tab" data-v="me/sync">تسجيل الدخول</button></div>`;
   return `<div class="btns"><button data-act="whoload">تحديث القائمة</button></div>
-  ${L.length?`<div class="list">${L.map((x,i)=>{const a=ui.adh&&ui.adh[x.owner+'/'+x.user_id];return `<button class="li" data-act="whopick" data-v="${i}">${avS(x.name)}<span class="g"><b>${esc(x.name)}</b><small>${ROLES[x.role]}${a?' · التزام الأسبوع '+a.pct+'% · '+a.done+' أيام مكتملة':''}</small></span><span class="chev">${ico('chev')}</span></button>`}).join('')}</div>`
+  ${L.length?(()=>{const C=ui.cres||{},key=x=>x.owner+'/'+x.user_id,ord={idle:0,slow:1,fast:1,drift:1,nodata:2,ok:3};
+    const S2=L.map((x,i)=>({x,i,r:C[key(x)],a:ui.adh&&ui.adh[key(x)]})).sort((p,q)=>(p.r?ord[p.r.st]:2)-(q.r?ord[q.r.st]:2));
+    const need=S2.filter(o=>o.r&&['idle','slow','fast','drift'].includes(o.r.st)).length;
+    return `<p class="note" style="margin:0 0 6px">${L.length} ${L.length===1?'متدرب':'متدربين'}${need?` · <b>${need} ${need===1?'يحتاج':'يحتاجون'} انتباهك</b>`:''} · آخر 4 أسابيع</p><div class="list">${S2.map(({x,i,r,a})=>{const st=r&&CR_ST[r.st];
+      return `<button class="li" data-act="whopick" data-v="${i}">${avS(x.name)}<span class="g"><b>${esc(x.name)} ${st?`<span class="tag ${st[1]}">${st[0]}</span>`:''}</b><small>${ROLES[x.role]}${a?' · التزام الأسبوع '+a.pct+'%':''}${r&&r.adh!=null?' · 4 أسابيع '+rd(r.adh)+'%':''}</small>
+      ${r?`<small>${r.rate!=null?'الوزن '+kgw(r.rate)+(r.goalRate!=null?' · الهدف ('+esc(r.goal)+') '+kgw(r.goalRate):''):'الوزن: يحتاج وزنين على أسبوع على الأقل'}${r.idle!=null&&r.idle>=2?' · آخر تسجيل قبل '+r.idle+' أيام':''}</small>`:''}</span><span class="chev">${ico('chev')}</span></button>`}).join('')}</div>`})()
   :`<div class="card"><b>لا يوجد متدربون بعد</b><p class="note">اطلب من المتدرب: حسابي › الأشخاص والمشاركة › مشاركة، ويختار «مدرب / أخصائي» ثم يرسل لك الكود. أدخل الكود في «الأشخاص والمشاركة».</p><button class="btn" data-act="tab" data-v="me/family">إدخال كود</button></div>`}`;
 }
 function vData(){return `
@@ -310,6 +319,7 @@ function modalBody(){
     <div class="btns" style="margin-top:10px"><button class="btn pri" data-act="close">تم</button><button class="btn dan" data-act="delfood" data-id="${f.id}">حذف الصنف</button></div></div>`;
   }else if(modal.type==='weekopts'){
     m.innerHTML=`<div class="sheet" role="dialog" aria-label="خيارات الأسبوع"><h2>خيارات الأسبوع</h2><div class="list" style="box-shadow:none;border:1px solid var(--ln)">
+    <button class="li" data-act="usualweek"><span class="g"><b>بناء الأسبوع من أصنافك المعتادة</b><small>يستبدل الأصناف بما تأكله فعلاً من نفس النوع ويضبط الكميات</small></span></button>
     <button class="li" data-act="refitweek"><span class="g"><b>ضبط كميات الأسبوع على الأهداف</b><small>يُبقي الأصناف</small></span></button>
     <button class="li" data-act="print"><span class="g"><b>طباعة الأسبوع</b></span></button>
     <button class="li dz" data-act="rebuildweek"><span class="g"><b>إعادة بناء الأسبوع من القوالب</b><small>يُفقد أي تعديل يدوي</small></span></button></div>
