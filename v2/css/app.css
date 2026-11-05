@@ -22,6 +22,8 @@ h1 small{display:block;font-size:12px;font-weight:400;color:var(--mu)}
 .li .chev{color:var(--mu);flex:0 0 auto}
 .li.dz{color:var(--hi)}.li.dz .ic{background:var(--hi2);color:var(--hi)}
 .grp{font-size:13px;font-weight:600;color:var(--mu);margin:16px 4px -4px}
+.av.ph{padding:0;overflow:hidden;background:var(--sf2)}.av img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block}
+.btns label.btn{position:relative;cursor:pointer}
 .prof{display:flex;align-items:center;gap:12px}.prof .av{width:56px;height:56px;font-size:22px;cursor:default}
 .pill{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:1px 10px;background:var(--ok2);color:var(--ok)}.pill.off{background:var(--sf2);color:var(--mu)}
 .bnr{display:flex;align-items:center;gap:10px;border-radius:12px;padding:10px 12px;margin:10px 0;font-size:14px}

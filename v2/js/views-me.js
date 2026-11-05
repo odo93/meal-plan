@@ -22,7 +22,7 @@ const ICON={
 const ico=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
 const TABS=[['day','اليوم'],['week','الخطة'],['hist','التقدم'],['foods','الأصناف'],['me','حسابي']];
 const SUBS={profile:'ملفي الشخصي',goals:'أهدافي',family:'الأشخاص والمشاركة',clients:'متدربيني',mode:'نوع الاستخدام',sync:'الحساب والمزامنة',data:'بياناتي',advanced:'متقدم'};
-const APP_VER='2.2';
+const APP_VER='2.3';
 // نوع الاستخدام: يحدد ما يظهر في «حسابي»، ويمكن تغييره في أي وقت
 const MODES=[['self','لنفسي','خطتي وحدي'],['family','لي ولعائلتي','أفراد وأطفال تديرهم'],['coach','مدرب مستقل','متابعة متدربين'],['org','مؤسسة','مدربون وأخصائيو تغذية']];
 const isCoach=()=>meta.mode==='coach'||meta.mode==='org';
@@ -52,7 +52,7 @@ function banners(){
 const canWrite=()=>!!ui.remote&&ui.remote.role!=='viewer';
 const NAV_ACTS=new Set(['weekopts','wk','fgrp','fedit','nfopen','dayopts','itemopts','mopen','tab','back','day','goday','close','hopen','hr','cmp','who','whopick','whome','whoload','yes','undo','annx','reload','umode','copyshop','print','fu','by','agrp','gaccept','gleave','share','grevoke','gcreate','gcopy','scanclose','eqo']);
 const LOG_ACTS=new Set(['mfinish','qlog','log','logsave','logskip','logclr','hlog','hdel','logrest','logclear']);
-const LOCAL_ACTS=new Set(['uadd','uren','usave','udel','uswitch','reset','import','export','cpush','cpull','rebuildweek']);
+const LOCAL_ACTS=new Set(['picdel','uadd','uren','usave','udel','uswitch','reset','import','export','cpush','cpull','rebuildweek']);
 function remoteBlock(a){if(!ui.remote||NAV_ACTS.has(a))return '';
   if(LOG_ACTS.has(a))return 'التسجيل لصاحب الخطة فقط';
   if(LOCAL_ACTS.has(a))return 'ارجع لملفك أولاً';
@@ -110,7 +110,7 @@ function applyTheme(t){const r=document.documentElement;if(t==='light'||t==='dar
 function themeSeg(){const c=themeNow();return `<div class="seg" role="group" aria-label="المظهر">${THEMES.map(([v,t])=>`<button type="button" data-act="theme" data-v="${v}" aria-pressed="${c===v}" class="${c===v?'on':''}">${t}</button>`).join('')}</div><div class="note" style="margin-top:6px">«تلقائي» يتبع إعداد الهاتف.</div>`}
 function vMe(){
   const s=S(),u=curUser(),on=!!cloud.sess,k=rd(targets(state.days[ui.day]).k),nU=meta.users.length;
-  return `<div class="card prof"><span class="av" aria-hidden="true">${esc(u.name.trim().charAt(0)||'؟')}</span><div style="flex:1;min-width:0"><b style="font-size:17px">${esc(u.name)}</b><div class="note">${esc(goalOf(s).name)} · هدف اليوم ${k} سعرة</div></div><span class="pill ${on?'':'off'}">${on?'متزامن':'على هذا الجهاز'}</span></div>
+  return `<div class="card prof"><span class="av${curPic()?' ph':''}" aria-hidden="true">${avIn(u.name,curPic())}</span><div style="flex:1;min-width:0"><b style="font-size:17px">${esc(u.name)}</b><div class="note">${esc(goalOf(s).name)} · هدف اليوم ${k} سعرة</div></div><span class="pill ${on?'':'off'}">${on?'متزامن':'على هذا الجهاز'}</span></div>
   <div class="grp">أنا</div><div class="list">${li('profile','ملفي الشخصي',profLine(s),'me/profile')}${li('goals','أهدافي',esc(goalOf(s).name)+' · السعرات والماكروز ودورة الكارب','me/goals')}</div>
   <div class="grp">الحساب</div><div class="list">${li('advanced','نوع الاستخدام',(MODES.find(x=>x[0]===meta.mode)||[0,'لم يُحدَّد بعد'])[1],'me/mode')}${isCoach()?li('family','متدربيني',(ui.shared||[]).length+' مشارك معك','me/clients'):''}${li('family','الأشخاص والمشاركة',nU+(nU>1?' ملفات':' ملف')+' على هذا الجهاز'+(on?'':' · المشاركة تحتاج تسجيل الدخول'),'me/family')}${li('sync','الحساب والمزامنة',on?esc(cloud.email||'مسجّل الدخول'):'غير مفعّلة','me/sync')}</div>
   <div class="grp">المظهر</div><div class="card">${themeSeg()}</div>
@@ -120,15 +120,38 @@ function vMe(){
 function vProfile(){
   const s=S(),inp=(l,k,st)=>`<label>${l}<input type="number" step="${st||0.1}" value="${s[k]}" data-ch="set" data-k="${k}"></label>`,
     sel=(l,ch,k,arr,cur)=>`<label>${l}<select data-ch="${ch}" data-k="${k}">${arr.map(([v,t])=>`<option value="${v}" ${String(v)===String(cur)?'selected':''}>${esc(t)}</option>`).join('')}</select></label>`;
-  return `<div class="card set"><p class="note" style="margin:0 0 4px">تُستخدم لحساب سعرات الهدف في «أهدافي».</p>
+  const p=curPic(),nm=ui.remote?ui.remote.name:curUser().name;
+  const photo=`<div class="card prof"><span class="av${p?' ph':''}" aria-hidden="true">${avIn(nm,p)}</span><div style="flex:1;min-width:0"><b>الصورة</b><div class="note">${ui.remote?'يضيفها صاحب الملف.':'تظهر في الدائرة أعلى الشاشة وفي قائمة الأشخاص.'}</div>
+    ${ui.remote?'':`<div class="btns" style="margin:8px 0 0"><label class="btn" style="display:grid;place-items:center">${p?'تغيير الصورة':'إضافة صورة'}<input id="pic_in" type="file" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0" aria-label="${p?'تغيير الصورة':'إضافة صورة'}"></label>${p?'<button class="btn" data-act="picdel">إزالة</button>':''}</div>`}</div></div>`;
+  return photo+`<div class="card set"><p class="note" style="margin:0 0 4px">تُستخدم لحساب سعرات الهدف في «أهدافي».</p>
   ${sel('الجنس','sset','sex',[['m','ذكر'],['f','أنثى']],s.sex)}${inp('العمر (سنة)','age',1)}${inp('الطول (سم)','ht',1)}${inp('الوزن (كجم)','bw',0.5)}${inp('نسبة الدهون % (اختياري)','bf',0.5)}
   ${sel('مستوى النشاط','set','act',ACTS.some(a=>a[0]===+s.act)?ACTS:ACTS.concat([[+s.act,'مخصص ×'+s.act]]),+s.act)}</div>`;
 }
-const avS=(n,on)=>`<span class="av" style="width:36px;height:36px;font-size:14px;${on?'':'background:var(--sf2);color:var(--tx)'}" aria-hidden="true">${esc(String(n||'').trim().charAt(0)||'؟')}</span>`;
+// صورة الشخص: data URL صغيرة (160×160 JPEG) في settings.pic فتُرفع مع المزامنة، ونسخة في meta.users[].pic لقوائم الأشخاص.
+// نقبل صيغ الصور فقط لأن بيانات الأشخاص المشاركين تأتي من السحابة.
+const PIC_RE=/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+const picOk=p=>typeof p==='string'&&p.length<200000&&PIC_RE.test(p)?p:'';
+const curPic=()=>picOk(state&&state.settings&&state.settings.pic);
+const userPic=u=>u&&u.id===meta.cur&&!ui.remote?curPic():picOk(u&&u.pic);
+const avIn=(n,pic)=>{pic=picOk(pic);return pic?`<img src="${pic}" alt="" decoding="async">`:esc(String(n||'').trim().charAt(0)||'؟')};
+const avS=(n,on,pic)=>`<span class="av${picOk(pic)?' ph':''}" style="width:36px;height:36px;font-size:14px;${on||picOk(pic)?'':'background:var(--sf2);color:var(--tx)'}" aria-hidden="true">${avIn(n,pic)}</span>`;
+async function picFrom(file){
+  if(!file||!/^image\//.test(file.type||''))throw new Error('type');
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('decode'));i.src=url});
+    const Z=160,c=document.createElement('canvas');c.width=c.height=Z;const x=c.getContext('2d'),w=img.naturalWidth,h=img.naturalHeight,m=Math.min(w,h);
+    x.drawImage(img,(w-m)/2,(h-m)/2,m,m,0,0,Z,Z);
+    return c.toDataURL('image/jpeg',.82);
+  }finally{URL.revokeObjectURL(url)}
+}
+function setPic(p){p=picOk(p);const u=curUser();
+  if(p){state.settings.pic=p;u.pic=p}else{delete state.settings.pic;delete u.pic}
+  save();render();toast(p?'تم حفظ الصورة':'أُزيلت الصورة')}
 function vFamily(){
   const on=!!cloud.sess,G=ui.grants||[];
   const mine=meta.users.map(u=>{const gs=G.filter(g=>g.user_id===u.id);
-    return `<div class="li" style="cursor:default">${avS(u.name,u.id===meta.cur&&!ui.remote)}<span class="g"><b>${esc(u.name)}</b><small>${u.kind==='child'?'ملف طفل تديره أنت · ':''}${gs.length?gs.map(g=>g.status==='pending'?'دعوة '+ROLES[g.role]+' بانتظار القبول':esc(g.grantee_email||'')+' ('+ROLES[g.role]+')').join('، '):'غير مشارك'}</small></span>${on&&u.kind!=='child'?`<button class="btn" style="flex:0 0 auto" data-act="share" data-v="${u.id}">مشاركة</button>`:''}</div>`}).join('');
+    return `<div class="li" style="cursor:default">${avS(u.name,u.id===meta.cur&&!ui.remote,userPic(u))}<span class="g"><b>${esc(u.name)}</b><small>${u.kind==='child'?'ملف طفل تديره أنت · ':''}${gs.length?gs.map(g=>g.status==='pending'?'دعوة '+ROLES[g.role]+' بانتظار القبول':esc(g.grantee_email||'')+' ('+ROLES[g.role]+')').join('، '):'غير مشارك'}</small></span>${on&&u.kind!=='child'?`<button class="btn" style="flex:0 0 auto" data-act="share" data-v="${u.id}">مشاركة</button>`:''}</div>`}).join('');
   const grants=G.length?`<div class="grp">الدعوات والصلاحيات</div><div class="list">${G.map(g=>{const u=meta.users.find(x=>x.id===g.user_id);
     return `<div class="li" style="cursor:default"><span class="g"><b>${esc(u?u.name:g.user_id)} → ${g.status==='pending'?'كود '+esc(g.code||''):esc(g.grantee_email||'')}</b><small>${ROLES[g.role]} · ${g.status==='pending'?'لم تُقبل بعد':'مفعّلة'}</small></span><button class="btn dan" style="flex:0 0 auto" data-act="grevoke" data-v="${g.id}">${g.status==='pending'?'إلغاء':'إيقاف'}</button></div>`}).join('')}</div>`:'';
   const shared=(ui.shared||[]).length?`<div class="grp">مشاركون معي</div><div class="list">${ui.shared.map((x,i)=>`<div class="li" style="cursor:default">${avS(x.name)}<span class="g"><b>${esc(x.name)}</b><small>من ${esc(x.owner_email||'')} · ${ROLES[x.role]}</small></span><button class="btn" style="flex:0 0 auto" data-act="whopick" data-v="${i}">عرض</button><button class="btn dan" style="flex:0 0 auto" data-act="gleave" data-v="${i}">مغادرة</button></div>`).join('')}</div>`:'';
@@ -296,7 +319,7 @@ function modalBody(){
     <div class="btns" style="margin-top:8px"><button data-act="close">إغلاق</button></div></div>`;
   }else if(modal.type==='who'){
     const L=ui.shared||[];
-    m.innerHTML=`<div class="sheet" role="dialog" aria-label="من تعرض؟"><h2>من تعرض؟</h2><div class="list" style="box-shadow:none;border:1px solid var(--ln)">${meta.users.map(u=>`<button class="li" data-act="uswitch" data-v="${u.id}" aria-pressed="${!ui.remote&&u.id===meta.cur}">${avS(u.name,!ui.remote&&u.id===meta.cur)}<span class="g"><b>${esc(u.name)}</b><small>${u.kind==='child'?'ملف طفل':'على هذا الجهاز'}${!ui.remote&&u.id===meta.cur?' · المعروض الآن':''}</small></span></button>`).join('')}
+    m.innerHTML=`<div class="sheet" role="dialog" aria-label="من تعرض؟"><h2>من تعرض؟</h2><div class="list" style="box-shadow:none;border:1px solid var(--ln)">${meta.users.map(u=>`<button class="li" data-act="uswitch" data-v="${u.id}" aria-pressed="${!ui.remote&&u.id===meta.cur}">${avS(u.name,!ui.remote&&u.id===meta.cur,userPic(u))}<span class="g"><b>${esc(u.name)}</b><small>${u.kind==='child'?'ملف طفل':'على هذا الجهاز'}${!ui.remote&&u.id===meta.cur?' · المعروض الآن':''}</small></span></button>`).join('')}
     ${L.map((x,i)=>`<button class="li" data-act="whopick" data-v="${i}" aria-pressed="${!!ui.remote&&ui.remote.owner===x.owner&&ui.remote.id===x.user_id}">${avS(x.name,!!ui.remote&&ui.remote.id===x.user_id)}<span class="g"><b>${esc(x.name)}</b><small>${ROLES[x.role]} · من ${esc(x.owner_email||'')}</small></span></button>`).join('')}</div>
     ${cloud.sess?'':'<p class="note">سجّل الدخول لترى الأشخاص المشاركين معك.</p>'}
     <div class="btns" style="margin-top:8px"><button data-act="tab" data-v="me/family">إدارة الأشخاص</button><button data-act="tab" data-v="me">حسابي</button><button data-act="close">إغلاق</button></div></div>`;

@@ -55,6 +55,7 @@ function act(a,ds){
     case 'logrest':d.meals.forEach(m=>m.items.forEach(it=>{if(!it.x&&gE(it)==null)it.e=it.g}));d.lw=weekKey();break;
     case 'logclear':{const di=ui.day;ask('مسح تسجيل «'+d.name+'» (المأكول والمنقول والأصناف الإضافية)؟',()=>clearLog(state.days[di]));return}
     case 'uadd':modal={type:'user',mode:'add',name:''};break;
+    case 'picdel':setPic('');return;
     case 'uren':modal={type:'user',mode:'ren',name:curUser().name};break;
     case 'usave':{const n=($('#un').value||'').trim();if(!n){toast('اكتب الاسم');return}
       if(modal.mode==='add'){const cp=!!($('#ucopy')&&$('#ucopy').checked),kid=!!($('#ukid')&&$('#ukid').checked);modal=null;addUser(n,cp,kid?'child':'');toast(kid?'تم إنشاء ملف الطفل':'تم إنشاء الملف')}
@@ -155,6 +156,8 @@ document.addEventListener('input',e=>{const t=e.target,id=t.id||'';
   else if(id.startsWith('sc_')&&ui.scan&&ui.scan.d){ui.scan.d[id.slice(3)]=t.value}
   else if(id.startsWith('nf_')&&id!=='nf_img'){ui.nfd=ui.nfd||{};ui.nfd[id.slice(3)]=t.value}
 });
+document.addEventListener('change',e=>{const t=e.target;if(t.id!=='pic_in'||!t.files||!t.files[0]||ui.remote)return;const f=t.files[0];t.value='';
+  picFrom(f).then(setPic).catch(()=>toast('تعذّر قراءة الصورة — جرّب صورة أخرى'))});
 document.addEventListener('change',e=>{const t=e.target;if((t.id==='nf_img'||t.id==='am_img')&&t.files&&t.files[0]){const f=t.files[0],from=t.id==='am_img'&&modal&&modal.type==='add'?modal.m:null;t.value='';startScan(f,from)}});
 document.addEventListener('change',e=>{
   const t=e.target,c=t.dataset&&t.dataset.ch;if(!c)return;

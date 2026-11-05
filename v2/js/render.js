@@ -48,7 +48,7 @@ function render(){
   const fk=fkey(document.activeElement);
   if(ui.tab==='me'&&!SUBS[ui.sub])ui.sub='';
   const sub=ui.tab==='me'&&ui.sub,u=ui.remote?{name:ui.remote.name}:curUser(),title=sub?SUBS[ui.sub]:(TABS.find(t=>t[0]===ui.tab)||TABS[0])[1];
-  patch($('#top'),`<div class="top">${sub?`<button class="bk" data-act="back" aria-label="رجوع إلى حسابي">${ico('back')}</button>`:''}<h1>${title}${ui.tab==='me'?'':`<small>${esc(u.name)}</small>`}</h1>${ui.tab==='me'?'':`<button class="av" data-act="who" aria-haspopup="dialog" aria-label="من تعرض؟ الآن: ${esc(u.name)}" style="${ui.remote?'background:var(--rm);color:var(--card)':''}">${esc(u.name.trim().charAt(0)||'؟')}</button>`}</div>`);
+  patch($('#top'),`<div class="top">${sub?`<button class="bk" data-act="back" aria-label="رجوع إلى حسابي">${ico('back')}</button>`:''}<h1>${title}${ui.tab==='me'?'':`<small>${esc(u.name)}</small>`}</h1>${ui.tab==='me'?'':`<button class="av${curPic()?' ph':''}" data-act="who" aria-haspopup="dialog" aria-label="من تعرض؟ الآن: ${esc(u.name)}" style="${ui.remote?(curPic()?'box-shadow:0 0 0 2px var(--rm)':'background:var(--rm);color:var(--card)'):''}">${avIn(u.name,curPic())}</button>`}</div>`);
   patch($('#nav'),TABS.map(([k,l])=>`<button data-act="tab" data-v="${k}" ${ui.tab===k?'aria-current="page"':''}><span>${ico(k)}</span>${l}</button>`).join(''));
   const pk=[ui.tab,ui.sub,meta.cur,ui.remote?ui.remote.owner+'/'+ui.remote.id:''].join('|');
   patch($('#app'),banners()+(ui.tab==='day'?vDay():ui.tab==='week'?vWeek():ui.tab==='hist'?vHist():ui.tab==='foods'?vFoods():vMeSub()),pk!==render.pk);render.pk=pk;
