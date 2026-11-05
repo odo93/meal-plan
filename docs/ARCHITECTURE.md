@@ -66,6 +66,12 @@ GoTrue (signup/token/refresh/recover/user) + PostgREST upsert بـ`on_conflict` 
 - **عرض شخص مشارك** (`ui.remote`): يُحمَّل من السحابة إلى الذاكرة فقط؛ `save()` لا يكتب في localStorage بل يجدول `rPush()` (PATCH بدل upsert)، و`mergeLog()` يحتفظ بتسجيل المالك الأحدث. أفعال التسجيل والأفعال المحلية ممنوعة أثناء العرض (`remoteBlock`).
 - **عام بلا تسجيل دخول**: `app_config` (أقل إصدار → «تحديث مطلوب»)، `announcements`، `shared_foods` (تُضاف إلى القاعدة الجاهزة وتُخزَّن في `mp3_sfoods`).
 - **لوحة الإدارة** `admin/index.html`: صفحة مستقلة؛ كل صلاحية يتحقق منها `is_admin()` في قاعدة البيانات. المديرون في `app_admins` (يُضافون بـSQL فقط).
+- **تحكّم الإدارة في التطبيق** (`20261105_admin_control.sql`):
+  - الميزات (`FEATS` في `js/views-me.js` وفي اللوحة، والاختبار يتحقق من تطابقهما): scan، online، shop، multi، share، clients. تسجيل الدخول والمزامنة لا تُغلق.
+  - `feat(k)`: استثناء الحساب (`mp_accounts.features`) ← إعداد نوع الاستخدام (`app_config.features[k][mode]`) ← مفعّلة. للعرض فقط؛ الحماية في RLS. آخر إعدادات محفوظة في `mp3_pub` و`mp3_acct` فتسري بلا إنترنت.
+  - نوع الاستخدام في `mp_accounts.mode`: المستخدم يغيّره عبر `mp_set_mode` فقط، والمدير عبر `admin_set_account`. بعد الدخول تكون السحابة هي المرجع (`syncAcct` داخل `loadShared`)، إلا تغييراً محلياً لم يُرفع (`meta.modePending`) فيُرفع أولاً.
+  - `app_config.defaults` (الهدف، النشاط، وقيم كل هدف) تُطبَّق في `defaultState` و`gdefOf()` على الأشخاص الجدد والقيم غير المضبوطة فقط.
+- **صورة الشخص:** `settings.pic` (data URL ‏160×160 JPEG) تُرفع مع المزامنة، ونسخة في `meta.users[].pic`. لا يُعرض إلا ما يطابق `PIC_RE` (jpeg/png/webp base64).
 - التغييرات في `supabase/migrations/` ومنسوخة في آخر `schema.sql`.
 
 ## 7. قرارات

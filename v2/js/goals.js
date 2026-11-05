@@ -28,6 +28,10 @@ const GDEF={
  bulk:{mode:'pct',val:15,pr:1.6,prB:'bw',fat:25,fatM:'pct'},   // زيادة وزن: فائض 15–20%
  lean:{mode:'pct',val:7,pr:2.2,prB:'bw',fat:25,fatM:'pct'}     // بناء عضلات: فائض 5–10% وبروتين أعلى
 };
+// الإعدادات الافتراضية من لوحة الإدارة (للقيم غير المضبوطة فقط؛ لا تغيّر ما ضبطه المستخدم)
+function adminDefaults(){const d=(typeof pubCfg==='function'?pubCfg().defaults:null)||{};return d&&typeof d==='object'?d:{}}
+function gdefOf(id){const b=GDEF[id],o=((adminDefaults().g)||{})[id];if(!b||!o||typeof o!=='object')return b;
+  const r=Object.assign({},b);['val','pr','fat'].forEach(k=>{const v=+o[k];if(o[k]!==''&&o[k]!=null&&isFinite(v)&&v>=0&&v<=(k==='val'?100:k==='pr'?5:60))r[k]=v});return r}
 function fixSettings(s){
   const D={goal:'manual',sex:'m',age:30,ht:175,bf:0,eq:'mifflin',act:1.55,tdeeM:0};
   Object.keys(D).forEach(k=>{if(s[k]==null)s[k]=D[k]});
@@ -38,7 +42,7 @@ function fixSettings(s){
   const bi=s.goals.findIndex(g=>g.id==='bulk');if(bi>=0&&s.goals[bi].name==='زيادة / بناء'){s.goals[bi].name='زيادة وزن';if(!s.goals.some(g=>g.id==='lean'))s.goals.splice(bi+1,0,clone(DEF_GOALS.find(g=>g.id==='lean')))}
   if(!s.goals.some(g=>g.id===s.goal))s.goal=s.goals[0].id;
   s.g=s.g||{};
-  s.goals.forEach(gl=>{if(gl.kind==='manual')return;const b=GDEF[gl.id]||(gl.sign<0?GDEF.cut:gl.sign>0?GDEF.bulk:GDEF.maint);s.g[gl.id]=Object.assign({},b,s.g[gl.id]||{})});
+  s.goals.forEach(gl=>{if(gl.kind==='manual')return;const b=gdefOf(gl.id)||(gl.sign<0?GDEF.cut:gl.sign>0?GDEF.bulk:GDEF.maint);s.g[gl.id]=Object.assign({},b,s.g[gl.id]||{})});
   s.cyc=Object.assign({on:true,r:0.5},s.cyc||{});
   return s;
 }
@@ -108,7 +112,7 @@ function buildDay(i,mode,prot){
   const d={name:DAYS[i],mode,prot,meals};fitDay(d);return d;
 }
 function defaultState(){
-  const st={v:1,settings:{bw:70,pM:2,cH:2,cL:1,fM:0.8,by:'auto'},foods:FOODS0.map(a=>({id:a[0],n:a[1],grp:a[2],k:a[3],p:a[4],c:a[5],f:a[6],u:a[7]||'',ug:a[8]||0})),days:[]};
+  const AD=adminDefaults(),st={v:1,settings:Object.assign({bw:70,pM:2,cH:2,cL:1,fM:0.8,by:'auto'},DEF_GOALS.some(g=>g.id===AD.goal)?{goal:AD.goal}:{},ACTS.some(a=>a[0]===+AD.act)?{act:+AD.act}:{}),foods:FOODS0.map(a=>({id:a[0],n:a[1],grp:a[2],k:a[3],p:a[4],c:a[5],f:a[6],u:a[7]||'',ug:a[8]||0})),days:[]};
   state=st;
   DAYS.forEach((n,i)=>st.days.push(buildDay(i,i%2?'low':'high',i%2?'beef':'chicken')));
   return st;

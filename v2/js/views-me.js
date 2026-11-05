@@ -22,10 +22,29 @@ const ICON={
 const ico=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
 const TABS=[['day','اليوم'],['week','الخطة'],['hist','التقدم'],['foods','الأصناف'],['me','حسابي']];
 const SUBS={profile:'ملفي الشخصي',goals:'أهدافي',family:'الأشخاص والمشاركة',clients:'متدربيني',mode:'نوع الاستخدام',sync:'الحساب والمزامنة',data:'بياناتي',advanced:'متقدم'};
-const APP_VER='2.3';
+const APP_VER='2.4';
 // نوع الاستخدام: يحدد ما يظهر في «حسابي»، ويمكن تغييره في أي وقت
 const MODES=[['self','لنفسي','خطتي وحدي'],['family','لي ولعائلتي','أفراد وأطفال تديرهم'],['coach','مدرب مستقل','متابعة متدربين'],['org','مؤسسة','مدربون وأخصائيو تغذية']];
 const isCoach=()=>meta.mode==='coach'||meta.mode==='org';
+// ميزات تتحكم بها لوحة الإدارة (للعرض فقط؛ حماية البيانات في RLS). القاعدة: استثناء الحساب ← إعداد نوع الاستخدام ← مفعّلة.
+// الإعدادات الأخيرة محفوظة في الجهاز (mp3_pub / mp3_acct) فتسري بلا إنترنت أيضاً. تسجيل الدخول والمزامنة لا تُغلق أبداً.
+const FEATS=[['scan','المسح بالصورة والباركود'],['online','البحث أونلاين (USDA وOpen Food Facts)'],['shop','قائمة المشتريات'],['multi','أكثر من ملف (أفراد وأطفال)'],['share','المشاركة بكود'],['clients','متدربيني']];
+const pubCfg=()=>(ui.pub&&ui.pub.cfg)||lsGet('mp3_pub')||{};
+const acct=()=>lsGet('mp3_acct')||{};
+function feat(k){
+  const o=acct().features;if(o&&typeof o[k]==='boolean')return o[k];
+  const g=(pubCfg().features||{})[k];if(g&&typeof g==='object'&&meta.mode&&typeof g[meta.mode]==='boolean')return g[meta.mode];
+  return true;
+}
+// نوع الاستخدام في السحابة هو المرجع بعد تسجيل الدخول؛ تغيير محلي لم يُرفع بعد (modePending) يُرفع أولاً.
+async function syncAcct(){if(!cloud.sess||!cloud.sess.uid)return;
+  try{
+    if(meta.modePending&&meta.mode){const r=await cFetch('/rest/v1/rpc/mp_set_mode',{method:'POST',body:{p_mode:meta.mode}});delete meta.modePending;saveMeta();if(r)lsSet('mp3_acct',{mode:r.mode,features:r.features||{}});return}
+    const rows=await cFetch('/rest/v1/mp_accounts?select=mode,features&owner=eq.'+ENC(cloud.sess.uid));const r=Array.isArray(rows)&&rows[0];
+    if(r){lsSet('mp3_acct',{mode:r.mode,features:r.features||{}});if(r.mode&&r.mode!==meta.mode){meta.mode=r.mode;saveMeta()}}
+    else{lsSet('mp3_acct',{});if(meta.mode){const x=await cFetch('/rest/v1/rpc/mp_set_mode',{method:'POST',body:{p_mode:meta.mode}});if(x)lsSet('mp3_acct',{mode:x.mode,features:x.features||{}})}}
+  }catch(e){}
+}
 const ROLES={viewer:'مشاهد',editor:'محرر',coach:'مدرب / أخصائي'};
 const ROLE_NOTE={viewer:'يرى الخطة والتقدم فقط',editor:'يرى ويعدّل الخطة والأهداف',coach:'يرى ويعدّل الخطة والأهداف ويتابع الالتزام'};
 // عناوين الرابط: #/plan، #/me/goals … (اليوم بلا عنوان)
@@ -86,6 +105,7 @@ async function rPush(){const R=ui.remote;if(!R||!canWrite())return;R.busy=true;
   if(ui.remote===R){R.busy=false;render()}
 }
 async function loadShared(){if(!cloud.sess)return;
+  await syncAcct();
   try{const arr=x=>Array.isArray(x)?x:[];ui.shared=arr(await cFetch('/rest/v1/rpc/mp_shared_with_me',{method:'POST',body:{}}));
     ui.grants=arr(await cFetch('/rest/v1/rpc/mp_my_grants',{method:'POST',body:{}}));
     if(isCoach()&&ui.shared.length){const or=ui.shared.map(x=>'and(owner.eq.'+x.owner+',user_id.eq.'+ENC(x.user_id)+')').join(',');
@@ -96,8 +116,8 @@ async function loadShared(){if(!cloud.sess)return;
 const CODE_AB='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const mkCode=()=>{const a=new Uint32Array(6);(window.crypto||{getRandomValues:x=>x.map(()=>Math.random()*4e9)}).getRandomValues(a);return [...a].map(n=>CODE_AB[n%CODE_AB.length]).join('')};
 async function loadPublic(){ // إعدادات التطبيق والإعلانات والأصناف المشتركة (بدون تسجيل دخول)
-  try{const [C,A,F]=await Promise.all([cFetch('/rest/v1/app_config?select=latest_version,min_version,features',{anon:true}),cFetch('/rest/v1/announcements?select=id,title,body,level&order=id.desc&limit=5',{anon:true}),cFetch('/rest/v1/shared_foods?select=id,n,grp,k,p,c,f,u,ug&active=eq.true',{anon:true})]);
-    ui.pub={cfg:Array.isArray(C)?C[0]:null,ann:Array.isArray(A)?A.filter(x=>x&&x.title):[]};if(Array.isArray(F)){lsSet('mp3_sfoods',F);addShared(F)}render();
+  try{const [C,A,F]=await Promise.all([cFetch('/rest/v1/app_config?select=latest_version,min_version,features,defaults',{anon:true}),cFetch('/rest/v1/announcements?select=id,title,body,level&order=id.desc&limit=5',{anon:true}),cFetch('/rest/v1/shared_foods?select=id,n,grp,k,p,c,f,u,ug&active=eq.true',{anon:true})]);
+    ui.pub={cfg:Array.isArray(C)?C[0]:null,ann:Array.isArray(A)?A.filter(x=>x&&x.title):[]};if(ui.pub.cfg)lsSet('mp3_pub',{features:ui.pub.cfg.features||{},defaults:ui.pub.cfg.defaults||{}});if(Array.isArray(F)){lsSet('mp3_sfoods',F);addShared(F)}render();
   }catch(e){}
 }
 function addShared(F){(F||[]).forEach(x=>{if(!CAT.some(r=>r.sid===x.id)){const r=[x.n,'','',x.grp,+x.k,+x.p,+x.c,+x.f,x.u||'',+x.ug||0];r.sid=x.id;CAT.push(r)}})}
@@ -112,7 +132,7 @@ function vMe(){
   const s=S(),u=curUser(),on=!!cloud.sess,k=rd(targets(state.days[ui.day]).k),nU=meta.users.length;
   return `<div class="card prof"><span class="av${curPic()?' ph':''}" aria-hidden="true">${avIn(u.name,curPic())}</span><div style="flex:1;min-width:0"><b style="font-size:17px">${esc(u.name)}</b><div class="note">${esc(goalOf(s).name)} · هدف اليوم ${k} سعرة</div></div><span class="pill ${on?'':'off'}">${on?'متزامن':'على هذا الجهاز'}</span></div>
   <div class="grp">أنا</div><div class="list">${li('profile','ملفي الشخصي',profLine(s),'me/profile')}${li('goals','أهدافي',esc(goalOf(s).name)+' · السعرات والماكروز ودورة الكارب','me/goals')}</div>
-  <div class="grp">الحساب</div><div class="list">${li('advanced','نوع الاستخدام',(MODES.find(x=>x[0]===meta.mode)||[0,'لم يُحدَّد بعد'])[1],'me/mode')}${isCoach()?li('family','متدربيني',(ui.shared||[]).length+' مشارك معك','me/clients'):''}${li('family','الأشخاص والمشاركة',nU+(nU>1?' ملفات':' ملف')+' على هذا الجهاز'+(on?'':' · المشاركة تحتاج تسجيل الدخول'),'me/family')}${li('sync','الحساب والمزامنة',on?esc(cloud.email||'مسجّل الدخول'):'غير مفعّلة','me/sync')}</div>
+  <div class="grp">الحساب</div><div class="list">${li('advanced','نوع الاستخدام',(MODES.find(x=>x[0]===meta.mode)||[0,'لم يُحدَّد بعد'])[1],'me/mode')}${isCoach()&&feat('clients')?li('family','متدربيني',(ui.shared||[]).length+' مشارك معك','me/clients'):''}${li('family','الأشخاص والمشاركة',nU+(nU>1?' ملفات':' ملف')+' على هذا الجهاز'+(on?'':' · المشاركة تحتاج تسجيل الدخول'),'me/family')}${li('sync','الحساب والمزامنة',on?esc(cloud.email||'مسجّل الدخول'):'غير مفعّلة','me/sync')}</div>
   <div class="grp">المظهر</div><div class="card">${themeSeg()}</div>
   <div class="grp">البيانات</div><div class="list">${li('data','بياناتي','تصدير واستيراد','me/data')}${li('advanced','متقدم','معادلات BMR والأهداف المخصصة','me/advanced')}</div>
   <div class="grp">منطقة الخطر</div><div class="list">${li('reset','إعادة ضبط «'+esc(u.name)+'»','الإعدادات والأصناف والخطة','','reset','dz')}${li('trash','حذف «'+esc(u.name)+'»','مع كل خطته وسجله','','udel','dz')}${on?li('logout','تسجيل الخروج من السحابة','','','clogout','dz'):''}</div>`;
@@ -156,8 +176,8 @@ function vFamily(){
     return `<div class="li" style="cursor:default"><span class="g"><b>${esc(u?u.name:g.user_id)} → ${g.status==='pending'?'كود '+esc(g.code||''):esc(g.grantee_email||'')}</b><small>${ROLES[g.role]} · ${g.status==='pending'?'لم تُقبل بعد':'مفعّلة'}</small></span><button class="btn dan" style="flex:0 0 auto" data-act="grevoke" data-v="${g.id}">${g.status==='pending'?'إلغاء':'إيقاف'}</button></div>`}).join('')}</div>`:'';
   const shared=(ui.shared||[]).length?`<div class="grp">مشاركون معي</div><div class="list">${ui.shared.map((x,i)=>`<div class="li" style="cursor:default">${avS(x.name)}<span class="g"><b>${esc(x.name)}</b><small>من ${esc(x.owner_email||'')} · ${ROLES[x.role]}</small></span><button class="btn" style="flex:0 0 auto" data-act="whopick" data-v="${i}">عرض</button><button class="btn dan" style="flex:0 0 auto" data-act="gleave" data-v="${i}">مغادرة</button></div>`).join('')}</div>`:'';
   return `<div class="grp">ملفاتي على هذا الجهاز</div><div class="list">${mine}</div>
-  <div class="btns"><button data-act="uadd">＋ إضافة فرد أو طفل</button><button data-act="uren">تعديل اسم «${esc(curUser().name)}»</button></div>
-  ${on?grants+shared+`<div class="grp">لديك كود من شخص آخر؟</div><div class="card"><div class="fr2"><input id="inv_code" dir="ltr" autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="مثال: K7Q2MX" style="text-transform:uppercase;letter-spacing:.1em" aria-label="كود الدعوة"><button class="btn pri" style="flex:0 0 auto" data-act="gaccept">قبول</button></div><p class="note" id="inv_msg">أدخل الكود الذي أرسله لك صاحب الخطة. بعدها يظهر في «من تعرض؟».</p></div>`
+  <div class="btns">${feat('multi')?'<button data-act="uadd">＋ إضافة فرد أو طفل</button>':''}<button data-act="uren">تعديل اسم «${esc(curUser().name)}»</button></div>
+  ${!feat('share')?'':on?grants+shared+`<div class="grp">لديك كود من شخص آخر؟</div><div class="card"><div class="fr2"><input id="inv_code" dir="ltr" autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="مثال: K7Q2MX" style="text-transform:uppercase;letter-spacing:.1em" aria-label="كود الدعوة"><button class="btn pri" style="flex:0 0 auto" data-act="gaccept">قبول</button></div><p class="note" id="inv_msg">أدخل الكود الذي أرسله لك صاحب الخطة. بعدها يظهر في «من تعرض؟».</p></div>`
   :`<div class="bnr info"><span class="g"><b>المشاركة تحتاج تسجيل الدخول</b>لمشاركة ملف مع فرد بالغ أو مدرب، أو لقبول كود، سجّل الدخول أولاً.</span><button class="btn" data-act="tab" data-v="me/sync">تسجيل الدخول</button></div>`}
   <p class="note">ملف الطفل لا يحتاج بريداً ويُدار بالكامل من حسابك. البالغ أو المدرب يحصل على صلاحية بكود تُرسله له، ويمكنك إيقافها في أي وقت. الحذف من «منطقة الخطر» في حسابي.</p>`;
 }
@@ -178,7 +198,7 @@ function vClients(){
 function vData(){return `
   <div class="card"><h2 style="margin:0 0 6px">النسخ الاحتياطي</h2><p class="note">لكل مستخدم إعداداته وأصنافه وخطته، ويُحفظ كل يوم بأصنافه في مفتاح مستقل داخل هذا المتصفح، ويُحفظ الفعلي لكل تاريخ في «التقدم» ويدخل في التصدير. المستخدم الحالي: <b>${esc(curUser().name)}</b>. صدّر نسخة احتياطية قبل تغيير الجهاز.</p><div class="btns"><button data-act="export">تصدير كل المستخدمين</button><button data-act="import">استيراد</button></div></div>`;
 }
-function vMeSubData(){return vData()+srcCard()}
+function vMeSubData(){return vData()+(feat('online')?srcCard():'')}
 function vMeSub(){const s=S();
   switch(ui.sub){
     case 'profile':return vProfile();
@@ -318,10 +338,10 @@ function modalBody(){
     <button class="li dz" data-act="del" ${a}><span class="g"><b>حذف من الوجبة</b></span></button></div>
     <div class="btns" style="margin-top:8px"><button data-act="close">إغلاق</button></div></div>`;
   }else if(modal.type==='who'){
-    const L=ui.shared||[];
+    const L=feat('share')?ui.shared||[]:[];
     m.innerHTML=`<div class="sheet" role="dialog" aria-label="من تعرض؟"><h2>من تعرض؟</h2><div class="list" style="box-shadow:none;border:1px solid var(--ln)">${meta.users.map(u=>`<button class="li" data-act="uswitch" data-v="${u.id}" aria-pressed="${!ui.remote&&u.id===meta.cur}">${avS(u.name,!ui.remote&&u.id===meta.cur,userPic(u))}<span class="g"><b>${esc(u.name)}</b><small>${u.kind==='child'?'ملف طفل':'على هذا الجهاز'}${!ui.remote&&u.id===meta.cur?' · المعروض الآن':''}</small></span></button>`).join('')}
     ${L.map((x,i)=>`<button class="li" data-act="whopick" data-v="${i}" aria-pressed="${!!ui.remote&&ui.remote.owner===x.owner&&ui.remote.id===x.user_id}">${avS(x.name,!!ui.remote&&ui.remote.id===x.user_id)}<span class="g"><b>${esc(x.name)}</b><small>${ROLES[x.role]} · من ${esc(x.owner_email||'')}</small></span></button>`).join('')}</div>
-    ${cloud.sess?'':'<p class="note">سجّل الدخول لترى الأشخاص المشاركين معك.</p>'}
+    ${cloud.sess||!feat('share')?'':'<p class="note">سجّل الدخول لترى الأشخاص المشاركين معك.</p>'}
     <div class="btns" style="margin-top:8px"><button data-act="tab" data-v="me/family">إدارة الأشخاص</button><button data-act="tab" data-v="me">حسابي</button><button data-act="close">إغلاق</button></div></div>`;
   }else if(modal.type==='share'){
     const u=meta.users.find(x=>x.id===modal.user)||{name:''};
@@ -338,7 +358,7 @@ function modalBody(){
     ${c.map(x=>`<button type="button" class="cand" data-act="applyswap" data-f="${x.c.id}" data-g="${x.g}"><span><b>${esc(x.c.n)}</b><small>${rd(x.g/(x.c.ug||1)*(x.c.ug?1:1))} ${esc(unitOf(x.c))}</small></span><span class="dl"><span class="${Math.abs(x.d.k)>50?'w':''}">${sg(x.d.k)} kcal</span><br>P ${sg(x.d.p)} · C ${sg(x.d.c)} · F ${sg(x.d.f)}</span></button>`).join('')||'<p class="note">لا توجد بدائل.</p>'}
     <button class="btn" style="width:100%;margin-top:8px" data-act="close">إغلاق</button></div>`;
   }else{
-    m.innerHTML=`<div class="sheet" data-stop><h2>إضافة صنف</h2><input id="q" type="search" placeholder="🔍 ابحث (يتجاهل التشكيل والهمزات)" value="${esc(ui.aq||'')}" style="margin-bottom:6px"><div class="gch sm" style="margin:0 0 6px"><button class="${!ui.ag?'on':''}" data-act="agrp" data-v="">الكل</button>${Object.keys(GROUPS).map(g=>`<button class="${ui.ag===g?'on':''}" data-act="agrp" data-v="${g}">${GROUPS[g]}</button>`).join('')}</div><label style="display:flex;gap:8px;align-items:center;margin:4px 0 8px;font-weight:600"><input type="checkbox" id="xtra" style="width:auto" ${ui.xt?'checked':''}> خارج الخطة (أكلته فعلاً)</label><div id="addList"></div><label class="btn" style="display:block;text-align:center;margin-top:8px">📷 إضافة من صورة ملصق / باركود<input type="file" id="am_img" accept="image/*" style="display:none"></label><button class="btn" style="width:100%;margin-top:6px" data-act="close">إغلاق</button></div>`;
+    m.innerHTML=`<div class="sheet" data-stop><h2>إضافة صنف</h2><input id="q" type="search" placeholder="🔍 ابحث (يتجاهل التشكيل والهمزات)" value="${esc(ui.aq||'')}" style="margin-bottom:6px"><div class="gch sm" style="margin:0 0 6px"><button class="${!ui.ag?'on':''}" data-act="agrp" data-v="">الكل</button>${Object.keys(GROUPS).map(g=>`<button class="${ui.ag===g?'on':''}" data-act="agrp" data-v="${g}">${GROUPS[g]}</button>`).join('')}</div><label style="display:flex;gap:8px;align-items:center;margin:4px 0 8px;font-weight:600"><input type="checkbox" id="xtra" style="width:auto" ${ui.xt?'checked':''}> خارج الخطة (أكلته فعلاً)</label><div id="addList"></div>${feat('scan')?'<label class="btn" style="display:block;text-align:center;margin-top:8px">📷 إضافة من صورة ملصق / باركود<input type="file" id="am_img" accept="image/*" style="display:none"></label>':''}<button class="btn" style="width:100%;margin-top:6px" data-act="close">إغلاق</button></div>`;
     renderAddList(ui.aq||'');
   }
 }

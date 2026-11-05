@@ -56,7 +56,8 @@ function weekStats(){const days=state.days,a=adh(days),T=days.reduce((x,d)=>x+ta
   return{pct:a.pct,done:a.done,streak,k:K,t:T}}
 const todayIdx=()=>{for(let i=0;i<7;i++)if(dateOfDay(i)===todayISO())return i;return 6};
 function vWeek(){
-  const seg=`<div class="seg" role="tablist"><button role="tab" aria-selected="${ui.wk!=='shop'}" class="${ui.wk!=='shop'?'on':''}" data-act="wk" data-v="week">الأسبوع</button><button role="tab" aria-selected="${ui.wk==='shop'}" class="${ui.wk==='shop'?'on':''}" data-act="wk" data-v="shop">المشتريات</button></div>`;
+  if(!feat('shop')&&ui.wk==='shop')ui.wk='week';
+  const seg=!feat('shop')?'':`<div class="seg" role="tablist"><button role="tab" aria-selected="${ui.wk!=='shop'}" class="${ui.wk!=='shop'?'on':''}" data-act="wk" data-v="week">الأسبوع</button><button role="tab" aria-selected="${ui.wk==='shop'}" class="${ui.wk==='shop'?'on':''}" data-act="wk" data-v="shop">المشتريات</button></div>`;
   if(ui.wk==='shop')return seg+vShop();
   const W=weekStats(),msg=W.pct>=90?'ممتاز، استمر على هذا!':W.pct>=70?'أداء جيد هذا الأسبوع':W.pct>0?'كل وجبة تسجّلها تقرّبك من هدفك':'ابدأ بتسجيل أول وجبة اليوم';
   let h=seg+`<div class="dhead"><b>الأسبوع <small>${rangeLabel(dateOfDay(0),dateOfDay(6))}</small></b><button class="more" data-act="weekopts" aria-label="خيارات الأسبوع" aria-haspopup="dialog">⋯</button></div>
@@ -96,7 +97,7 @@ function nfForm(){
 }
 function vFoods(){
   const ch=(v,l)=>`<button class="${(ui.fg||'')===v?'on':''}" data-act="fgrp" data-v="${v}" aria-pressed="${(ui.fg||'')===v}">${l}</button>`;
-  return `<div class="srch"><input id="fq" type="search" placeholder="ابحث: لبنة، شوفان، تونة…" aria-label="بحث في الأصناف" value="${esc(ui.fq||'')}"><label class="scanb" aria-label="مسح باركود أو صورة ملصق" title="مسح باركود أو ملصق">${'⌗'}<input type="file" id="nf_img" accept="image/*" style="display:none"></label></div>
+  return `<div class="srch"><input id="fq" type="search" placeholder="ابحث: لبنة، شوفان، تونة…" aria-label="بحث في الأصناف" value="${esc(ui.fq||'')}">${feat('scan')?`<label class="scanb" aria-label="مسح باركود أو صورة ملصق" title="مسح باركود أو ملصق">${'⌗'}<input type="file" id="nf_img" accept="image/*" style="display:none"></label>`:''}</div>
   <p class="note" id="fqc" style="margin:4px 2px 0">${esc(fqInfo().txt)}</p>
   <div class="chips">${ch('','الكل')}${Object.keys(GROUPS).map(g=>ch(g,GROUPS[g])).join('')}<button class="${ui.fu==='unit'?'on':''}" data-act="fu" data-v="${ui.fu==='unit'?'g':'unit'}" aria-pressed="${ui.fu==='unit'}">لكل وحدة</button></div>
   <div id="foodList">${foodsList()}</div>

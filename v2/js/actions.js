@@ -16,7 +16,7 @@ function act(a,ds){
     case 'whopick':{const x=(ui.shared||[])[+ds.v];if(!x)return;toast('جارٍ تحميل «'+x.name+'»…');
       openRemote(x).then(()=>{toast('تعرض الآن: «'+ui.remote.name+'»');render()},e=>{toast(e.message||String(e));render()});return}
     case 'whome':leaveRemote();modal=null;toast('رجعت إلى ملفك');break;
-    case 'umode':meta.mode=ds.v;saveMeta();toast('نوع الاستخدام: '+MODES.find(x=>x[0]===ds.v)[1]);if(isCoach())loadShared().then(render);break;
+    case 'umode':meta.mode=ds.v;if(cloud.sess){meta.modePending=true;cFetch('/rest/v1/rpc/mp_set_mode',{method:'POST',body:{p_mode:ds.v}}).then(r=>{delete meta.modePending;saveMeta();if(r)lsSet('mp3_acct',{mode:r.mode,features:r.features||{}});render()}).catch(()=>{})}saveMeta();toast('نوع الاستخدام: '+MODES.find(x=>x[0]===ds.v)[1]);if(isCoach())loadShared().then(render);break;
     case 'annx':{const sn=lsGet('mp3_ann_seen')||[];sn.push(+ds.v);lsSet('mp3_ann_seen',sn);render();return}
     case 'reload':location.reload();return;
     case 'share':modal={type:'share',user:ds.v,role:isCoach()?'coach':'viewer'};render();return;
@@ -54,7 +54,7 @@ function act(a,ds){
     case 'cmp':modal={type:'cmp'};break;
     case 'logrest':d.meals.forEach(m=>m.items.forEach(it=>{if(!it.x&&gE(it)==null)it.e=it.g}));d.lw=weekKey();break;
     case 'logclear':{const di=ui.day;ask('مسح تسجيل «'+d.name+'» (المأكول والمنقول والأصناف الإضافية)؟',()=>clearLog(state.days[di]));return}
-    case 'uadd':modal={type:'user',mode:'add',name:''};break;
+    case 'uadd':if(!feat('multi'))return;modal={type:'user',mode:'add',name:''};break;
     case 'picdel':setPic('');return;
     case 'uren':modal={type:'user',mode:'ren',name:curUser().name};break;
     case 'usave':{const n=($('#un').value||'').trim();if(!n){toast('اكتب الاسم');return}
@@ -99,7 +99,7 @@ function act(a,ds){
     case 'close':modal=(modal&&modal.type==='hlog')?{type:'hdetail',date:modal.date}:null;break;
     case 'delfood':{modal=null;const used=state.days.some(x=>x.meals.some(m=>m.items.some(i=>i.f===ds.id)));if(used){toast('الصنف مستخدم في الخطة. استبدله أولاً.');return}const fi=state.foods.findIndex(f=>f.id===ds.id);if(fi<0)return;const [rf]=state.foods.splice(fi,1);toast('حُذف الصنف «'+rf.n+'»',()=>{state.foods.splice(fi,0,rf)});break}
     case 'nftxt':ui.scan={busy:false,d:{b:'g'},txt:'',warn:[],from:null,sug:''};modal={type:'scan'};break;
-    case 'online':{const q=(modal&&modal.type==='add'?ui.aq:ui.fq)||'';if(!q.trim()){toast('اكتب كلمة البحث أولاً');return}doOnline(q.trim());return}
+    case 'online':{if(!feat('online'))return;const q=(modal&&modal.type==='add'?ui.aq:ui.fq)||'';if(!q.trim()){toast('اكتب كلمة البحث أولاً');return}doOnline(q.trim());return}
     case 'addc':{const c=ui.cands[+ds.ci];if(!c)return;candFood(c);toast('أُضيف «'+c.n+'» إلى أصنافي');break}
     case 'pickc':{const c=ui.cands[+ds.ci];if(!c)return;const id=candFood(c),f=F(id),g=f.u&&f.ug?f.ug:100,xt=!!($('#xtra')&&$('#xtra').checked);
       d.meals[modal.m].items.push(xt?{f:id,g:0,b:0,r:'x',s:'',x:true,e:g}:{f:id,g,b:g,r:'x',s:''});if(xt)d.lw=weekKey();modal=null;toast('أُضيف «'+f.n+'» — عدّل الجرامات والماكروز تتبعها');break}
@@ -158,7 +158,7 @@ document.addEventListener('input',e=>{const t=e.target,id=t.id||'';
 });
 document.addEventListener('change',e=>{const t=e.target;if(t.id!=='pic_in'||!t.files||!t.files[0]||ui.remote)return;const f=t.files[0];t.value='';
   picFrom(f).then(setPic).catch(()=>toast('تعذّر قراءة الصورة — جرّب صورة أخرى'))});
-document.addEventListener('change',e=>{const t=e.target;if((t.id==='nf_img'||t.id==='am_img')&&t.files&&t.files[0]){const f=t.files[0],from=t.id==='am_img'&&modal&&modal.type==='add'?modal.m:null;t.value='';startScan(f,from)}});
+document.addEventListener('change',e=>{const t=e.target;if((t.id==='nf_img'||t.id==='am_img')&&t.files&&t.files[0]&&feat('scan')){const f=t.files[0],from=t.id==='am_img'&&modal&&modal.type==='add'?modal.m:null;t.value='';startScan(f,from)}});
 document.addEventListener('change',e=>{
   const t=e.target,c=t.dataset&&t.dataset.ch;if(!c)return;
   if(ui.remote&&!canWrite()&&c!=='cl'){toast('لديك صلاحية مشاهدة فقط');render();return}

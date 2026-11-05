@@ -99,7 +99,7 @@ function extraHtml(q,grp,act){
     on.notes.forEach(n=>{h+=`<p class="note" style="margin:6px 0 0">⚠ ${esc(n)}</p>`});
   }
   if(on&&on.busy)h+='<p class="note" style="margin:8px 0 0">⏳ جارٍ البحث في USDA وOpen Food Facts…</p>';
-  else h+=`<button class="btn" data-act="online" style="width:100%;margin-top:8px">🌐 ابحث عن «${esc(q)}» أونلاين (USDA + Open Food Facts)</button>`;
+  else if(feat('online'))h+=`<button class="btn" data-act="online" style="width:100%;margin-top:8px">🌐 ابحث عن «${esc(q)}» أونلاين (USDA + Open Food Facts)</button>`;
   return h;
 }
 function refreshLists(){
