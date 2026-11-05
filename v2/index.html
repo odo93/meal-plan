@@ -305,7 +305,12 @@ function weekStart(){const n=new Date();return addDays(n,-((n.getDay()+1)%7))}
 const weekKey=()=>iso(weekStart());
 const dateOfDay=di=>iso(addDays(weekStart(),di));
 const todayISO=()=>iso(new Date());
-function dateLabel(s){const d=parseISO(s);return d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear()}
+// التواريخ عبر Intl (أرقام لاتينية كبقية التطبيق) مع بديل يدوي إن لم يتوفر
+const DTF=(o=>{try{return new Intl.DateTimeFormat('ar-u-nu-latn',o)}catch(e){return null}});
+const DF_L=DTF({day:'numeric',month:'long',year:'numeric'}),DF_S=DTF({day:'numeric',month:'long'});
+function dateLabel(s){const d=parseISO(s);return DF_L?DF_L.format(d):d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear()}
+function dateShort(s){const d=parseISO(s);return DF_S?DF_S.format(d):d.getDate()+' '+MON[d.getMonth()]}
+function rangeLabel(a,b){const x=parseISO(a),y=parseISO(b);try{if(DF_L&&DF_L.formatRange)return DF_L.formatRange(x,y)}catch(e){}return dateLabel(a)+' – '+dateLabel(b)}
 // لقطة اليوم كسجل مستقل (وثيقة واحدة لكل مستخدم/تاريخ — جاهزة للنقل لقاعدة بيانات لاحقاً)
 function snapDay(d,date,di){
   return{date,dow:di,name:d.name,mode:d.mode,prot:d.prot,tg:targets(d),
@@ -472,7 +477,11 @@ function defaultState(){
 // ---------- التخزين: مفتاح لكل مستخدم + مفتاح مستقل لكل يوم ----------
 const MK='mp3_meta',UK=id=>'mp3_u_'+id,DK=(id,i)=>'mp3_u_'+id+'_d'+i;
 const lsGet=k=>{try{const s=localStorage.getItem(k);return s?JSON.parse(s):null}catch(e){return null}};
-const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+// فشل الحفظ (امتلاء المساحة أو منع التخزين) لا يمر بصمت: بانر دائم بتصدير نسخة وإعادة المحاولة
+let storeErr=null;
+function storeFail(e){const first=!storeErr;storeErr={at:Date.now(),quota:!!e&&(e.name==='QuotaExceededError'||e.code===22||e.code===1014)};
+  if(first&&typeof toast==='function'&&document.querySelector('#toast'))try{toast('تعذّر الحفظ في هذا الجهاز')}catch(x){}}
+const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){storeFail(e);return false}};
 const lsDel=k=>{try{localStorage.removeItem(k)}catch(e){}};
 const uid=()=>'u'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
 const curUser=()=>meta.users.find(u=>u.id===meta.cur);
@@ -879,7 +888,7 @@ function vWeek(){
   const seg=`<div class="seg" role="tablist"><button role="tab" aria-selected="${ui.wk!=='shop'}" class="${ui.wk!=='shop'?'on':''}" data-act="wk" data-v="week">الأسبوع</button><button role="tab" aria-selected="${ui.wk==='shop'}" class="${ui.wk==='shop'?'on':''}" data-act="wk" data-v="shop">المشتريات</button></div>`;
   if(ui.wk==='shop')return seg+vShop();
   const W=weekStats(),msg=W.pct>=90?'ممتاز، استمر على هذا!':W.pct>=70?'أداء جيد هذا الأسبوع':W.pct>0?'كل وجبة تسجّلها تقرّبك من هدفك':'ابدأ بتسجيل أول وجبة اليوم';
-  let h=seg+`<div class="dhead"><b>الأسبوع <small>${dateLabel(dateOfDay(0))} – ${dateLabel(dateOfDay(6))}</small></b><button class="more" data-act="weekopts" aria-label="خيارات الأسبوع" aria-haspopup="dialog">⋯</button></div>
+  let h=seg+`<div class="dhead"><b>الأسبوع <small>${rangeLabel(dateOfDay(0),dateOfDay(6))}</small></b><button class="more" data-act="weekopts" aria-label="خيارات الأسبوع" aria-haspopup="dialog">⋯</button></div>
   <div class="card sum" style="position:static">${ring(W.pct,100).replace('من 100</text>','%</text>').replace(/aria-label="[^"]*"/,'aria-label="التزام الأسبوع '+W.pct+'%"')}<div class="mcs"><p class="motiv">${msg}</p><span class="note" style="margin:0">التزامك هذا الأسبوع ${W.pct}% · ${W.done} من 7 أيام مكتملة${W.streak>1?' · '+W.streak+' أيام متتالية':''}</span><span class="note" style="margin:0">متوسط الخطة ${rd(W.k)} من ${rd(W.t)} سعرة يومياً</span></div></div>
   <div class="list">${state.days.map((d,i)=>{const a=adh([d]),t=sum(d.meals.flatMap(m=>m.items)),isT=dateOfDay(i)===todayISO(),dn=dayDone(d);
     return `<button class="li" data-act="goday" data-v="${i}"><span class="dl ${dn?'ok':isT?'td':''}" aria-hidden="true">${dn?'✓':'سحنثرخج'[i]}</span><span class="g"><b>${esc(d.name)} <small style="display:inline;font-weight:400">${dateLabel(dateOfDay(i))}${isT?' · اليوم':''}</small></b><small>${d.mode==='high'?'كارب عادي':'كارب قليل'} · ${PL[d.prot]}</small><span class="hbar" aria-label="التزام ${a.pct}%"><i class="${a.pct>=80?'':a.pct>=40?'mid':a.pct?'low':''}" style="width:${a.pct}%"></i></span></span><span class="num">${rd(t.k)}<br><small>سعرة</small></span></button>`}).join('')}</div>`;
@@ -1035,6 +1044,7 @@ const li=(ic,t,sub,v,act,cls)=>`<button class="li ${cls||''}" data-act="${act||'
 const verLt=(a,b)=>{const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){if((x[i]||0)!==(y[i]||0))return (x[i]||0)<(y[i]||0)}return false};
 function banners(){
   const P=ui.pub||{},cfg=P.cfg,seen=lsGet('mp3_ann_seen')||[];let h='';
+  if(storeErr)h+=`<div class="bnr warn" role="alert"><span class="g"><b>آخر تعديلاتك لم تُحفظ في هذا الجهاز</b>${storeErr.quota?'مساحة التخزين في المتصفح ممتلئة.':'المتصفح منع الحفظ (ربما وضع التصفح الخاص).'} صدّر نسخة احتياطية الآن حتى لا تضيع بياناتك عند إغلاق الصفحة.</span><span class="btns" style="display:flex;flex-direction:column;gap:6px;margin:0"><button class="btn pri" data-act="export">تصدير نسخة</button><button class="btn" data-act="retrysave">حاول مرة أخرى</button></span></div>`;
   if(cfg&&verLt(APP_VER,cfg.min_version))h+=`<div class="bnr warn" role="alert"><span class="g"><b>تحديث مطلوب</b>هذه النسخة (${APP_VER}) أقدم من المسموح. أعد تحميل الصفحة للحصول على ${esc(cfg.latest_version)}.</span><button class="btn pri" data-act="reload">إعادة التحميل</button></div>`;
   (P.ann||[]).filter(a=>!seen.includes(a.id)).forEach(a=>{h+=`<div class="bnr ${a.level==='warn'?'warn':'info'}" role="status"><span class="g"><b>${esc(a.title)}</b>${esc(a.body||'')}</span><button class="btn" data-act="annx" data-v="${a.id}" aria-label="إخفاء الإعلان">إخفاء</button></div>`});
   if(ui.remote)h+=`<div class="bnr rm" role="status"><span class="g"><b>تعرض الآن: ${esc(ui.remote.name)}</b>${ROLES[ui.remote.role]} · ${canWrite()?'تعديلاتك على الخطة تُحفظ في حسابه، والتسجيل يبقى له':'مشاهدة فقط'}${ui.remote.busy?' · جارٍ الحفظ…':''}</span><button class="btn" data-act="whome">رجوع لملفي</button></div>`;
@@ -1202,7 +1212,7 @@ function vHist(){
   <div class="dv"><span>أصناف نُقلت بين الوجبات</span><b>${mv}</b></div></div></details>
   <div class="dhead"><b>الأيام <small>الشريط = الفعلي، الخط = الخطة</small></b></div><div class="card" style="padding:4px 12px">`;
   h+=A.map(({r,L})=>{const pc=Math.min(100,L.eaten.k/max*100),pp=Math.min(100,L.plan.k/max*100),part=!(L.total>0&&L.logged===L.total);
-    return `<button type="button" class="hr" data-act="hopen" data-d="${r.date}"><span>${r.date.slice(5).replace('-','/')} ${esc(r.name)}</span><span class="hb" aria-hidden="true"><i class="${part?'part':''}" style="width:${pc}%"></i><u style="inset-inline-start:${pp}%"></u></span><b>${rd(L.eaten.k)}${part?'*':''}</b></button>`}).join('')+`</div>`;
+    return `<button type="button" class="hr" data-act="hopen" data-d="${r.date}"><span>${dateShort(r.date)} ${esc(r.name)}</span><span class="hb" aria-hidden="true"><i class="${part?'part':''}" style="width:${pc}%"></i><u style="inset-inline-start:${pp}%"></u></span><b>${rd(L.eaten.k)}${part?'*':''}</b></button>`}).join('')+`</div>`;
   return h;
 }
 function modalBody(){
@@ -1480,6 +1490,7 @@ function act(a,ds){
     case 'copyshop':{const L=shopLines().filter(x=>!x.have),gs=Object.keys(GROUPS).concat('extra');const t=gs.filter(g=>L.some(x=>x.g===g)).map(g=>(g==='extra'?'إضافات':GROUPS[g])+':\n'+L.filter(x=>x.g===g).map(x=>'- '+x.n+(x.q?': '+x.q:'')).join('\n')).join('\n\n');
       try{navigator.clipboard.writeText(t).then(()=>toast('تم نسخ '+L.length+' بنداً'),()=>toast('تعذّر النسخ'))}catch(e){toast('تعذّر النسخ')}return}
     case 'print':window.print();return;
+    case 'retrysave':{storeErr=null;if(!ui.remote){saveMeta();saveUser(meta.cur,state)}toast(storeErr?'ما زال الحفظ متعذراً — صدّر نسخة احتياطية':'تم الحفظ في هذا الجهاز');break}
     case 'export':{const all={v:2,meta:{cur:meta.cur},users:meta.users.map(u=>({id:u.id,name:u.name,data:u.id===meta.cur?state:loadUser(u.id),hist:hAll(u.id)}))};
       const b=new Blob([JSON.stringify(all,null,1)],{type:'application/json'}),a2=document.createElement('a');a2.href=URL.createObjectURL(b);a2.download='meal-plan-all-users.json';a2.click();return}
     case 'import':$('#file').click();return;
@@ -1712,7 +1723,7 @@ async function cPush(){
   await cFetch('/rest/v1/mp_users?owner=eq.'+ENC(uid)+'&id=not.in.('+ids.map(ENC).join(',')+')',{method:'DELETE'});
   for(const u of meta.users){const ds=hIdx(u.id);
     await cFetch('/rest/v1/mp_history?owner=eq.'+ENC(uid)+'&user_id=eq.'+ENC(u.id)+(ds.length?'&date=not.in.('+ds.join(',')+')':''),{method:'DELETE'})}
-  return 'تم الرفع '+new Date().toLocaleTimeString('ar')+' — '+U.length+' مستخدم، '+H.length+' يوم سجل';
+  return 'تم الرفع '+new Date().toLocaleTimeString('ar-u-nu-latn',{hour:'numeric',minute:'2-digit'})+' — '+U.length+' مستخدم، '+H.length+' يوم سجل';
 }
 async function cAll(table,order){let out=[],off=0;for(;;){const r=await cFetch('/rest/v1/'+table+'?select=*&owner=eq.'+ENC(cloud.sess.uid)+'&order='+order+'&limit=1000&offset='+off);out=out.concat(r||[]);if(!r||r.length<1000)break;off+=1000}return out}
 async function cPull(){
