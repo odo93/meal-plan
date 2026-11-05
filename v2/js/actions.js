@@ -136,6 +136,7 @@ function act(a,ds){
     case 'cauthm':ui.authM=ds.v;break;
     case 'consent':if(ds.v==='yes'){meta.consent='yes';meta.consentAt=new Date().toISOString();delete meta.consentAsk;saveMeta();render();anonSignIn().then(ok=>{if(ok)toast('بياناتك تُحفظ الآن في حسابك');render()})}else{meta.consentAsk=Date.now()+14*864e5;saveMeta();render()}return;
     case 'cupgrade':cRun(cUpgrade);return;
+    case 'cdelacct':ask('حذف حسابك نهائياً؟ يُحذف بريدك وجوالك وتسجيل دخولك وكل ملفاتك من هذا الجهاز ومن حسابك، ولا يمكن التراجع. نحتفظ بنسخة بلا اسم ولا صورة من بيانات الأكل والوزن لتحسين الخدمة.',()=>{cRun(()=>cDeleteAccount().catch(e=>{throw new Error(/admin_account/.test(e.message)?'حساب المدير لا يُحذف من التطبيق':e.message)}))});return;
     case 'cphone':cRun(cSetPhone);return;
     case 'acctpull':modal=null;cPull.now=true;cRun(cPull);return;
     case 'acctpush':modal=null;render();cRun(cPush);return;

@@ -56,6 +56,14 @@ E(`(()=>{const ws=weekStart();for(let wk=1;wk<=4;wk++)for(let di=0;di<7;di++){co
 const R2=JSON.parse(E('JSON.stringify(weekReport())'));
 T('weakest weekday found',R2.weak&&R2.weak[0]===6&&R2.weak[1]<60,JSON.stringify(R2.weak));
 
+// --- usual foods in the add dialog ---
+const top=JSON.parse(E('JSON.stringify(myTopFoods(5).map(x=>({id:x.f.id,c:x.c})))'));
+T('usual foods from history',top.length===5&&top[0].c>=top[4].c,JSON.stringify(top));
+E("ui.remote=null;ui.tab='day';modal={type:'add',m:0};ui.aq='';ui.ag='';render()");
+T('shown first in add dialog',/أصنافك المعتادة/.test($('#addList').textContent)&&$('#addList [data-act="pick"]').dataset.id===top[0].id);
+const q=$('#q');q.value='بيض';q.dispatchEvent(new w.Event('input',{bubbles:true}));
+T('hidden while searching',!/أصنافك المعتادة/.test($('#addList').textContent));
+E('modal=null;render()');
 // --- coach view: no weight logging for someone else ---
 E("ui.remote={owner:'o',id:'r',name:'متدرب',role:'coach',hist:[]};ui.tab='hist';render()");
 T('coach sees no weight input',!$('#w_in'));

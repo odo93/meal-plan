@@ -59,6 +59,13 @@ async function cUpgrade(){
   cloud.pendEmail=email;cloud.phone=phone;cSave();render();
   return 'أرسلنا رابط تأكيد إلى '+email+'. افتحه من هذا الجهاز ثم اختر كلمة مرور.';
 }
+// حذف الحساب: الخادم يؤرشف البيانات بلا اسم ولا صورة ثم يحذف الحساب؛ هنا نمسح الجهاز ونبدأ من جديد
+let reloadApp=()=>location.reload();
+async function cDeleteAccount(){
+  await cFetch('/rest/v1/rpc/mp_delete_account',{method:'POST',body:{}});
+  Object.keys(localStorage).filter(k=>k.startsWith('mp3_')&&k!=='mp3_theme'&&k!=='mp3_imported').forEach(lsDel);  // mp3_imported يمنع إعادة نسخ بيانات v1
+  cloud={url:SB_URL,key:SB_KEY,email:'',phone:'',sess:null,last:''};
+  setTimeout(reloadApp,50);return 'حُذف حسابك'}
 async function cSetPhone(){const ph=normPhone(($('#cl_ph')||{}).value);if(!ph)return 'أدخل رقم جوال صحيحاً (8–15 رقماً)';
   await cFetch('/auth/v1/user',{method:'PUT',body:{data:{phone:ph}}});cloud.phone=ph;cSave();render();return 'تم حفظ رقم الجوال'}
 async function cHash(){ // رابط التأكيد/الاستعادة من Supabase يعود إلى التطبيق ومعه الرمز في #hash

@@ -14,6 +14,7 @@ function mk(ls,url){return new JSDOM(html,{runScripts:'dangerously',url:url||'ht
     if(p==='/rest/v1/mp_users'&&(o.method||'GET')==='GET')return R([]);
     if(/^\/rest\/v1\/rpc\/mp_(shared_with_me|my_grants)/.test(p))return R([]);
     if(p==='/rest/v1/mp_accounts')return R([]);
+    if(p==='/rest/v1/rpc/mp_delete_account')return R({archived:5});
     return R(undefined,201)}}})}
 (async()=>{
  let d=mk(),w=d.window,$=s=>w.document.querySelector(s),E=s=>w.eval(s);
@@ -56,5 +57,17 @@ function mk(ls,url){return new JSDOM(html,{runScripts:'dangerously',url:url||'ht
  T('disabled: no session, no error',!E('cloud.sess')&&errs.length===0);
  const tries=log.filter(l=>l[1]==='/auth/v1/signup').length;await E('anonSignIn()');
  T('no retry within a day',log.filter(l=>l[1]==='/auth/v1/signup').length===tries&&tries===1);
+ // delete the account from inside the app
+ ANON_ON=true;log=[];
+ d=mk([['mp3_meta',{users:[{id:'u1',name:'م'}],cur:'u1',mode:'self',consent:'yes'}],['mp3_cloud',{email:'me@x.y',sess:{at:'AT',rt:'RT',exp:Date.now()+3600e3,uid:'U1'}}],['mp3_imported',1],['mp3_theme','dark']]);
+ w=d.window;$=s=>w.document.querySelector(s);E=s=>w.eval(s);await sleep(80);
+ let reloaded=false;E('reloadApp=()=>{window.__rl=true}');
+ E("ui.tab='me';ui.sub='';render()");
+ T('delete account in danger zone',!!$('#app [data-act="cdelacct"]'));
+ E("act('cdelacct',{})");T('asks first, mentions the archive',E('modal.type')==='ask'&&/بلا اسم ولا صورة/.test(E('modal.msg')));
+ E("act('yes',{})");await sleep(150);
+ T('server delete called',log.some(l=>l[1]==='/rest/v1/rpc/mp_delete_account'));
+ T('device wiped but theme + v1-import flag kept',!w.localStorage.getItem('mp3_meta')&&(()=>{const c=JSON.parse(w.localStorage.getItem('mp3_cloud')||'{}');return !c.sess&&!c.email})()&&w.localStorage.getItem('mp3_imported')&&w.localStorage.getItem('mp3_theme')&&!Object.keys(w.localStorage).some(k=>/^mp3_u_/.test(k)));
+ T('app restarts',E('window.__rl')===true);
  console.log('PASS',ok,'FAIL',bad,errs);process.exit(0);
 })();

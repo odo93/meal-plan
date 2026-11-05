@@ -22,7 +22,7 @@ const ICON={
 const ico=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
 const TABS=[['day','اليوم'],['week','الخطة'],['hist','التقدم'],['foods','الأصناف'],['me','حسابي']];
 const SUBS={profile:'ملفي الشخصي',goals:'أهدافي',family:'الأشخاص والمشاركة',clients:'متدربيني',mode:'نوع الاستخدام',sync:'حسابي',data:'بياناتي',advanced:'متقدم'};
-const APP_VER='2.7';
+const APP_VER='2.8';
 // نوع الاستخدام: يحدد ما يظهر في «حسابي»، ويمكن تغييره في أي وقت
 const MODES=[['self','لنفسي','خطتي وحدي'],['family','لي ولعائلتي','أفراد وأطفال تديرهم'],['coach','مدرب مستقل','متابعة متدربين'],['org','مؤسسة','مدربون وأخصائيو تغذية']];
 const isCoach=()=>meta.mode==='coach'||meta.mode==='org';
@@ -73,7 +73,7 @@ function banners(){
 const canWrite=()=>!!ui.remote&&ui.remote.role!=='viewer';
 const NAV_ACTS=new Set(['weekopts','wk','fgrp','fedit','nfopen','dayopts','itemopts','mopen','tab','back','day','goday','close','hopen','hr','cmp','who','whopick','whome','whoload','yes','undo','annx','reload','umode','copyshop','print','fu','by','agrp','gaccept','gleave','share','grevoke','gcreate','gcopy','scanclose','eqo']);
 const LOG_ACTS=new Set(['wsave','wdel','tdeeuse','mfinish','qlog','log','logsave','logskip','logclr','hlog','hdel','logrest','logclear']);
-const LOCAL_ACTS=new Set(['picdel','uadd','uren','usave','udel','uswitch','reset','import','export','cpush','cpull','rebuildweek']);
+const LOCAL_ACTS=new Set(['cdelacct','picdel','uadd','uren','usave','udel','uswitch','reset','import','export','cpush','cpull','rebuildweek']);
 function remoteBlock(a){if(!ui.remote||NAV_ACTS.has(a))return '';
   if(LOG_ACTS.has(a))return 'التسجيل لصاحب الخطة فقط';
   if(LOCAL_ACTS.has(a))return 'ارجع لملفك أولاً';
@@ -137,7 +137,7 @@ function vMe(){
   <div class="grp">الحساب</div><div class="list">${li('advanced','نوع الاستخدام',(MODES.find(x=>x[0]===meta.mode)||[0,'لم يُحدَّد بعد'])[1],'me/mode')}${isCoach()&&feat('clients')?li('family','متدربيني',(ui.shared||[]).length+' مشارك معك','me/clients'):''}${li('family','الأشخاص والمشاركة',nU+(nU>1?' ملفات':' ملف')+' على هذا الجهاز'+(on?'':' · المشاركة تحتاج تسجيل الدخول'),'me/family')}${li('sync','حسابي',on?(cloud.anon?'حساب مؤقت — أضف بريدك وجوالك':esc(cloud.email||'مسجّل الدخول')):'لم تسجّل بعد — بياناتك على هذا الجهاز فقط','me/sync')}</div>
   <div class="grp">المظهر</div><div class="card">${themeSeg()}</div>
   <div class="grp">البيانات</div><div class="list">${li('data','بياناتي','تصدير واستيراد','me/data')}${li('advanced','متقدم','معادلات BMR والأهداف المخصصة','me/advanced')}</div>
-  <div class="grp">منطقة الخطر</div><div class="list">${li('reset','إعادة ضبط «'+esc(u.name)+'»','الإعدادات والأصناف والخطة','','reset','dz')}${li('trash','حذف «'+esc(u.name)+'»','مع كل خطته وسجله','','udel','dz')}${on?li('logout','تسجيل الخروج من السحابة','','','clogout','dz'):''}</div>`;
+  <div class="grp">منطقة الخطر</div><div class="list">${li('reset','إعادة ضبط «'+esc(u.name)+'»','الإعدادات والأصناف والخطة','','reset','dz')}${li('trash','حذف «'+esc(u.name)+'»','مع كل خطته وسجله','','udel','dz')}${on&&!cloud.anon?li('logout','تسجيل الخروج','','','clogout','dz'):''}${on?li('trash','حذف حسابي نهائياً','بريدك وجوالك وكل ملفاتك','','cdelacct','dz'):''}</div>`;
 }
 function vProfile(){
   const s=S(),inp=(l,k,st)=>`<label>${l}<input type="number" step="${st||0.1}" value="${s[k]}" data-ch="set" data-k="${k}"></label>`,
@@ -381,7 +381,9 @@ function modalBody(){
 function renderAddList(q){
   const el=$('#addList');if(!el)return;ui.aq=q;
   const L=searchFoods(q,ui.ag);
-  el.innerHTML=(q?`<p class="note" style="margin:0 0 4px">${L.length?'<b>أصنافي ('+L.length+')</b>':'لا توجد نتائج في أصنافي لـ «'+esc(q)+'»'}</p>`:'')
+  const top=q?[]:myTopFoods(5,ui.ag);
+  el.innerHTML=(top.length?`<p class="note" style="margin:0 0 4px"><b>أصنافك المعتادة</b> · من سجلك آخر 60 يوماً</p>${top.map(({f,c})=>`<button type="button" class="cand" data-act="pick" data-id="${f.id}"><span><b>${esc(f.n)}</b><small>${GROUPS[f.grp]} · أكلته ${c===1?'مرة':c===2?'مرتين':c+(c<11?' مرات':' مرة')}</small></span><span class="dl">${rd(f.k)} kcal · P ${f.p} · C ${f.c} · F ${f.f}</span></button>`).join('')}<p class="note" style="margin:8px 0 4px"><b>كل أصنافي</b></p>`:'')
+    +(q?`<p class="note" style="margin:0 0 4px">${L.length?'<b>أصنافي ('+L.length+')</b>':'لا توجد نتائج في أصنافي لـ «'+esc(q)+'»'}</p>`:'')
     +L.map(f=>`<button type="button" class="cand" data-act="pick" data-id="${f.id}"><span><b>${esc(f.n)}</b><small>${GROUPS[f.grp]}${f.u&&f.ug?' · '+rd(f.k*f.ug/100)+' kcal/'+esc(f.u):''}</small></span><span class="dl">${rd(f.k)} kcal · P ${f.p} · C ${f.c} · F ${f.f}</span></button>`).join('')
     +extraHtml(q,ui.ag,'pickc')
     +(q?`<button class="btn" style="width:100%;margin-top:6px" data-act="newfromq">＋ إضافة «${esc(q)}» يدوياً</button>`:'');

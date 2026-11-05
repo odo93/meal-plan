@@ -10,6 +10,7 @@ const mk=()=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.
     if(p==='/auth/v1/token')return body.password==='pw'?R({access_token:'AT',refresh_token:'RT',expires_in:3600,user:{email:'m@x.y'}}):R({error_description:'Invalid login credentials'},400);
     if(p==='/rest/v1/rpc/is_admin')return R(ADMIN);
     if(p==='/rest/v1/rpc/admin_stats')return R({accounts:3,registered:2,anonymous:1,active_7d:1,people:3,history_days:14,active_grants:1,pending_grants:0});
+    if(p==='/rest/v1/rpc/admin_insights')return R({days:12,weights:3,top_eaten:[{n:'بيض',c:9}],top_skipped:[{n:'خبز',c:4}],extra:[],by_dow:[{dow:6,adh:71,n:2}],weekly:[{wk:'2026-11-02',days:5}],goals:[{goal:'cut',c:2}],modes:[{mode:'coach',c:1}]});
     if(p==='/rest/v1/rpc/admin_accounts')return R([{id:'a1',phone:'+966501234567',confirmed:false,email:'m@x.y',created_at:'2026-11-02T00:00:00Z',last_sign_in_at:null,people:2,last_update:null,is_admin:true,mode:'coach',features:{scan:false}},{id:'a2',email:null,phone:null,confirmed:false,anon:true,created_at:'2026-11-05T00:00:00Z',people:1,is_admin:false,mode:null,features:{}}]);
     if(p==='/rest/v1/announcements'&&(o.method||'GET')==='GET')return R([{id:3,title:'قديم',body:'',level:'info',active:true,ends_at:null}]);
     if(p==='/rest/v1/app_config')return (o.method||'GET')==='GET'?R([{id:1,latest_version:'2.1',min_version:'2.0',features:{share:{self:false,family:true,coach:true,org:true}},defaults:{goal:'cut',g:{cut:{pr:2.5}}},updated_at:null}]):R(undefined,204);
@@ -26,6 +27,10 @@ const mk=()=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.
  T('stats split registered / temporary',$('#app').textContent.includes('حسابات مؤقتة')&&$('#app').textContent.includes('حسابات ببريد'));
  T('stats shown',$('#app').textContent.includes('كل الحسابات')&&$('#app').textContent.includes('14'));
  T('session not holding password',!JSON.stringify(w.localStorage).includes('"pw"'));
+ click('[data-v="insights"]');await sleep(40);
+ T('insights tab',/أكثر الأصناف أكلاً/.test($('#app').textContent)&&/بيض/.test($('#app').textContent)&&/الجمعة/.test($('#app').textContent)&&/تنحيف/.test($('#app').textContent)&&/مدرب مستقل/.test($('#app').textContent));
+ click('[data-act="insd"][data-v="30"]');await sleep(40);
+ T('period sent',log.some(l=>l[1]==='/rest/v1/rpc/admin_insights'&&l[3]&&l[3].p_days===30));
  click('[data-v="accounts"]');await sleep(40);
  T('accounts table',$('#app').textContent.includes('m@x.y')&&$('#app').textContent.includes('مدير'));
  click('[data-v="ann"]');await sleep(40);

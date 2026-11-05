@@ -58,6 +58,13 @@ function weekReport(){
 }
 const repKey=()=>'mp3_rep_'+meta.cur;
 
+// ---------- أصنافك المعتادة: أكثر ما أكلته فعلاً آخر 60 يوماً (من سجلك) ----------
+function myTopFoods(n,grp){
+  const from=iso(addDays(new Date(),-59)),cnt={};
+  allRecs().filter(r=>r&&r.date>=from).forEach(r=>r.meals.forEach(m=>m.items.forEach(it=>{if((gE(it)||0)>0)cnt[it.f]=(cnt[it.f]||0)+1})));
+  return Object.entries(cnt).map(([id,c])=>({f:F(id),c})).filter(x=>x.f&&(!grp||x.f.grp===grp)).sort((a,b)=>b.c-a.c).slice(0,n||6);
+}
+
 // ---------- البطاقات في «التقدم» ----------
 function vWeightCard(){
   const L=wlog(),last=L[L.length-1],tday=L.find(x=>x.d===todayISO()),c7=wChange(7),c30=wChange(30);

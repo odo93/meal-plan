@@ -65,7 +65,7 @@ const GOALS=[['manual','كارب أقل'],['cut','تنحيف'],['maint','تثب�
 const ACTS=[[1.2,'خامل'],[1.375,'خفيف'],[1.55,'متوسط'],[1.725,'عالٍ'],[1.9,'شديد']];
 const DAYS=['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة'],PAT0=['high','low','high','low','high','low','high'];
 const GD={cut:{val:0.75,u:'كجم/أسبوع عجز',pr:2.2,fat:25},maint:{pr:1.8,fat:25},recomp:{val:10,u:'% عجز',pr:2.2,fat:25},bulk:{val:15,u:'% فائض',pr:1.6,fat:25},lean:{val:7,u:'% فائض',pr:2.2,fat:25}};
-const TABS=[['stats','نظرة عامة'],['accounts','الحسابات'],['ann','الإعلانات'],['config','إعدادات التطبيق'],['foods','الأصناف المشتركة']];
+const TABS=[['stats','نظرة عامة'],['insights','الرؤى'],['accounts','الحسابات'],['ann','الإعلانات'],['config','إعدادات التطبيق'],['foods','الأصناف المشتركة']];
 let sess=lsGet(SK),ui={tab:'stats',busy:false},data={};
 function msg(t){const e=$('#msg');e.textContent=t;e.style.display='block';clearTimeout(msg.t);msg.t=setTimeout(()=>e.style.display='none',3500)}
 async function api(path,o){o=o||{};
@@ -85,6 +85,7 @@ async function load(tab){ui.busy=true;render();
   try{
     if(tab==='stats')data.stats=await rpc('admin_stats');
     if(tab==='accounts')data.accounts=await rpc('admin_accounts');
+    if(tab==='insights')data.ins=await rpc('admin_insights',{p_days:+(ui.insDays||90)});
     if(tab==='ann')data.ann=await api('/rest/v1/announcements?select=*&order=id.desc');
     if(tab==='config')data.cfg=(await api('/rest/v1/app_config?select=*&id=eq.1'))[0];
     if(tab==='foods')data.foods=await api('/rest/v1/shared_foods?select=*&order=grp,n');
@@ -95,7 +96,7 @@ function vLogin(){return `<div class="card login"><h2>دخول المدير</h2>
   <form id="lf"><label>البريد<input id="em" type="email" autocomplete="username" dir="ltr" required></label><label>كلمة المرور<input id="pw" type="password" autocomplete="current-password" dir="ltr" required></label>
   <div class="btns"><button class="btn pri" type="submit">دخول</button></div><p class="note" id="lmsg"></p></form></div>`}
 function vStats(){const s=data.stats;if(!s)return '<p class="note">جارٍ التحميل…</p>';
-  const c=[['accounts','كل الحسابات'],['registered','حسابات ببريد'],['anonymous','حسابات مؤقتة'],['active_7d','نشطة آخر 7 أيام'],['people','ملفات أشخاص'],['history_days','أيام في السجل'],['active_grants','مشاركات مفعّلة'],['pending_grants','دعوات بانتظار القبول']];
+  const c=[['accounts','كل الحسابات'],['registered','حسابات ببريد'],['anonymous','حسابات مؤقتة'],['active_7d','نشطة آخر 7 أيام'],['people','ملفات أشخاص'],['history_days','أيام في السجل'],['active_grants','مشاركات مفعّلة'],['pending_grants','دعوات بانتظار القبول'],['archived_days','أيام في الأرشيف'],['deleted_accounts','حسابات حُذفت']];
   return `<div class="stats">${c.map(([k,l])=>`<div class="stat"><b>${esc(s[k])}</b><span>${l}</span></div>`).join('')}</div>`}
 const modeName=m=>(MODES.find(x=>x[0]===m)||[0,'لم يُحدَّد'])[1];
 function vAccounts(){const A=data.accounts;if(!A)return '<p class="note">جارٍ التحميل…</p>';
@@ -106,6 +107,19 @@ function vAccounts(){const A=data.accounts;if(!A)return '<p class="note">جار�
   const cur=A.find(a=>a.id===ui.acc);
   return `${cur?edit(cur):''}<div class="card"><h2>الحسابات (${A.length})</h2><div class="tbl"><table><thead><tr><th>البريد</th><th>الجوال</th><th>النوع</th><th>استثناءات</th><th>التسجيل</th><th>آخر دخول</th><th>الملفات</th><th>آخر تحديث</th><th></th></tr></thead><tbody>
   ${A.map(a=>`<tr><td dir="ltr" style="text-align:end">${a.anon?'<span class="pill off">حساب مؤقت</span>':esc(a.email)}${a.is_admin?' <span class="pill">مدير</span>':''}${a.confirmed===false&&!a.anon?' <span class="pill warn">لم يفعّل البريد</span>':''}</td><td dir="ltr" style="text-align:end">${esc(a.phone||'—')}</td><td>${esc(modeName(a.mode))}</td><td>${ov(a).length?ov(a).map(k=>`<span class="pill ${a.features[k]?'':'warn'}">${esc((FEATS.find(f=>f[0]===k)||[0,k])[1])}${a.features[k]?'':' ✕'}</span>`).join(' '):'—'}</td><td>${fmtD(a.created_at)}</td><td>${fmtD(a.last_sign_in_at)}</td><td class="n">${esc(a.people)}</td><td>${fmtD(a.last_update)}</td><td><button class="btn" data-act="acedit" data-id="${esc(a.id)}">تعديل</button></td></tr>`).join('')}</tbody></table></div></div>`}
+function vInsights(){const I=data.ins;if(!I)return '<p class="note">جارٍ التحميل…</p>';
+  const per=ui.insDays||90,ch=(v,l)=>`<button class="btn${per==v?' pri':''}" data-act="insd" data-v="${v}">${l}</button>`;
+  const lst=(t,a,unit)=>`<div class="card"><h2>${t}</h2>${a&&a.length?`<div class="tbl"><table style="min-width:0"><tbody>${a.map(x=>`<tr><td>${esc(x.n)}</td><td class="n">${esc(x.c)} ${unit||'مرة'}</td></tr>`).join('')}</tbody></table></div>`:'<p class="note">لا بيانات بعد.</p>'}</div>`;
+  const bar=(v,max)=>`<span style="display:inline-block;height:10px;border-radius:5px;background:var(--ac);width:${Math.max(2,Math.round(v/Math.max(1,max)*100))}%;vertical-align:middle"></span>`;
+  const dows=I.by_dow||[],wk=I.weekly||[],wmax=Math.max(1,...wk.map(x=>x.days));
+  const gName=g=>(GOALS.find(x=>x[0]===g)||[0,g])[1],mName=m=>m==='none'?'لم يحدَّد':modeName(m);
+  return `<div class="btns" style="margin:0 0 8px">${ch(30,'30 يوماً')}${ch(90,'90 يوماً')}${ch(365,'سنة')}</div>
+  <p class="note">مجمّعة من كل الحسابات ومن الأرشيف، بلا أسماء ولا بريد.</p>
+  <div class="stats"><div class="stat"><b>${esc(I.days)}</b><span>يوماً مسجّلاً</span></div><div class="stat"><b>${esc(I.weights)}</b><span>ملفات تسجّل الوزن</span></div></div>
+  <div class="card"><h2>الالتزام حسب يوم الأسبوع</h2>${dows.length?`<div class="tbl"><table style="min-width:0"><tbody>${dows.map(x=>`<tr><td>${DAYS[x.dow]}</td><td style="width:55%">${bar(x.adh,150)}</td><td class="n">${x.adh}%</td><td class="n note">${x.n} يوم</td></tr>`).join('')}</tbody></table></div>`:'<p class="note">لا بيانات بعد.</p>'}</div>
+  <div class="card"><h2>أيام مسجّلة أسبوعياً</h2>${wk.length?`<div class="tbl"><table style="min-width:0"><tbody>${wk.map(x=>`<tr><td dir="ltr" style="text-align:end">${esc(x.wk)}</td><td style="width:60%">${bar(x.days,wmax)}</td><td class="n">${x.days}</td></tr>`).join('')}</tbody></table></div>`:'<p class="note">لا بيانات بعد.</p>'}</div>
+  ${lst('أكثر الأصناف أكلاً',I.top_eaten)}${lst('أكثر الأصناف تركاً',I.top_skipped)}${lst('أكثر ما يُؤكل خارج الخطة',I.extra)}
+  ${lst('الأهداف',(I.goals||[]).map(x=>({n:gName(x.goal),c:x.c})),'ملف')}${lst('أنواع الاستخدام',(I.modes||[]).map(x=>({n:mName(x.mode),c:x.c})),'حساب')}`}
 function vAnn(){const A=data.ann||[];
   return `<div class="card"><h2>إعلان جديد</h2><form id="af"><label>العنوان<input id="a_t" required maxlength="80"></label><label>النص<input id="a_b" maxlength="240"></label>
   <div class="row"><label>النوع<select id="a_l"><option value="info">معلومة</option><option value="warn">تنبيه</option></select></label><label>ينتهي في (اختياري)<input id="a_e" type="date"></label></div>
@@ -151,7 +165,7 @@ function render(){
   if(!sess){$('#app').innerHTML=vLogin();return}
   if(ui.admin===false){$('#app').innerHTML=`<div class="card login"><h2>لا توجد صلاحية</h2><p class="note">الحساب ${esc(sess.email)} ليس ضمن مديري التطبيق.</p><div class="btns"><button class="btn" data-act="out">تسجيل الخروج</button></div></div>`;return}
   if(ui.admin==null){$('#app').innerHTML='<p class="note">جارٍ التحقق من الصلاحية…</p>';return}
-  $('#app').innerHTML={stats:vStats,accounts:vAccounts,ann:vAnn,config:vConfig,foods:vFoods}[ui.tab]();
+  $('#app').innerHTML={insights:vInsights,stats:vStats,accounts:vAccounts,ann:vAnn,config:vConfig,foods:vFoods}[ui.tab]();
 }
 async function boot(){render();if(!sess)return;
   try{ui.admin=!!(await rpc('is_admin'))}catch(e){ui.admin=false;msg(e.message)}
@@ -182,6 +196,7 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(
   if(a==='tab'){ui.tab=t.dataset.v;ui.acc=null;render();load(ui.tab)}
   if(a==='acedit'){ui.acc=ui.acc===id?null:id;render();const c=$('#acc_ed');if(c&&c.scrollIntoView)c.scrollIntoView({block:'start'})}
   if(a==='acclose'){ui.acc=null;render()}
+  if(a==='insd'){ui.insDays=+t.dataset.v;load('insights')}
   if(a==='copy'){const el=$('#'+t.dataset.v);if(el){el.select();try{(navigator.clipboard?navigator.clipboard.writeText(el.value):Promise.reject()).then(()=>msg('تم النسخ'),()=>{document.execCommand('copy');msg('تم النسخ')})}catch(x){}}}
   if(a==='out'){sess=null;ui.admin=null;try{localStorage.removeItem(SK)}catch(x){}render()}
   if(a==='atog')run(()=>api('/rest/v1/announcements?id=eq.'+encodeURIComponent(id),{method:'PATCH',prefer:'return=minimal',body:{active:t.dataset.v==='1'}}),'تم');
