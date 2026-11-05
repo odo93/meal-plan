@@ -31,7 +31,7 @@ function vDay(){
   const mb=(l,v,t)=>{const dv=v-t,cls=Math.abs(dv)<=t*0.08?'ok':(dv>0?'hi':'lo');return `<div><div class="bl"><b>${l}</b><span>${rd(v)} / ${rd(t)} جم</span></div><div class="bt"><i class="${cls}" style="width:${Math.min(100,t?v/t*100:0)}%"></i></div></div>`};
   const DL='سحنثرخج';
   let h=`<div class="days wk" role="tablist" aria-label="أيام الأسبوع">${state.days.map((x,i)=>`<button class="${i===di?'on':''}" role="tab" aria-selected="${i===di}" aria-label="${esc(x.name)} ${dateLabel(dateOfDay(i))}${dayDone(x)?'، مكتمل':''}" data-act="day" data-v="${i}">${dayDone(x)?'<span class="ck" aria-hidden="true">✓</span>':''}<b>${DL[i]}</b><small>${+dateOfDay(i).slice(8)}</small>${dateOfDay(i)===todayISO()?'<span class="td" aria-hidden="true"></span>':''}</button>`).join('')}</div>`;
-  h+=`<div class="dhead"><b>${esc(d.name)} <small>${dateLabel(dateOfDay(di))}${isT?' · اليوم':''}</small></b><button class="more" data-act="dayopts" aria-label="خيارات اليوم" aria-haspopup="dialog">⋯</button></div>`;
+  h+=`<div class="dhead"><b>${esc(d.name)} <small>${dateLabel(dateOfDay(di))}${isT?' · اليوم':''}</small>${dayOv(di)?`<span class="tag" title="${esc(ovDesc(dayOv(di)))}">معدّل</span>`:''}</b><button class="more" data-act="dayopts" aria-label="خيارات اليوم" aria-haspopup="dialog">⋯</button></div>`;
   h+=`<div class="card sum">${ring(tot.k,T.k)}<div class="mcs">${mb('بروتين',tot.p,T.p)}${mb('كارب',tot.c,T.c)}${mb('دهون',tot.f,T.f)}</div></div>`;
   h+=d.meals.map((m,mi)=>{const mt=sum(m.items),open=mi===op,done=mealDone(m),n=m.items.length;
     return `<section class="card meal"><button class="mhd" data-act="mopen" data-m="${mi}" aria-expanded="${open}" aria-controls="mb${mi}"><span class="g"><b>${esc(m.n)}</b><small>${rd(mt.k)} سعرة · ${n} ${n===1?'صنف':'أصناف'}</small></span>${done?'<span class="pill">مكتملة</span>':''}<span class="chev">${ico('chev')}</span></button>
@@ -63,7 +63,7 @@ function vWeek(){
   let h=seg+`<div class="dhead"><b>الأسبوع <small>${rangeLabel(dateOfDay(0),dateOfDay(6))}</small></b><button class="more" data-act="weekopts" aria-label="خيارات الأسبوع" aria-haspopup="dialog">⋯</button></div>
   <div class="card sum" style="position:static">${ring(W.pct,100).replace('من 100</text>','%</text>').replace(/aria-label="[^"]*"/,'aria-label="التزام الأسبوع '+W.pct+'%"')}<div class="mcs"><p class="motiv">${msg}</p><span class="note" style="margin:0">التزامك هذا الأسبوع ${W.pct}% · ${W.done} من 7 أيام مكتملة${W.streak>1?' · '+W.streak+' أيام متتالية':''}</span><span class="note" style="margin:0">متوسط الخطة ${rd(W.k)} من ${rd(W.t)} سعرة يومياً</span></div></div>
   <div class="list">${state.days.map((d,i)=>{const a=adh([d]),t=sum(d.meals.flatMap(m=>m.items)),isT=dateOfDay(i)===todayISO(),dn=dayDone(d);
-    return `<button class="li" data-act="goday" data-v="${i}"><span class="dl ${dn?'ok':isT?'td':''}" aria-hidden="true">${dn?'✓':'سحنثرخج'[i]}</span><span class="g"><b>${esc(d.name)} <small style="display:inline;font-weight:400">${dateLabel(dateOfDay(i))}${isT?' · اليوم':''}</small></b><small>${d.mode==='high'?'كارب عادي':'كارب قليل'} · ${PL[d.prot]}</small><span class="hbar" aria-label="التزام ${a.pct}%"><i class="${a.pct>=80?'':a.pct>=40?'mid':a.pct?'low':''}" style="width:${a.pct}%"></i></span></span><span class="num">${rd(t.k)}<br><small>سعرة</small></span></button>`}).join('')}</div>`;
+    return `<button class="li" data-act="goday" data-v="${i}"><span class="dl ${dn?'ok':isT?'td':''}" aria-hidden="true">${dn?'✓':'سحنثرخج'[i]}</span><span class="g"><b>${esc(d.name)} <small style="display:inline;font-weight:400">${dateLabel(dateOfDay(i))}${isT?' · اليوم':''}</small></b><small>${d.mode==='high'?'كارب عادي':'كارب قليل'} · ${PL[d.prot]}${dayOv(i)?' · معدّل':''}</small><span class="hbar" aria-label="التزام ${a.pct}%"><i class="${a.pct>=80?'':a.pct>=40?'mid':a.pct?'low':''}" style="width:${a.pct}%"></i></span></span><span class="num">${rd(t.k)}<br><small>سعرة</small></span></button>`}).join('')}</div>`;
   const rows=state.days.map(d=>sum(d.meals.flatMap(m=>m.items))),av=k=>rd(rows.reduce((a,r)=>a+r[k],0)/7);
   h+=`<details class="fold"><summary>متوسط الماكروز في الخطة</summary><div><div class="tiles"><div class="tile"><b>${av('p')}</b><small>بروتين جم</small></div><div class="tile"><b>${av('c')}</b><small>كارب جم</small></div><div class="tile"><b>${av('f')}</b><small>دهون جم</small></div></div></div></details>`;
   return h;
@@ -116,7 +116,7 @@ function goalUI(s,hi,lo){
   let head,secs='';
   if(isM){
     head=`<p class="note" style="margin:0">«${esc(gl.name)}»: البروتين والكارب والدهون مضاعفات ثابتة لوزن الجسم.</p>`;
-    secs+=fold('المضاعفات',`وزن ${s.bw} كجم`,`<p class="note">من الريل: بروتين = الوزن × 2 · دهون = الوزن × 0.8 · كارب = ×2 (عادي) أو ×1 (قليل).</p>${inp('وزن الجسم (كجم)','bw',0.5)}${inp('بروتين × الوزن','pM')}${inp('كارب (يوم عادي) × الوزن','cH')}${inp('كارب (يوم قليل) × الوزن','cL')}${inp('دهون × الوزن','fM')}`,true);
+    secs+=fold('المضاعفات',`وزن ${s.bw} كجم`,`<p class="note">الافتراضي: بروتين = الوزن × 2 · دهون = الوزن × 0.8 · كارب = ×2 (عادي) أو ×1 (قليل).</p>${inp('وزن الجسم (كجم)','bw',0.5)}${inp('بروتين × الوزن','pM')}${inp('كارب (يوم عادي) × الوزن','cH')}${inp('كارب (يوم قليل) × الوزن','cL')}${inp('دهون × الوزن','fM')}`,true);
   }else{
     const G=goalCore(s),w=+s.bw||70,adjL=gl.sign>0?'الفائض':'العجز',unit=g.mode==='kcal'?'سعرة/يوم':g.mode==='rate'?(gl.sign>0?'% من الوزن/شهر':'% من الوزن/أسبوع'):'% من TDEE';
     head=`<div class="sum" style="position:static">${ring(G.k,G.tdee).replace(/aria-label="[^"]*"/,`aria-label="سعرات الهدف ${rd(G.k)} من احتياجك ${rd(G.tdee)}"`).replace(/من (\d+)<\/text>/,'من $1</text>')}<div class="mcs"><p class="motiv">${rd(G.k)} سعرة يومياً في المتوسط</p><span class="note" style="margin:0">احتياجك ${rd(G.tdee)}${gl.sign===0?'':' · '+adjL+' '+sg(G.adj)}</span><span class="note" style="margin:0">تغيّر الوزن المتوقع ${G.rate>0?'+':''}${G.rate.toFixed(2)} كجم أسبوعياً</span></div></div>${G.flags.map(f=>`<p class="note" style="color:var(--hi);margin:6px 0 0">⚠ ${esc(f)}</p>`).join('')}`;
@@ -130,10 +130,14 @@ function goalUI(s,hi,lo){
       ${sel('معادلة BMR','sset','eq',s.eqs.map(e=>[e.id,e.name]),s.eq)}<p class="note" style="margin:0">${esc(eqOf(s).note||'')} (المعاملات وإضافة معادلة: من حسابي › متقدم)</p>
       ${inp('احتياج يومي يدوي TDEE (اختياري، يتجاوز المعادلة)','tdeeM',10)}`);
   }
-  secs+=fold('دورة الكارب',cycOn?`مفعّلة · اليوم القليل ${rd(s.cyc.r*100)}% من العادي`:'معطّلة',
-    `<label><span><input type="checkbox" data-ch="cyc" data-k="on" ${cycOn?'checked':''} style="width:auto"> تفعيل (المتوسط الأسبوعي ثابت)</span></label>
-    ${num('كارب اليوم القليل = ٪ من اليوم العادي','cyc','r',rd(s.cyc.r*100),5,'%')}
-    <p class="note" style="margin:0">خطتك الحالية: ${nH} أيام كارب عادي و${7-nH} كارب قليل. نوع كل يوم يُغيَّر من «اليوم» › ⋯.</p>`);
+  const pat=s.cyc.pat,nLo=pat.filter(x=>x==='low').length,ovl=DAYS.map((n,i)=>{const o=dayOv(i);return o?`${n} (${o.rep?'كل أسبوع':'هذا الأسبوع'}: ${ovDesc(o)})`:''}).filter(Boolean);
+  const patUI=`<div class="grp" style="margin-top:4px">نمط الأسبوع</div><div class="pat" role="group" aria-label="نمط الأسبوع">${DAYS.map((n,i)=>`<button type="button" data-act="patday" data-v="${i}" class="${pat[i]}" aria-pressed="${pat[i]==='low'}" aria-label="${n}: ${ML[pat[i]]}"><b>${'سحنثرخج'[i]}</b><small>${pat[i]==='low'?'قليل':'عادي'}</small></button>`).join('')}</div>
+    <div class="chips" style="margin:6px 0">${[['alt','يوم ويوم'],['p52','5 عادي + 2 قليل'],['high','كل الأيام عادي'],['low','كل الأيام قليل']].map(([v,l])=>`<button type="button" data-act="patset" data-v="${v}">${l}</button>`).join('')}</div>
+    <p class="note" style="margin:0">اضغط اليوم للتبديل بين عادي وقليل. يُطبَّق على كل أسبوع.${ovl.length?'<br>أيام معدّلة (تتقدّم على النمط): '+esc(ovl.join('، ')):''} لتعديل يوم بعينه: «اليوم» ← ⋯ ← «تعديل هذا اليوم».</p>`;
+  secs+=fold('دورة الكارب',`${7-nLo} عادي · ${nLo} قليل${goalOf(s).kind==='manual'?'':cycOn?` · القليل ${rd(s.cyc.r*100)}% من العادي`:' · النسبة معطّلة'}`,
+    `${goalOf(s).kind==='manual'?'<p class="note" style="margin:0 0 4px">في «كارب أقل» كارب كل نوع يوم من «المضاعفات» أعلاه.</p>':`<label><span><input type="checkbox" data-ch="cyc" data-k="on" ${cycOn?'checked':''} style="width:auto"> تفعيل (المتوسط الأسبوعي ثابت)</span></label>
+    ${num('كارب اليوم القليل = ٪ من اليوم العادي','cyc','r',rd(s.cyc.r*100),5,'%')}`}
+    ${patUI}`);
   secs+=fold('البدائل','مطابقة البدائل: '+(s.by==='kcal'?'السعرات':'الماكرو الرئيسي'),`<label>مطابقة البدائل افتراضياً<select data-ch="by"><option value="auto" ${s.by==='auto'?'selected':''}>الماكرو الرئيسي للصنف</option><option value="kcal" ${s.by==='kcal'?'selected':''}>السعرات</option></select></label>`);
   secs+=fold('النطاقات المرجعية','مصادر الأرقام الافتراضية',`<ul class="note" style="padding-inline-start:18px;margin:0">
   <li>BMR: Mifflin-St Jeor الأكثر اعتماداً (≈82% من غير المصابين بالسمنة ضمن ±10% من القياس في إحدى المراجعات). Katch-McArdle وCunningham تعتمدان على الكتلة الخالية فتحتاجان نسبة دهون دقيقة.</li>

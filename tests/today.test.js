@@ -14,7 +14,7 @@ T('no carb/protein labels on the day screen',!/كارب|لحم|دجاج|سمك/.
 T('day has accessible full name',/السبت/.test(days[0].getAttribute('aria-label')));
 // 2) day options sheet
 click('[data-act="dayopts"]');
-T('options sheet has day type and protein',!!$('#modal [data-act="mode"][data-v="low"]')&&!!$('#modal [data-ch="prot"]')&&!!$('#modal [data-act="rebuild"]'));
+T('options sheet has day edit and protein',!!$('#modal [data-act="dayov"]')&&!!$('#modal [data-ch="prot"]')&&!!$('#modal [data-act="rebuild"]'));
 click('#modal [data-act="close"]');
 // 3) one meal open at a time
 const exp=()=>$$('.mhd').map(b=>b.getAttribute('aria-expanded'));

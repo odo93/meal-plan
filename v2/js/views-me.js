@@ -22,7 +22,7 @@ const ICON={
 const ico=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
 const TABS=[['day','اليوم'],['week','الخطة'],['hist','التقدم'],['foods','الأصناف'],['me','حسابي']];
 const SUBS={profile:'ملفي الشخصي',goals:'أهدافي',family:'الأشخاص والمشاركة',clients:'متدربيني',mode:'نوع الاستخدام',sync:'الحساب والمزامنة',data:'بياناتي',advanced:'متقدم'};
-const APP_VER='2.4';
+const APP_VER='2.5';
 // نوع الاستخدام: يحدد ما يظهر في «حسابي»، ويمكن تغييره في أي وقت
 const MODES=[['self','لنفسي','خطتي وحدي'],['family','لي ولعائلتي','أفراد وأطفال تديرهم'],['coach','مدرب مستقل','متابعة متدربين'],['org','مؤسسة','مدربون وأخصائيو تغذية']];
 const isCoach=()=>meta.mode==='coach'||meta.mode==='org';
@@ -314,10 +314,19 @@ function modalBody(){
   }else if(modal.type==='shq'){
     const x=shopLines().find(z=>z.id===modal.id)||{n:'',q:''};
     m.innerHTML=`<div class="sheet" role="dialog" aria-label="كمية ${esc(x.n)}"><h2>${esc(x.n)}</h2><label class="lbl">الكمية<input id="shq_v" value="${esc(x.q)}" style="max-width:60%"></label><div class="btns"><button class="btn pri" data-act="shqsave">حفظ</button><button data-act="close">إلغاء</button></div></div>`;
+  }else if(modal.type==='dayov'){
+    const d=state.days[ui.day],pm=planMode(ui.day),B=baseTargets({mode:modal.mode||pm,name:d.name}),t=modal.t||{},v=k=>t[k]!=null?esc(t[k]):'';
+    const sb=(act,val,cur,l)=>`<button type="button" class="${cur?'on':''}" aria-pressed="${cur}" data-act="${act}" data-v="${val}">${l}</button>`;
+    m.innerHTML=`<div class="sheet" role="dialog"><h2>تعديل ${esc(d.name)}</h2>
+    <h4>نوع اليوم</h4><div class="seg">${sb('ovmode','',!modal.mode,'حسب النمط ('+ML[pm]+')')}${sb('ovmode','high',modal.mode==='high','عادي')}${sb('ovmode','low',modal.mode==='low','قليل')}</div>
+    <h4>أهداف خاصة لهذا اليوم (اختياري)</h4><p class="note" style="margin:0 0 4px">اتركها فارغة لتُحسب من الهدف. الأرقام الباهتة هي المحسوبة الآن.</p>
+    <div class="fr2">${[['p','بروتين'],['c','كارب'],['f','دهون']].map(([k,l])=>`<label style="flex:1;min-width:0">${l} (جم)<input id="ov_${k}" type="number" min="0" step="1" inputmode="numeric" placeholder="${rd(B[k])}" value="${v(k)}"></label>`).join('')}</div>
+    <h4>التكرار</h4><div class="seg">${sb('ovrep','0',!modal.rep,'هذا التاريخ فقط ('+esc(dateShort(dateOfDay(ui.day)))+')')}${sb('ovrep','1',!!modal.rep,'كل '+esc(d.name))}</div>
+    <div class="btns" style="margin-top:10px"><button class="btn pri" data-act="dayovsave">حفظ</button><button data-act="close">إلغاء</button></div></div>`;
   }else if(modal.type==='dayopts'){
     const d=state.days[ui.day],L=dayLog(d);
     m.innerHTML=`<div class="sheet" role="dialog" aria-label="خيارات اليوم"><h2>خيارات ${esc(d.name)}</h2>
-    <h4>نوع اليوم</h4><div class="seg"><button class="${d.mode==='high'?'on':''}" data-act="mode" data-v="high">كارب عادي</button><button class="${d.mode==='low'?'on':''}" data-act="mode" data-v="low">كارب قليل</button></div>
+    ${(()=>{const o=dayOv(ui.day);return `<h4>هذا اليوم</h4><p class="note" style="margin:0 0 6px">${o?`<b>معدّل ${o.rep?'كل '+esc(d.name):'لهذا التاريخ فقط'}</b>${o.by?' · بواسطة '+esc(o.by):''}: ${esc(ovDesc(o))}`:`حسب الإعدادات: ${ML[planMode(ui.day)]}`}</p><div class="btns" style="margin:0 0 8px"><button class="btn" data-act="dayov">تعديل هذا اليوم</button>${o?'<button class="btn" data-act="dayovreset">إرجاع للإعدادات</button>':''}</div>`})()}
     <label class="lbl">بروتين اليوم <select data-ch="prot">${Object.keys(PL).map(k=>`<option value="${k}" ${d.prot===k?'selected':''}>${PL[k]}</option>`).join('')}</select></label>
     <div class="list" style="box-shadow:none;border:1px solid var(--ln)">
     <button class="li" data-act="cmp"><span class="g"><b>مقارنة الفعلي بالخطة</b><small>سُجّل ${L.logged} من ${L.total}</small></span></button>

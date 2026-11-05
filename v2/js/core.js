@@ -123,6 +123,7 @@ function rollWeek(){ // عند أسبوع جديد: يُؤرشف تسجيل ال
       clearLog(d);ch=true;
     }
   });
+  if(dropStaleOv()|modeDiffs().length){applyModes();ch=true}
   return ch;
 }
 function stTag(it,mi){

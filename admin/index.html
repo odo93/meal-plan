@@ -61,8 +61,9 @@ const GRPS={pro:'بروتين',dairy:'ألبان',carb:'كارب',fruit:'فاك�
 // يجب أن تطابق التطبيق (v2/js/views-me.js وgoals.js) — الاختبار admin-control يتحقق
 const FEATS=[['scan','المسح بالصورة والباركود'],['online','البحث أونلاين (USDA وOpen Food Facts)'],['shop','قائمة المشتريات'],['multi','أكثر من ملف (أفراد وأطفال)'],['share','المشاركة بكود'],['clients','متدربيني']];
 const MODES=[['self','لنفسي'],['family','لي ولعائلتي'],['coach','مدرب مستقل'],['org','مؤسسة']];
-const GOALS=[['manual','معادلة الريل'],['cut','تنحيف'],['maint','تثبيت'],['recomp','إظهار العضلات'],['bulk','زيادة وزن'],['lean','بناء عضلات']];
+const GOALS=[['manual','كارب أقل'],['cut','تنحيف'],['maint','تثبيت'],['recomp','إظهار العضلات'],['bulk','زيادة وزن'],['lean','بناء عضلات']];
 const ACTS=[[1.2,'خامل'],[1.375,'خفيف'],[1.55,'متوسط'],[1.725,'عالٍ'],[1.9,'شديد']];
+const DAYS=['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة'],PAT0=['high','low','high','low','high','low','high'];
 const GD={cut:{val:0.75,u:'كجم/أسبوع عجز',pr:2.2,fat:25},maint:{pr:1.8,fat:25},recomp:{val:10,u:'% عجز',pr:2.2,fat:25},bulk:{val:15,u:'% فائض',pr:1.6,fat:25},lean:{val:7,u:'% فائض',pr:2.2,fat:25}};
 const TABS=[['stats','نظرة عامة'],['accounts','الحسابات'],['ann','الإعلانات'],['config','إعدادات التطبيق'],['foods','الأصناف المشتركة']];
 let sess=lsGet(SK),ui={tab:'stats',busy:false},data={};
@@ -123,10 +124,14 @@ function vFeatures(c){const F=c.features||{};const on=(k,m)=>!(F[k]&&F[k][m]===f
   <div class="btns"><button class="btn pri" type="submit">حفظ الميزات</button></div><p class="note">الميزة المغلقة تختفي من التطبيق لأصحاب هذا النوع. «متدربيني» يظهر أصلاً للمدرب والمؤسسة فقط. تسجيل الدخول والمزامنة لا تُغلق. لاستثناء حساب بعينه: «الحسابات» ← «تعديل».</p></form></div>`}
 function vDefaults(c){const D=c.defaults||{},G=D.g||{},val=(g,k)=>G[g]&&G[g][k]!=null?esc(G[g][k]):'';
   return `<div class="card"><h2>الإعدادات الافتراضية للأشخاص الجدد</h2><form id="cfd"><div class="row">
-  <label>الهدف<select id="d_goal"><option value="">افتراضي التطبيق (معادلة الريل)</option>${GOALS.map(([v,l])=>`<option value="${v}" ${D.goal===v?'selected':''}>${l}</option>`).join('')}</select></label>
+  <label>الهدف<select id="d_goal"><option value="">افتراضي التطبيق (كارب أقل)</option>${GOALS.map(([v,l])=>`<option value="${v}" ${D.goal===v?'selected':''}>${l}</option>`).join('')}</select></label>
   <label>مستوى النشاط<select id="d_act"><option value="">افتراضي التطبيق (متوسط)</option>${ACTS.map(([v,l])=>`<option value="${v}" ${+D.act===v?'selected':''}>${l} ×${v}</option>`).join('')}</select></label></div>
   <div class="tbl"><table class="mx"><thead><tr><th>الهدف</th><th>العجز / الفائض</th><th>بروتين جم/كجم</th><th>دهون %</th></tr></thead><tbody>
   ${Object.keys(GD).map(g=>`<tr><td>${(GOALS.find(x=>x[0]===g)||[0,g])[1]}</td><td>${GD[g].val!=null?`<input id="d_${g}_val" type="number" step="any" min="0" max="100" inputmode="decimal" placeholder="${GD[g].val}" value="${val(g,'val')}" aria-label="${GD[g].u}"><div class="note">${GD[g].u}</div>`:'—'}</td><td><input id="d_${g}_pr" type="number" step="any" min="0" max="5" inputmode="decimal" placeholder="${GD[g].pr}" value="${val(g,'pr')}" aria-label="بروتين"></td><td><input id="d_${g}_fat" type="number" step="any" min="0" max="60" inputmode="decimal" placeholder="${GD[g].fat}" value="${val(g,'fat')}" aria-label="دهون"></td></tr>`).join('')}</tbody></table></div>
+  ${(()=>{const C=D.cyc||{},pat=Array.isArray(C.pat)&&C.pat.length===7?C.pat:PAT0;return `<h3 style="font-size:15px;margin:14px 0 4px">دورة الكارب ونمط الأسبوع</h3>
+  <div class="row"><label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="d_cyc_on" style="width:auto;min-height:0" ${C.on===false?'':'checked'}> تفعيل دورة الكارب</label>
+  <label>كارب اليوم القليل % من العادي<input id="d_cyc_r" type="number" min="0" max="100" step="5" inputmode="numeric" placeholder="50" value="${C.r!=null?Math.round(C.r*100):''}"></label></div>
+  <div class="tbl"><table class="mx"><thead><tr>${DAYS.map(n=>`<th>${n}</th>`).join('')}</tr></thead><tbody><tr>${DAYS.map((n,i)=>`<td><label style="margin:0;align-items:center;font-weight:400;font-size:11px"><input type="checkbox" id="d_pat_${i}" ${pat[i]==='low'?'checked':''} aria-label="${n} كارب قليل">قليل</label></td>`).join('')}</tr></tbody></table></div>`})()}
   <div class="btns"><button class="btn pri" type="submit">حفظ الافتراضيات</button></div><p class="note">تُطبَّق على الأشخاص الجدد وعلى الأهداف التي لم يضبطها المستخدم بعد، ولا تغيّر ما ضبطه أحد. الخانة الفارغة = قيمة التطبيق الظاهرة.</p></form></div>`}
 function vFoods(){const F=data.foods||[];
   return `<div class="card"><h2>صنف جديد</h2><form id="ff"><div class="row"><label>الاسم<input id="f_n" required></label><label>المجموعة<select id="f_g">${Object.keys(GRPS).map(k=>`<option value="${k}">${GRPS[k]}</option>`).join('')}</select></label></div>
@@ -159,6 +164,7 @@ document.addEventListener('submit',async e=>{e.preventDefault();const f=e.target
     run(()=>api('/rest/v1/app_config?id=eq.1',{method:'PATCH',prefer:'return=minimal',body:{features:ft,updated_at:new Date().toISOString()}}),'تم حفظ الميزات')}
   if(f.id==='cfd'){const D={},g={};if($('#d_goal').value)D.goal=$('#d_goal').value;if($('#d_act').value)D.act=+$('#d_act').value;
     Object.keys(GD).forEach(k=>{const o={};['val','pr','fat'].forEach(x=>{const e=$('#d_'+k+'_'+x);if(e&&e.value!=='')o[x]=+e.value});if(Object.keys(o).length)g[k]=o});if(Object.keys(g).length)D.g=g;
+    const r=$('#d_cyc_r').value;D.cyc={on:$('#d_cyc_on').checked,pat:[0,1,2,3,4,5,6].map(i=>$('#d_pat_'+i).checked?'low':'high')};if(r!=='')D.cyc.r=Math.min(100,Math.max(0,+r))/100;
     run(()=>api('/rest/v1/app_config?id=eq.1',{method:'PATCH',prefer:'return=minimal',body:{defaults:D,updated_at:new Date().toISOString()}}),'تم حفظ الافتراضيات')}
   if(f.id==='acf'){const ft={};FEATS.forEach(([k])=>{const v=$('#ac_f_'+k).value;if(v)ft[k]=v==='1'});
     run(async()=>{await rpc('admin_set_account',{p_owner:f.dataset.id,p_mode:$('#ac_m').value||null,p_features:ft});ui.acc=null},'تم حفظ الحساب')}

@@ -135,6 +135,7 @@ i.ok{background:var(--okf)}i.hi{background:var(--hi)}i.lo{background:var(--lo)}
 .mh h3{margin:0;font-size:15px}.mh span{font-size:12px;color:var(--mu)}
 .it{display:grid;grid-template-columns:1fr auto auto;gap:4px 8px;align-items:center;padding:8px 0;border-top:1px solid var(--ln)}
 .it .nm{grid-column:1/-1;font-weight:600}
+.pat{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.pat button{border:1px solid var(--ln);background:var(--card);border-radius:10px;padding:6px 0;font:inherit;display:flex;flex-direction:column;align-items:center;min-height:52px;color:var(--tx);cursor:pointer}.pat button small{font-size:11px;color:var(--mu)}.pat button.low{background:var(--ac2);border-color:var(--ac)}.pat button.low small{color:var(--act)}
 .tag{background:var(--ac2);color:var(--act);border-radius:6px;font-size:11px;padding:1px 6px;margin-inline-start:4px}
 .qty{display:flex;align-items:center;gap:4px}
 .qty input{width:70px;text-align:center}

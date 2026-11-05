@@ -45,8 +45,11 @@ const mk=()=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.
  const pm=log.filter(l=>l[0]==='PATCH'&&l[1].startsWith('/rest/v1/app_config')).pop();
  T('features saved per type',pm&&pm[3].features.scan.family===false&&pm[3].features.scan.self===true&&pm[3].features.share.self===false&&Object.keys(pm[3].features).length===6);
  T('defaults shown',$('#d_goal').value==='cut'&&$('#d_cut_pr').value==='2.5'&&$('#d_bulk_pr').value===''&&$('#d_bulk_pr').placeholder==='1.6');
+ T('pattern defaults shown (app default alternate)',$('#d_cyc_on').checked&&!$('#d_pat_0').checked&&$('#d_pat_1').checked);
+ $('#d_pat_6').checked=true;$('#d_cyc_r').value='40';
  $('#d_act').value='1.375';$('#d_cut_pr').value='';$('#d_bulk_val').value='12';submit('#cfd');await sleep(40);
  const pd=log.filter(l=>l[0]==='PATCH'&&l[1].startsWith('/rest/v1/app_config')).pop();
+ T('pattern defaults saved',pd&&pd[3].defaults.cyc.on===true&&pd[3].defaults.cyc.r===0.4&&pd[3].defaults.cyc.pat.join()==='high,low,high,low,high,low,low');
  T('defaults saved (blank = app default)',pd&&pd[3].defaults.goal==='cut'&&pd[3].defaults.act===1.375&&pd[3].defaults.g.bulk.val===12&&!pd[3].defaults.g.cut);
  click('[data-v="accounts"]');await sleep(40);
  T('accounts show type + override',$('#app').textContent.includes('مدرب مستقل')&&$('#app').textContent.includes('المسح بالصورة'));

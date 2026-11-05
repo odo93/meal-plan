@@ -2,6 +2,7 @@
 // سكربت عادي (ليس module): كل الملفات تتشارك نطاقاً عاماً واحداً وتُحمَّل بالترتيب في index.html.
 // لا تستدعِ عند التحميل دالة من ملف لاحق؛ الاستدعاء داخل الدوال مسموح.
 // ---------- actions ----------
+function ovRead(){const t={};['p','c','f'].forEach(k=>{const e=$('#ov_'+k);if(e&&e.value!==''&&isFinite(+e.value)&&+e.value>=0)t[k]=+e.value});return t}
 function act(a,ds){
   const blk=remoteBlock(a);if(blk){toast(blk);return}
   const d=state.days[ui.day];
@@ -33,7 +34,17 @@ function act(a,ds){
         catch(e){const m=String(e.message||e);const t=/invalid_code/.test(m)?'الكود غير صحيح أو استُخدم من قبل':/own_invite/.test(m)?'هذا كود دعوة من حسابك أنت':m;const el=$('#inv_msg');if(el)el.textContent=t;toast(t);return t}});return}
     case 'day':ui.day=+ds.v;ui.open=null;break;
     case 'goday':ui.day=+ds.v;ui.tab='day';window.scrollTo(0,0);break;
-    case 'mode':{const v=ds.v,di=ui.day;if(d.mode===v){modal=null;break}ask('تغيير النوع يعيد بناء اليوم من القالب. متابعة؟',()=>{state.days[di]=buildDay(di,v,state.days[di].prot)});return}
+    case 'mode':{const v=ds.v==='low'?'low':'high';if(d.mode===v){modal=null;break}const o=dayOv(ui.day);setDayOv(ui.day,Object.assign({},o&&!o.rep?{t:o.t}:{},{mode:v,at:Date.now()},ui.remote?{by:cloud.email||'المدرب'}:{}),false,'نوع اليوم: '+ML[v]+' (لهذا التاريخ فقط)');return}
+    case 'dayov':{const o=dayOv(ui.day);modal={type:'dayov',mode:o&&o.mode||'',rep:o?o.rep:false,t:Object.assign({},o&&o.t)};break}
+    case 'ovmode':modal.t=ovRead();modal.mode=ds.v||'';break;
+    case 'ovrep':modal.t=ovRead();modal.rep=ds.v==='1';break;
+    case 'dayovsave':{const t=ovRead(),M=modal,ov={};if(M.mode)ov.mode=M.mode;if(Object.keys(t).length)ov.t=t;
+      if(!ov.mode&&!ov.t){setDayOv(ui.day,null,M.rep,'لا تعديل — اليوم حسب الإعدادات');return}
+      ov.at=Date.now();if(ui.remote)ov.by=cloud.email||'المدرب';
+      setDayOv(ui.day,ov,M.rep,M.rep?'حُفظ التعديل لكل '+d.name:'حُفظ التعديل لهذا التاريخ');return}
+    case 'dayovreset':{setDayOv(ui.day,null,'all','عاد اليوم للإعدادات');return}
+    case 'patday':{const s=S(),i=+ds.v;setPat(s.cyc.pat.map((x,j)=>j===i?(x==='high'?'low':'high'):x));return}
+    case 'patset':{if(PATS[ds.v])setPat(PATS[ds.v].slice());return}
     case 'rebuild':{const di=ui.day;ask('إعادة بناء اليوم من القالب؟ سيُفقد أي تعديل يدوي.',()=>{state.days[di]=buildDay(di,state.days[di].mode,state.days[di].prot)});return}
     case 'yes':{const f=modal.fn;modal=null;f();break}
     case 'qlog':{const it=d.meals[+ds.m].items[+ds.i];if(it.x)break;if(gE(it)==null){it.e=it.g;d.lw=weekKey()}else{delete it.e;delete it.em}break}
