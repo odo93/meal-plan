@@ -1,6 +1,6 @@
 // مشاركة الأشخاص: «من تعرض؟»، عرض شخص مشارك دون لمس بيانات الجهاز، الصلاحيات، أكواد الدعوة، الإعلانات والتحديث الإجباري
 const {JSDOM,VirtualConsole}=require('jsdom');const fs=require('fs');
-const html=fs.readFileSync(__dirname+'/../v2/index.html','utf8');
+const html=require('./v2html')();
 const errs=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errs.push(e.message));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));let ok=0,bad=0;const T=(n,c,x)=>{c?ok++:(bad++,console.log('FAIL',n,x===undefined?'':x))};
 const OWNER='own-2',ME='uid-1',log=[];

@@ -1,6 +1,6 @@
 // المجموعة ج: التحديث الجزئي يحفظ العناصر والتركيز والأقسام المفتوحة داخل الصفحة نفسها
 const {JSDOM,VirtualConsole}=require('jsdom');const fs=require('fs');
-const html=fs.readFileSync(__dirname+'/../v2/index.html','utf8');
+const html=require('./v2html')();
 const errs=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errs.push(e.message));
 let ok=0,bad=0;const T=(n,c,x)=>{c?ok++:(bad++,console.log('FAIL',n,x===undefined?'':x))};
 const d=new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.io/meal-plan/v2/#/today',virtualConsole:vc,pretendToBeVisual:true,beforeParse(w){w.fetch=async()=>({ok:false,status:404,text:async()=>''})}});

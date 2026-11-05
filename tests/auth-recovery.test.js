@@ -1,5 +1,5 @@
 const {JSDOM,VirtualConsole}=require('jsdom');const fs=require('fs');
-const html=fs.readFileSync(__dirname+'/../v2/index.html','utf8');
+const html=require('./v2html')();
 const errs=[],log=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errs.push(e.message));
 const mk=(url)=>new JSDOM(html,{runScripts:'dangerously',url,virtualConsole:vc,pretendToBeVisual:true,beforeParse(win){
  win.fetch=async(u,o)=>{o=o||{};const p=new URL(u).pathname;log.push([o.method||'GET',p,o.headers.Authorization,o.body]);

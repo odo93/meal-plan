@@ -1,5 +1,5 @@
 const {JSDOM,VirtualConsole}=require('jsdom');const fs=require('fs');
-const html=fs.readFileSync(__dirname+'/../v2/index.html','utf8');
+const html=require('./v2html')();
 const OCR=fs.readFileSync(__dirname+'/fixtures/label-ocr.txt','utf8');
 const errs=[],urls=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errs.push(e.message));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));let ok=0,bad=0;const T=(n,c,x)=>{c?ok++:(bad++,console.log('FAIL',n,x===undefined?'':x))};

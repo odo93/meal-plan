@@ -1,5 +1,5 @@
 const {JSDOM,VirtualConsole}=require('jsdom');const fs=require('fs');
-const html=fs.readFileSync(__dirname+'/../v2/index.html','utf8');
+const html=require('./v2html')();
 const errs=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errs.push(e.message));
 const DB={mp_users:[],mp_days:[],mp_history:[]},log=[];
 const d=new JSDOM(html,{runScripts:'dangerously',url:'http://x.test/',virtualConsole:vc,pretendToBeVisual:true,beforeParse(win){

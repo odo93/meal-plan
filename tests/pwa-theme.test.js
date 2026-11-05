@@ -1,7 +1,7 @@
 // المجموعة د: التثبيت (manifest + عامل الخدمة) والوضع الليلي
 const {JSDOM,VirtualConsole}=require('jsdom');const fs=require('fs');const path=require('path');
 const V2=path.join(__dirname,'..','v2');
-const html=fs.readFileSync(path.join(V2,'index.html'),'utf8');
+const html=require('./v2html')();
 const errs=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errs.push(e.message));
 let ok=0,bad=0;const T=(n,c,x)=>{c?ok++:(bad++,console.log('FAIL',n,x===undefined?'':x))};
 
@@ -13,9 +13,20 @@ T('apple-touch-icon exists',/rel="apple-touch-icon" href="icons\/icon-180.png"/.
 T('manifest linked',/<link rel="manifest" href="manifest.webmanifest">/.test(html));
 T('theme-color light+dark',/name="theme-color"[^>]*prefers-color-scheme: light/.test(html)&&/name="theme-color"[^>]*prefers-color-scheme: dark/.test(html));
 const sw=fs.readFileSync(path.join(V2,'sw.js'),'utf8');
-T('sw caches core and is network-first',/addAll\(CORE\)/.test(sw)&&/fetch\(req\)\.then/.test(sw)&&/caches\.match/.test(sw));
+T('sw caches core and is network-first',/addAll\(CORE\.map/.test(sw)&&/fetch\(req, \{ cache: 'no-cache' \}\)\.then/.test(sw)&&/caches\.match/.test(sw));
 T('sw ignores other origins and non-GET',/url\.origin !== location\.origin/.test(sw)&&/req\.method !== 'GET'/.test(sw));
-T('sw core files exist',(sw.match(/CORE = \[(.*?)\]/)[1].match(/'\.\/[^']*'/g)||[]).map(x=>x.slice(3,-1)).filter(Boolean).every(f=>fs.existsSync(path.join(V2,f))));
+const core=(sw.match(/CORE = \[([\s\S]*?)\]/)[1].match(/'\.\/[^']*'/g)||[]).map(x=>x.slice(3,-1));
+T('sw core files exist',core.filter(Boolean).every(f=>fs.existsSync(path.join(V2,f))),core.filter(f=>f&&!fs.existsSync(path.join(V2,f))).join());
+// split files: every css/js that index.html loads is cached by the SW, and all version stamps match APP_VER
+const raw=fs.readFileSync(path.join(V2,'index.html'),'utf8');
+const refs=[...raw.matchAll(/(?:src|href)="((?:js|css)\/[^"?]+)\?v=([^"]+)"/g)];
+const appVer=(fs.readFileSync(path.join(V2,'js','views-me.js'),'utf8').match(/APP_VER='([^']+)'/)||[])[1];
+T('index loads css + js files',refs.length>=10&&refs.some(r=>r[1]==='css/app.css'),refs.length);
+T('all ?v= stamps equal APP_VER and sw VER',appVer&&refs.every(r=>r[2]===appVer)&&(sw.match(/const VER = '([^']+)'/)||[])[1]===appVer,appVer+' '+refs.map(r=>r[2]).join());
+T('sw caches every split file',refs.every(r=>core.includes(r[1])),refs.filter(r=>!core.includes(r[1])).map(r=>r[1]).join());
+T('no inline app script left in index.html',(raw.match(/<script>/g)||[]).length===1);
+const js=fs.readdirSync(path.join(V2,'js')).filter(f=>f.endsWith('.js'));
+T('every js file is loaded',js.every(f=>refs.some(r=>r[1]==='js/'+f)),js.filter(f=>!refs.some(r=>r[1]==='js/'+f)).join());
 
 // no hard-coded light surfaces left in CSS outside the token blocks
 const css=html.slice(html.indexOf('<style>'),html.indexOf('</style>')).split('\n').filter(l=>!/^(:root|@media \(prefers-color-scheme)/.test(l)).join('\n');
