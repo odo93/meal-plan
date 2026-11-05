@@ -33,10 +33,11 @@ function vDay(){
   let h=`<div class="days wk" role="tablist" aria-label="أيام الأسبوع">${state.days.map((x,i)=>`<button class="${i===di?'on':''}" role="tab" aria-selected="${i===di}" aria-label="${esc(x.name)} ${dateLabel(dateOfDay(i))}${dayDone(x)?'، مكتمل':''}" data-act="day" data-v="${i}">${dayDone(x)?'<span class="ck" aria-hidden="true">✓</span>':''}<b>${DL[i]}</b><small>${+dateOfDay(i).slice(8)}</small>${dateOfDay(i)===todayISO()?'<span class="td" aria-hidden="true"></span>':''}</button>`).join('')}</div>`;
   h+=`<div class="dhead"><b>${esc(d.name)} <small>${dateLabel(dateOfDay(di))}${isT?' · اليوم':''}</small>${dayOv(di)?`<span class="tag" title="${esc(ovDesc(dayOv(di)))}">معدّل</span>`:''}</b><button class="more" data-act="dayopts" aria-label="خيارات اليوم" aria-haspopup="dialog">⋯</button></div>`;
   h+=`<div class="card sum">${ring(tot.k,T.k)}<div class="mcs">${mb('بروتين',tot.p,T.p)}${mb('كارب',tot.c,T.c)}${mb('دهون',tot.f,T.f)}</div></div>`;
-  h+=d.meals.map((m,mi)=>{const mt=sum(m.items),open=mi===op,done=mealDone(m),n=m.items.length;
-    return `<section class="card meal"><button class="mhd" data-act="mopen" data-m="${mi}" aria-expanded="${open}" aria-controls="mb${mi}"><span class="g"><b>${esc(m.n)}</b><small>${rd(mt.k)} سعرة · ${n} ${n===1?'صنف':'أصناف'}</small></span>${done?'<span class="pill">مكتملة</span>':''}<span class="chev">${ico('chev')}</span></button>
+  const nw=isT?nowMeal(d):-1;
+  h+=d.meals.map((m,mi)=>{const mt=sum(m.items),open=mi===op,done=mealDone(m),n=m.items.length,def=mealDef(d,mi),MT=mealTarget(d,mi,T),nm=def?def.n:m.n;
+    return `<section class="card meal${mi===nw&&!done?' now':''}"><button class="mhd" data-act="mopen" data-m="${mi}" aria-expanded="${open}" aria-controls="mb${mi}"><span class="g"><b>${esc(nm)}${def&&def.t?` <small class="mtime">${esc(def.t)}</small>`:''}${mi===nw&&!done?' <span class="tag">الآن</span>':''}</b><small>${rd(mt.k)}${MT?' / '+rd(MT.k):''} سعرة · ${n} ${n===1?'صنف':'أصناف'}</small></span>${done?'<span class="pill">مكتملة</span>':''}<span class="chev">${ico('chev')}</span></button>
     <div class="mbd" id="mb${mi}" ${open?'':'hidden'}>${m.items.map((it,ii)=>row(it,mi,ii)).join('')}${movedIn(d,mi)}${n?'':`<p class="note">لا أصناف بعد. <button class="lnk" data-act="delmeal" data-m="${mi}">حذف هذه الوجبة</button></p>`}
-    <div class="mft"><button class="btn" data-act="add" data-m="${mi}">+ إضافة صنف</button>${m.items.some(it=>!it.x)?`<button class="btn${done?'':' pri'}" data-act="mfinish" data-m="${mi}">${done?'إلغاء الإنهاء':'إنهاء الوجبة'}</button>`:''}</div></div></section>`}).join('');
+    <div class="mft"><button class="btn" data-act="add" data-m="${mi}">+ إضافة صنف</button><button class="btn" style="flex:0 0 auto" data-act="mopts" data-m="${mi}" aria-label="خيارات ${esc(nm)}" aria-haspopup="dialog">⋯</button>${m.items.some(it=>!it.x)?`<button class="btn${done?'':' pri'}" data-act="mfinish" data-m="${mi}">${done?'إلغاء الإنهاء':'إنهاء الوجبة'}</button>`:''}</div></div></section>`}).join('');
   h+=`<button class="add" data-act="addmeal">+ إضافة وجبة أو سناك</button>`;
   return h;
 }
@@ -134,6 +135,7 @@ function goalUI(s,hi,lo){
   const patUI=`<div class="grp" style="margin-top:4px">نمط الأسبوع</div><div class="pat" role="group" aria-label="نمط الأسبوع">${DAYS.map((n,i)=>`<button type="button" data-act="patday" data-v="${i}" class="${pat[i]}" aria-pressed="${pat[i]==='low'}" aria-label="${n}: ${ML[pat[i]]}"><b>${'سحنثرخج'[i]}</b><small>${pat[i]==='low'?'قليل':'عادي'}</small></button>`).join('')}</div>
     <div class="chips" style="margin:6px 0">${[['alt','يوم ويوم'],['p52','5 عادي + 2 قليل'],['high','كل الأيام عادي'],['low','كل الأيام قليل']].map(([v,l])=>`<button type="button" data-act="patset" data-v="${v}">${l}</button>`).join('')}</div>
     <p class="note" style="margin:0">اضغط اليوم للتبديل بين عادي وقليل. يُطبَّق على كل أسبوع.${ovl.length?'<br>أيام معدّلة (تتقدّم على النمط): '+esc(ovl.join('، ')):''} لتعديل يوم بعينه: «اليوم» ← ⋯ ← «تعديل هذا اليوم».</p>`;
+  secs+=vMealsSec(fold);
   secs+=fold('دورة الكارب',`${7-nLo} عادي · ${nLo} قليل${goalOf(s).kind==='manual'?'':cycOn?` · القليل ${rd(s.cyc.r*100)}% من العادي`:' · النسبة معطّلة'}`,
     `${goalOf(s).kind==='manual'?'<p class="note" style="margin:0 0 4px">في «كارب أقل» كارب كل نوع يوم من «المضاعفات» أعلاه.</p>':`<label><span><input type="checkbox" data-ch="cyc" data-k="on" ${cycOn?'checked':''} style="width:auto"> تفعيل (المتوسط الأسبوعي ثابت)</span></label>
     ${num('كارب اليوم القليل = ٪ من اليوم العادي','cyc','r',rd(s.cyc.r*100),5,'%')}`}

@@ -138,7 +138,10 @@ function vConfig(){const c=data.cfg;if(!c)return '<p class="note">جارٍ ال�
   return `<div class="card"><h2>الإصدارات</h2><form id="cf"><div class="row"><label>أحدث إصدار<input id="c_l" value="${esc(c.latest_version)}" dir="ltr" pattern="[0-9.]+" required></label><label>أقل إصدار مسموح<input id="c_m" value="${esc(c.min_version)}" dir="ltr" pattern="[0-9.]+" required></label></div>
   <p class="note">من يفتح نسخة أقدم من «أقل إصدار مسموح» يرى «تحديث مطلوب». رقم الإصدار في التطبيق هو APP_VER.</p>
   <div class="btns"><button class="btn pri" type="submit">حفظ</button></div><p class="note">آخر تعديل: ${fmtD(c.updated_at)}</p></form></div>
-  ${vFeatures(c)}${vDefaults(c)}${vCaptcha(c)}${vConn()}`}
+  ${vFeatures(c)}${vDefaults(c)}${vTpls(c)}${vCaptcha(c)}${vConn()}`}
+function vTpls(c){const L=Array.isArray(c.meal_templates)?c.meal_templates:[],SL={b:'فطور',l:'غداء',d:'عشاء',s:'سناك'};
+  return `<div class="card"><h2>قوالب الوجبات العامة (${L.length})</h2><p class="note">تظهر لكل المستخدمين في «استبدال بوجبة جاهزة» وتُستخدم في بناء أيامهم الجديدة بدل القوالب الافتراضية. تُنشر من التطبيق: افتح وجبة ← ⋯ ← «نشر كقالب لكل المستخدمين».</p>
+  ${L.length?`<div class="tbl"><table style="min-width:0"><tbody>${L.map(t=>`<tr><td><b>${esc(t.n)}</b><div class="note">${esc(SL[t.slot]||'')} · ${(t.items||[]).map(x=>esc(x.fd&&x.fd.n||x.f)).join('، ')}</div></td><td><button class="btn dan" data-act="tpldel" data-id="${esc(t.id)}">حذف</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="note">لا قوالب عامة بعد.</p>'}</div>`}
 function vCaptcha(c){return `<div class="card"><h2>الحماية من الحسابات الوهمية (CAPTCHA)</h2><form id="cfc"><label>المفتاح العام من Cloudflare Turnstile (Site key)<input id="c_cap" dir="ltr" spellcheck="false" autocomplete="off" value="${esc(c.captcha_site_key||'')}" placeholder="0x4AAAAAAA…"></label>
   <div class="btns"><button class="btn pri" type="submit">حفظ</button></div><p class="note">الترتيب مهم: (1) احفظ المفتاح العام هنا، (2) ثم في Supabase ← Authentication ← Attack Protection فعّل CAPTCHA وأدخل المفتاح السري (Secret key) هناك فقط. لو فُعّل في Supabase قبل حفظه هنا يتعطل تسجيل الدخول. اترك الخانة فارغة لإيقافه في التطبيق.</p></form></div>`}
 function vConn(){return `<div class="card"><h2>الاتصال بقاعدة البيانات</h2><p class="note">يستخدمه التطبيق ولوحة الإدارة ثابتاً، ولا يظهر للمستخدمين. المفتاح العام (anon) مسموح ظهوره في الصفحة؛ الحماية في سياسات RLS. لا تضع مفتاح service_role في أي صفحة أبداً.</p>
@@ -207,6 +210,7 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(
   if(a==='acedit'){ui.acc=ui.acc===id?null:id;render();const c=$('#acc_ed');if(c&&c.scrollIntoView)c.scrollIntoView({block:'start'})}
   if(a==='acclose'){ui.acc=null;render()}
   if(a==='errclr'&&twice())run(()=>api('/rest/v1/app_errors?id=gt.0',{method:'DELETE'}),'مُسحت الأخطاء');
+  if(a==='tpldel'&&twice()){const L=((data.cfg&&data.cfg.meal_templates)||[]).filter(t=>t.id!==id);run(()=>api('/rest/v1/app_config?id=eq.1',{method:'PATCH',prefer:'return=minimal',body:{meal_templates:L,updated_at:new Date().toISOString()}}),'حُذف القالب')}
   if(a==='insd'){ui.insDays=+t.dataset.v;load('insights')}
   if(a==='copy'){const el=$('#'+t.dataset.v);if(el){el.select();try{(navigator.clipboard?navigator.clipboard.writeText(el.value):Promise.reject()).then(()=>msg('تم النسخ'),()=>{document.execCommand('copy');msg('تم النسخ')})}catch(x){}}}
   if(a==='out'){sess=null;ui.admin=null;try{localStorage.removeItem(SK)}catch(x){}render()}

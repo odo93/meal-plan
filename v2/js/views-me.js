@@ -22,7 +22,7 @@ const ICON={
 const ico=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
 const TABS=[['day','اليوم'],['week','الخطة'],['hist','التقدم'],['foods','الأصناف'],['me','حسابي']];
 const SUBS={profile:'ملفي الشخصي',goals:'أهدافي',family:'الأشخاص والمشاركة',clients:'متدربيني',mode:'نوع الاستخدام',sync:'حسابي',data:'بياناتي',advanced:'متقدم'};
-const APP_VER='2.10';
+const APP_VER='2.11';
 // نوع الاستخدام: يحدد ما يظهر في «حسابي»، ويمكن تغييره في أي وقت
 const MODES=[['self','لنفسي','خطتي وحدي'],['family','لي ولعائلتي','أفراد وأطفال تديرهم'],['coach','مدرب مستقل','متابعة متدربين'],['org','مؤسسة','مدربون وأخصائيو تغذية']];
 const isCoach=()=>meta.mode==='coach'||meta.mode==='org';
@@ -73,7 +73,7 @@ function banners(){
 const canWrite=()=>!!ui.remote&&ui.remote.role!=='viewer';
 const NAV_ACTS=new Set(['weekopts','wk','fgrp','fedit','nfopen','dayopts','itemopts','mopen','tab','back','day','goday','close','hopen','hr','cmp','who','whopick','whome','whoload','yes','undo','annx','reload','umode','copyshop','print','fu','by','agrp','gaccept','gleave','share','grevoke','gcreate','gcopy','scanclose','eqo']);
 const LOG_ACTS=new Set(['wsave','wdel','tdeeuse','mfinish','qlog','log','logsave','logskip','logclr','hlog','hdel','logrest','logclear']);
-const LOCAL_ACTS=new Set(['cdelacct','picdel','uadd','uren','usave','udel','uswitch','reset','import','export','cpush','cpull','rebuildweek']);
+const LOCAL_ACTS=new Set(['mpub','cdelacct','picdel','uadd','uren','usave','udel','uswitch','reset','import','export','cpush','cpull','rebuildweek']);
 function remoteBlock(a){if(!ui.remote||NAV_ACTS.has(a))return '';
   if(LOG_ACTS.has(a))return 'التسجيل لصاحب الخطة فقط';
   if(LOCAL_ACTS.has(a))return 'ارجع لملفك أولاً';
@@ -108,6 +108,7 @@ async function rPush(){const R=ui.remote;if(!R||!canWrite())return;R.busy=true;
 }
 async function loadShared(){if(!cloud.sess)return;
   await syncAcct();
+  try{ui.isAdmin=!!(await cFetch('/rest/v1/rpc/is_admin',{method:'POST',body:{}}))}catch(e){}
   try{const arr=x=>Array.isArray(x)?x:[];ui.shared=arr(await cFetch('/rest/v1/rpc/mp_shared_with_me',{method:'POST',body:{}}));
     ui.grants=arr(await cFetch('/rest/v1/rpc/mp_my_grants',{method:'POST',body:{}}));
     if(isCoach()&&ui.shared.length){const or=ui.shared.map(x=>'and(owner.eq.'+x.owner+',user_id.eq.'+ENC(x.user_id)+')').join(',');
@@ -122,8 +123,8 @@ async function loadShared(){if(!cloud.sess)return;
 const CODE_AB='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const mkCode=()=>{const a=new Uint32Array(6);(window.crypto||{getRandomValues:x=>x.map(()=>Math.random()*4e9)}).getRandomValues(a);return [...a].map(n=>CODE_AB[n%CODE_AB.length]).join('')};
 async function loadPublic(){ // إعدادات التطبيق والإعلانات والأصناف المشتركة (بدون تسجيل دخول)
-  try{const [C,A,F]=await Promise.all([cFetch('/rest/v1/app_config?select=latest_version,min_version,features,defaults,captcha_site_key',{anon:true}),cFetch('/rest/v1/announcements?select=id,title,body,level&order=id.desc&limit=5',{anon:true}),cFetch('/rest/v1/shared_foods?select=id,n,grp,k,p,c,f,u,ug&active=eq.true',{anon:true})]);
-    ui.pub={cfg:Array.isArray(C)?C[0]:null,ann:Array.isArray(A)?A.filter(x=>x&&x.title):[]};if(ui.pub.cfg)lsSet('mp3_pub',{features:ui.pub.cfg.features||{},defaults:ui.pub.cfg.defaults||{},captcha_site_key:ui.pub.cfg.captcha_site_key||''});if(Array.isArray(F)){lsSet('mp3_sfoods',F);addShared(F)}render();
+  try{const [C,A,F]=await Promise.all([cFetch('/rest/v1/app_config?select=latest_version,min_version,features,defaults,captcha_site_key,meal_templates',{anon:true}),cFetch('/rest/v1/announcements?select=id,title,body,level&order=id.desc&limit=5',{anon:true}),cFetch('/rest/v1/shared_foods?select=id,n,grp,k,p,c,f,u,ug&active=eq.true',{anon:true})]);
+    ui.pub={cfg:Array.isArray(C)?C[0]:null,ann:Array.isArray(A)?A.filter(x=>x&&x.title):[]};if(ui.pub.cfg)lsSet('mp3_pub',{features:ui.pub.cfg.features||{},defaults:ui.pub.cfg.defaults||{},captcha_site_key:ui.pub.cfg.captcha_site_key||'',meal_templates:ui.pub.cfg.meal_templates||[]});if(Array.isArray(F)){lsSet('mp3_sfoods',F);addShared(F)}render();
   }catch(e){}
 }
 function addShared(F){(F||[]).forEach(x=>{if(!CAT.some(r=>r.sid===x.id)){const r=[x.n,'','',x.grp,+x.k,+x.p,+x.c,+x.f,x.u||'',+x.ug||0];r.sid=x.id;CAT.push(r)}})}
@@ -327,6 +328,7 @@ function modalBody(){
   }else if(modal.type==='shq'){
     const x=shopLines().find(z=>z.id===modal.id)||{n:'',q:''};
     m.innerHTML=`<div class="sheet" role="dialog" aria-label="كمية ${esc(x.n)}"><h2>${esc(x.n)}</h2><label class="lbl">الكمية<input id="shq_v" value="${esc(x.q)}" style="max-width:60%"></label><div class="btns"><button class="btn pri" data-act="shqsave">حفظ</button><button data-act="close">إلغاء</button></div></div>`;
+  }else if(['mopts','mtpl','msave'].includes(modal.type)&&vMealModal(m)){
   }else if(modal.type==='acctdata'){
     m.innerHTML=`<div class="sheet" role="dialog"><h2>في حسابك بيانات محفوظة</h2><p class="note">اختر ما تريد الاحتفاظ به على هذا الجهاز.</p>
     <div class="list" style="box-shadow:none;border:1px solid var(--ln)"><button class="li" data-act="acctpull"><span class="g"><b>استخدام بيانات الحساب</b><small>تحلّ محل بيانات هذا الجهاز (مناسب لجهاز جديد)</small></span></button>

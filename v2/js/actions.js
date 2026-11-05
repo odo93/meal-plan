@@ -60,6 +60,29 @@ function act(a,ds){
     case 'hlog':modal={type:'hlog',date:ds.d,m:+ds.m,i:+ds.i};break;
     case 'hdel':{const dt=ds.d;ask('حذف سجل '+dateLabel(dt)+' نهائياً؟',()=>hDel(meta.cur,dt));return}
     case 'hr':ui.hr=ds.v;break;
+    case 'mpadd':{const P=mplan();if(P.length<6)P.push({id:mpid(),n:'سناك',slot:'s',t:'',pct:10});break}
+    case 'mpdel':{const P=mplan();if(P.length>3)P.splice(+ds.v,1);break}
+    case 'mpset':if(MP_PRESETS[ds.v])S().mplan=mkPlan(ds.v);break;
+    case 'mpeven':mpPcts(mplan());break;
+    case 'mpapply':{const n=planDiffDays().length,run=()=>{const r=applyPlanToWeek();toast(r?`أُعيد بناء ${daysWord(r)} حسب وجباتك`:'ضُبطت كميات الأسبوع على نِسب الوجبات')};
+      if(n){ask(`سيُعاد بناء ${daysWord(n)} لم يبدأ تسجيلها حسب الوجبات الجديدة (يُفقد أي تعديل يدوي فيها). متابعة؟`,run);return}run();break}
+    case 'libdel':{const s=S();s.lib=myLib().filter(t=>t.id!==ds.id);toast('حُذفت من وجباتك الجاهزة');break}
+    case 'mopts':modal={type:'mopts',m:+ds.m};break;
+    case 'mtpl':modal={type:'mtpl',m:modal.m};break;
+    case 'msave':modal={type:'msave',m:modal.m};break;
+    case 'msaved':{const mi=modal.m,t=mealToTpl(d,mi,(($('#ms_n')||{}).value||'').trim());if(!t.items.length){toast('الوجبة فارغة');return}
+      t.src=ui.remote?'coach':'mine';if(ui.remote)t.by=cloud.email||'المدرب';const L=myLib();L.unshift(t);if(L.length>40)L.length=40;modal=null;toast('حُفظت «'+t.n+'» في '+(ui.remote?'وجبات المتدرب':'وجباتك الجاهزة'));break}
+    case 'mtplapply':{const mi=modal.m,t=findTpl(ds.id);if(!t)return;if(d.meals[mi].items.some(it=>gE(it)!=null)){toast('بدأ تسجيل هذه الوجبة — امسح تسجيلها أولاً');return}
+      const before=clone(state.days[ui.day]),di=ui.day;applyTpl(d,mi,t);
+      if(t.src==='coachown'){const c=Object.assign(clone(t),{id:'t'+Date.now().toString(36),src:'coach',by:cloud.email||'المدرب'});const L=myLib();if(!L.some(x=>x.n===c.n&&x.src==='coach'))L.unshift(c)}
+      modal=null;toast('استُبدلت الوجبة بـ«'+t.n+'»',()=>{state.days[di]=before;save();render()});break}
+    case 'musual':{const mi=modal.m,mm=d.meals[mi];if(mm.items.some(it=>gE(it)!=null)){toast('بدأ تسجيل هذه الوجبة');return}
+      const by=usualByGroup();if(!Object.keys(by).length){modal=null;toast('سجّل ما تأكله أسبوعاً على الأقل لنعرف أصنافك المعتادة');break}
+      const before=clone(state.days[ui.day]),di=ui.day,n=usualizeMeal(mm,by,ui.day);if(n)fitDay(d,true);modal=null;
+      toast(n?`استُبدل ${n} ${n===1?'صنف':'أصناف'} بأصنافك المعتادة`:'الوجبة من أصنافك المعتادة أصلاً',n?()=>{state.days[di]=before;save();render()}:null);break}
+    case 'mrefit':fitDay(d,true);modal=null;toast('ضُبطت الكميات على نصيب الوجبة');break;
+    case 'mpub':{const t=mealToTpl(d,modal.m);if(!t.items.length){toast('الوجبة فارغة');return}const cur=(pubCfg().meal_templates||[]).filter(validTpl);modal=null;
+      cRun(async()=>{await cFetch('/rest/v1/app_config?id=eq.1',{method:'PATCH',headers:{Prefer:'return=minimal'},body:{meal_templates:[...cur,t].slice(-50),updated_at:new Date().toISOString()}});await loadPublic();toast('نُشرت «'+t.n+'» لكل المستخدمين');return 'تم النشر'});break}
     case 'usualweek':{if(!Object.keys(usualByGroup()).length){modal=null;toast('سجّل ما تأكله أسبوعاً على الأقل لنعرف أصنافك المعتادة');break}
       ask('في أيام الأسبوع التي لم يبدأ تسجيلها: يُستبدل كل صنف بصنف من أصنافك المعتادة من نفس النوع، ثم تُضبط الكميات على أهدافك. متابعة؟',()=>{
         const before=clone(state.days),r=planFromUsual();
@@ -107,7 +130,7 @@ function act(a,ds){
         toast('أُلغي إنهاء «'+mm.n+'»',()=>{mm.items.forEach((it,k)=>{if(prev[k].e!=null)it.e=prev[k].e;if(prev[k].em!=null)it.em=prev[k].em})})}
       else{mm.items.forEach(it=>{if(!it.x&&gE(it)==null)it.e=it.g});d.lw=weekKey();const nx=d.meals.findIndex((x,j)=>j>mi&&!mealDone(x)&&x.items.length);ui.open={d:ui.day,m:nx};toast('تم تسجيل «'+mm.n+'»')}
       break}
-    case 'addmeal':{const k=d.meals.filter(x=>x.n.startsWith('سناك إضافي')).length,n='سناك إضافي'+(k?' '+(k+1):'');d.meals.push({n,items:[]});ui.open={d:ui.day,m:d.meals.length-1};modal=null;toast('أُضيف «'+n+'» — أضف أصنافه');break}
+    case 'addmeal':{const k=d.meals.filter(x=>x.n.startsWith('سناك إضافي')).length,n='سناك إضافي'+(k?' '+(k+1):'');d.meals.push({n,items:[],extra:true});ui.open={d:ui.day,m:d.meals.length-1};modal=null;toast('أُضيف «'+n+'» — أضف أصنافه');break}
     case 'delmeal':{const mi=+ds.m;if(d.meals[mi]&&!d.meals[mi].items.length&&d.meals.length>1){d.meals.splice(mi,1);ui.open=null}break}
     case 'del':{modal=null;const di=ui.day,m=+ds.m,i=+ds.i,[rm]=d.meals[m].items.splice(i,1),f=FOOD(rm);toast('حُذف «'+(f?f.n:'الصنف')+'»',()=>{state.days[di].meals[m].items.splice(i,0,rm)});break}
     case 'undo':{const u=toast.u;toast.u=null;clearTimeout(toast.t);$('#toast').style.display='none';if(u)u();break}
@@ -200,6 +223,9 @@ document.addEventListener('change',e=>{
   else if(c==='eqn'){const e=S().eqs.find(x=>x.id===t.dataset.id);if(e){const k=t.dataset.k;e[k]=t.value.trim()||(k==='name'?e.name:'');ui.eqo=e.id}}
   else if(c==='eqc'){const e=S().eqs.find(x=>x.id===t.dataset.id);if(e&&e[t.dataset.sx]){e[t.dataset.sx][t.dataset.k]=+t.value||0;ui.eqo=e.id}}
   else if(c==='gln'){const g=S().goals.find(x=>x.id===t.dataset.id);if(g){if(t.dataset.k==='name')g.name=t.value.trim()||g.name;else g.sign=+t.value}}
+  else if(c==='mp'){const P=mplan(),x=P[+t.dataset.i],k=t.dataset.k;if(!x)return;
+    if(k==='pct')x.pct=Math.min(100,Math.max(0,Math.round(+t.value||0)));else if(k==='slot'){if(SLOTS[t.value])x.slot=t.value}
+    else if(k==='t'){if(!t.value||/^\d{2}:\d{2}$/.test(t.value))x.t=t.value}else if(k==='n')x.n=t.value.trim().slice(0,30)||SLOTS[x.slot]}
   else if(c==='tdeeauto'){S().tdeeAuto=t.checked;if(t.checked){const v=autoTdee();if(v)toast('حُدّث احتياجك الفعلي: '+v+' سعرة')}}
   else if(c==='cl'){const k=t.dataset.k;if(k==='email'){cloud.email=t.value.trim();cSave()}return}
   else if(c==='gp'){const ss=S(),k=t.dataset.k;ss.g[ss.goal][k]=(k==='mode'||k==='prB'||k==='fatM')?t.value:(+t.value||0)}

@@ -49,6 +49,9 @@ function fixSettings(s){
   // نمط الأسبوع: عادي/قليل لكل يوم (0=السبت). للمستخدم الحالي يُؤخذ من أيامه فلا يتغير شيء عنده.
   if(!validPat(s.cyc.pat))s.cyc.pat=(typeof state!=='undefined'&&state&&state.settings===s&&Array.isArray(state.days)&&state.days.length===7)?state.days.map(d=>d.mode==='low'?'low':'high'):defPat();
   // تعديل يوم: ovW = كل أسبوع (حسب اليوم)، ovD = هذا التاريخ فقط (يحمل مفتاح الأسبوع wk)
+  // خطة الوجبات ومكتبة الوجبات الجاهزة (meals.js)
+  if(!validPlan(s.mplan))s.mplan=(typeof state!=='undefined'&&state&&state.settings===s&&Array.isArray(state.days)&&state.days.length===7)?derivePlan(state.days):defPlan();
+  if(!Array.isArray(s.lib))s.lib=[];
   if(!s.ovW||typeof s.ovW!=='object')s.ovW={};if(!s.ovD||typeof s.ovD!=='object')s.ovD={};
   return s;
 }
@@ -129,24 +132,22 @@ function setPat(np){const s=S(),old=s.cyc.pat;s.cyc.pat=np;const n=modeDiffs().l
 }
 function roundG(f,g){if(f.u&&f.ug)return Math.max(1,rd(g/f.ug))*f.ug;const st=g>=20?5:1;return Math.max(st,rd(g/st)*st)}
 
+// ضبط الكميات: أدوار P/C/F تتغير (الثابت x لا)، بمعامل لكل دور محدود 0.25–3
+function fitItems(items,T,base){const fac={P:1,C:1,F:1};
+  for(let n=0;n<40;n++)for(const [R,m] of [['P','p'],['C','c'],['F','f']]){
+    const cur=sum(items)[m],grp=items.filter(i=>i.r===R),contrib=grp.reduce((a,i)=>a+mac(i)[m],0);if(contrib<=0)continue;
+    let s=1+(T[m]-cur)/contrib;s=Math.min(1.3,Math.max(0.75,s));fac[R]=Math.min(3,Math.max(0.25,fac[R]*s));grp.forEach(i=>i.g=base.get(i)*fac[R])}}
+// (1) كل وجبة على نصيبها من اليوم (خطة الوجبات)، ثم (2) تصحيح مجموع اليوم
 function fitDay(d,useCur){
-  const items=d.meals.flatMap(m=>m.items),T=targets(d),fac={P:1,C:1,F:1};
+  const items=d.meals.flatMap(m=>m.items),T=targets(d);
   items.forEach(i=>{if(useCur)i.b=i.g;else i.g=i.b});
-  for(let n=0;n<40;n++){
-    for(const [R,m] of [['P','p'],['C','c'],['F','f']]){
-      const cur=sum(items)[m];
-      const grp=items.filter(i=>i.r===R);
-      const contrib=grp.reduce((a,i)=>a+mac(i)[m],0);
-      if(contrib<=0)continue;
-      let s=1+(T[m]-cur)/contrib;s=Math.min(1.3,Math.max(0.75,s));
-      fac[R]=Math.min(3,Math.max(0.25,fac[R]*s));
-      grp.forEach(i=>i.g=i.b*fac[R]);
-    }
-  }
+  d.meals.forEach((m,mi)=>{const MT=mealTarget(d,mi,T);if(MT&&m.items.length)fitItems(m.items,MT,new Map(m.items.map(i=>[i,i.g])))});
+  fitItems(items,T,new Map(items.map(i=>[i,i.g])));
   items.forEach(i=>{const f=F(i.f);if(f&&!i.x)i.g=roundG(f,i.g)});
 }
+// يوم جديد من خطة الوجبات: لكل وجبة وجبتها الجاهزة (المثبّتة، أو قالب الإدارة، أو قالب التطبيق) حسب نوع اليوم
 function buildDay(i,mode,prot){
-  const meals=TPL[mode].map(m=>({n:m.n,items:m.it.map(([id,g,r,s])=>({f:id==='@prot'?PROT[prot]:id,g,b:g,r,s:s||''}))}));
+  const meals=mplan().map(def=>({id:def.id,n:def.n,slot:def.slot,items:tplItems(pickTpl(def.slot,mode,def.tpl),prot)}));
   const d={name:DAYS[i],mode,prot,meals};fitDay(d);return d;
 }
 function defaultState(){
