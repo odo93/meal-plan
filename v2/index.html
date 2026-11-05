@@ -166,10 +166,21 @@ tr.clk{cursor:pointer}tr.avg td{font-weight:700;background:var(--ac2)}
 .note{font-size:12px;color:var(--mu)}
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:20}
 #modal.on{display:flex}
-.sheet{background:#fff;width:100%;max-width:760px;max-height:82vh;overflow:auto;border-radius:18px 18px 0 0;padding:14px}
-.sheet h3{margin:0 0 6px}
+.sheet{background:#fff;width:100%;max-width:760px;max-height:82vh;max-height:82dvh;overflow:auto;border-radius:18px 18px 0 0;padding:14px}
+.sheet h2{margin:0 0 6px}
+h2{font-size:1.17em;text-wrap:balance}
+.cand,.hr{width:100%;border-inline:0;border-bottom:0;background:none;font:inherit;color:inherit;text-align:start}
 .cand{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 6px;border-top:1px solid var(--ln);cursor:pointer;border-radius:8px}
-.cand:active{background:var(--ac2)}
+.cand:active,.hr:active{background:var(--ac2)}
+html{-webkit-tap-highlight-color:transparent}
+button,input,select,label,summary,[data-act]{touch-action:manipulation}
+.btn:active,.li:active,.ib:active,.chk:active,.more:active,#nav button:active{filter:brightness(.92)}
+@media (hover:hover){.btn:hover,.li:hover,.ib:hover,.more:hover,.cand:hover,.hr:hover,#nav button:hover{filter:brightness(.96)}}
+#modal,.sheet{overscroll-behavior:contain}
+.sheet:focus{outline:none}
+b,small,h1,h2,.note{overflow-wrap:anywhere}
+.skip{position:fixed;top:-60px;inset-inline-start:8px;z-index:30;background:var(--tx);color:#fff;border:0;border-radius:10px;padding:10px 14px;font:inherit}
+.skip:focus{top:calc(8px + env(safe-area-inset-top,0px))}
 .cand b{display:block}.cand small{color:var(--mu)}
 .dl{font-size:12px;text-align:end;white-space:nowrap;direction:ltr}
 .dl .w{color:var(--hi);font-weight:700}
@@ -186,8 +197,9 @@ tr.clk{cursor:pointer}tr.avg td{font-weight:700;background:var(--ac2)}
 </style>
 </head>
 <body>
+<button class="skip" data-act="skip">تخطَّ إلى المحتوى</button>
 <header id="top"></header>
-<main id="app"></main>
+<main id="app" tabindex="-1"></main>
 <nav id="nav" aria-label="التنقل الرئيسي"></nav>
 <div id="modal"></div>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -778,7 +790,7 @@ async function doOnline(q){
   ui.online=o;refreshLists();
 }
 function candRow(c,i,act){
-  return `<div class="cand" data-act="${act}" data-ci="${i}"><div><b>${esc(c.n)}</b><small>${SRCL[c.src]||''}${c.u&&c.ug?' · '+rd(c.k*c.ug/100)+' kcal/'+esc(c.u):''} · ${GROUPS[c.grp]}</small></div><div class="dl">${rd(c.k)} kcal · P ${r1(c.p)} · C ${r1(c.c)} · F ${r1(c.f)}</div></div>`;
+  return `<button type="button" class="cand" data-act="${act}" data-ci="${i}"><span><b>${esc(c.n)}</b><small>${SRCL[c.src]||''}${c.u&&c.ug?' · '+rd(c.k*c.ug/100)+' kcal/'+esc(c.u):''} · ${GROUPS[c.grp]}</small></span><span class="dl">${rd(c.k)} kcal · P ${r1(c.p)} · C ${r1(c.c)} · F ${r1(c.f)}</span></button>`;
 }
 function extraHtml(q,grp,act){
   ui.cands=[];if(!q)return'';
@@ -804,7 +816,7 @@ function candFood(c){
   return id;
 }
 function srcCard(){
-  return `<div class="card"><h3 style="margin:0 0 4px">مصادر البحث الأونلاين</h3><p class="note" style="margin:0 0 6px">يعمل البحث بمفتاح USDA التجريبي مباشرة، لكنه محدود (≈30 طلباً في الساعة). للاستخدام المريح سجّل مفتاحاً مجانياً (دقيقتان) من <b>fdc.nal.usda.gov/api-key-signup</b> ثم الصقه هنا. Open Food Facts لا يحتاج مفتاحاً. يمكنك أيضاً كتابة رقم الباركود في البحث.</p><input id="usda_key" placeholder="مفتاح USDA (اختياري)" value="${esc(SRC.usda||'')}" style="width:100%;direction:ltr"></div>`;
+  return `<div class="card"><h2 style="margin:0 0 4px">مصادر البحث الأونلاين</h2><p class="note" style="margin:0 0 6px">يعمل البحث بمفتاح USDA التجريبي مباشرة، لكنه محدود (≈30 طلباً في الساعة). للاستخدام المريح سجّل مفتاحاً مجانياً (دقيقتان) من <b>fdc.nal.usda.gov/api-key-signup</b> ثم الصقه هنا. Open Food Facts لا يحتاج مفتاحاً. يمكنك أيضاً كتابة رقم الباركود في البحث.</p><input id="usda_key" aria-label="مفتاح USDA" autocomplete="off" spellcheck="false" translate="no" placeholder="مفتاح USDA (اختياري)…" value="${esc(SRC.usda||'')}" style="width:100%;direction:ltr"></div>`;
 }
 function qtyOf(it){const f=F(it.f),g=it.x?(gE(it)||0):it.g;return f&&f.u&&f.ug?+(g/f.ug).toFixed(1):rd(g)}
 function unitOf(f){return f&&f.u?f.u:'جم'}
@@ -897,8 +909,8 @@ function foodsList(){
 }
 function nfForm(){
   const d=ui.nfd||{},v=k=>esc(d[k]==null?'':d[k]);
-  return `<div class="card" id="nfcard"><h3 style="margin:0 0 6px">إضافة صنف جديد</h3>
-  <div class="frm"><input id="nf_n" placeholder="الاسم" value="${v('n')}" style="grid-column:1/-1"><select id="nf_g">${Object.keys(GROUPS).map(g=>`<option value="${g}" ${d.g===g?'selected':''}>${GROUPS[g]}</option>`).join('')}</select><select id="nf_b"><option value="g">القيم التالية لكل 100 جم</option><option value="u" ${d.b==='u'?'selected':''}>القيم التالية لكل وحدة واحدة</option></select><input id="nf_k" type="number" step="any" placeholder="سعرات" value="${v('k')}"><input id="nf_p" type="number" step="any" placeholder="بروتين (جم)" value="${v('p')}"><input id="nf_c" type="number" step="any" placeholder="كارب (جم)" value="${v('c')}"><input id="nf_f" type="number" step="any" placeholder="دهون (جم)" value="${v('f')}"><input id="nf_u" placeholder="اسم الوحدة (حبة / قطعة)" value="${v('u')}"><input id="nf_ug" type="number" step="any" placeholder="وزن الوحدة بالجرام" value="${v('ug')}"></div>
+  return `<div class="card" id="nfcard"><h2 style="margin:0 0 6px">إضافة صنف جديد</h2>
+  <div class="frm sc"><label style="grid-column:1/-1"><span>الاسم</span><input id="nf_n" placeholder="مثال: لبنة قليلة الدسم…" value="${v('n')}"></label><label><span>التصنيف</span><select id="nf_g">${Object.keys(GROUPS).map(g=>`<option value="${g}" ${d.g===g?'selected':''}>${GROUPS[g]}</option>`).join('')}</select></label><label><span>القيم</span><select id="nf_b"><option value="g">لكل 100 جم</option><option value="u" ${d.b==='u'?'selected':''}>لكل وحدة واحدة</option></select></label><label><span>سعرات</span><input id="nf_k" type="number" step="any" inputmode="decimal" value="${v('k')}"></label><label><span>بروتين (جم)</span><input id="nf_p" type="number" step="any" inputmode="decimal" value="${v('p')}"></label><label><span>كارب (جم)</span><input id="nf_c" type="number" step="any" inputmode="decimal" value="${v('c')}"></label><label><span>دهون (جم)</span><input id="nf_f" type="number" step="any" inputmode="decimal" value="${v('f')}"></label><label><span>اسم الوحدة (اختياري)</span><input id="nf_u" placeholder="حبة، قطعة…" value="${v('u')}"></label><label><span>وزن الوحدة بالجرام</span><input id="nf_ug" type="number" step="any" inputmode="decimal" value="${v('ug')}"></label></div>
   <p class="note" style="margin:6px 0 0">القراءة من الصورة تقريبية دائماً: راجع الأرقام قبل الإضافة. مثال بسكويت: «لكل وحدة»، الوحدة «قطعة»، السعرات 35. إن لم تعرف وزن القطعة اتركه فارغاً (السعرات تبقى صحيحة).</p>
   <button class="btn pri" style="width:100%;margin-top:8px" data-act="addfood">إضافة</button></div>`;
 }
@@ -971,7 +983,7 @@ function vEqMgmt(s){
   <p class="note">الاستعادة تعيد القوائم فقط ولا تمس بياناتك. بعد أي تغيير استخدم «ضبط كميات الأسبوع» من «أهدافي».</p>`;
 }
 function vCloud(){const c=cloud,on=!!c.sess;
-  return `<div class="card set"><h3 style="margin:0 0 6px">المزامنة السحابية (اختيارية)</h3>
+  return `<div class="card set"><h2 style="margin:0 0 6px">المزامنة السحابية (اختيارية)</h2>
   <p class="note">دون إعداد، كل شيء يُحفظ في هذا المتصفح فقط. للمزامنة بين أجهزتك: أنشئ مشروعاً مجانياً على Supabase، نفّذ ملف <b>schema.sql</b> (مرفق)، ثم أدخل رابط المشروع والمفتاح العام (anon / publishable). لا تُدخل مفتاح service_role أبداً.</p>
   <label>رابط المشروع<input id="cl_url" dir="ltr" value="${esc(c.url||'')}" data-ch="cl" data-k="url" placeholder="https://xxxx.supabase.co" style="width:100%"></label>
   <label>المفتاح العام<input id="cl_key" dir="ltr" value="${esc(c.key||'')}" data-ch="cl" data-k="key" style="width:100%"></label>
@@ -979,8 +991,8 @@ function vCloud(){const c=cloud,on=!!c.sess;
   ${on?`<p class="note">مسجّل الدخول: <b dir="ltr">${esc(c.email||'')}</b></p>
   <label><span><input type="checkbox" data-ch="cl" data-k="auto" ${c.auto?'checked':''} style="width:auto"> رفع تلقائي بعد كل تعديل</span></label>
   <div class="btns"><button data-act="cpush">⬆ رفع الآن</button><button data-act="cpull">⬇ تنزيل من السحابة</button><button data-act="clogout">خروج</button></div>`
-  :`<label>البريد<input id="cl_em" dir="ltr" type="email" value="${esc(c.email||'')}" data-ch="cl" data-k="email" style="width:100%"></label>
-  <label>كلمة المرور (لا تُحفظ في الجهاز)<input id="cl_pw" type="password" dir="ltr" autocomplete="current-password" style="width:100%"></label>
+  :`<label>البريد<input id="cl_em" dir="ltr" type="email" name="email" autocomplete="email" spellcheck="false" value="${esc(c.email||'')}" data-ch="cl" data-k="email" style="width:100%"></label>
+  <label>كلمة المرور (لا تُحفظ في الجهاز)<input id="cl_pw" type="password" name="password" dir="ltr" autocomplete="current-password" style="width:100%"></label>
   <div class="btns"><button data-act="clogin">تسجيل الدخول</button><button data-act="csignup">إنشاء حساب</button></div><div class="btns" style="margin-top:6px"><button data-act="cforgot">نسيت كلمة المرور؟ أرسل رابط استعادة</button></div>`}
   <p class="note" id="cst">${esc(c.last||'')}</p></div>`;
 }
@@ -1108,7 +1120,7 @@ function vFamily(){
   const shared=(ui.shared||[]).length?`<div class="grp">مشاركون معي</div><div class="list">${ui.shared.map((x,i)=>`<div class="li" style="cursor:default">${avS(x.name)}<span class="g"><b>${esc(x.name)}</b><small>من ${esc(x.owner_email||'')} · ${ROLES[x.role]}</small></span><button class="btn" style="flex:0 0 auto" data-act="whopick" data-v="${i}">عرض</button><button class="btn dan" style="flex:0 0 auto" data-act="gleave" data-v="${i}">مغادرة</button></div>`).join('')}</div>`:'';
   return `<div class="grp">ملفاتي على هذا الجهاز</div><div class="list">${mine}</div>
   <div class="btns"><button data-act="uadd">＋ إضافة فرد أو طفل</button><button data-act="uren">تعديل اسم «${esc(curUser().name)}»</button></div>
-  ${on?grants+shared+`<div class="grp">لديك كود من شخص آخر؟</div><div class="card"><div class="fr2"><input id="inv_code" dir="ltr" autocomplete="off" placeholder="مثال: K7Q2MX" style="text-transform:uppercase;letter-spacing:.1em" aria-label="كود الدعوة"><button class="btn pri" style="flex:0 0 auto" data-act="gaccept">قبول</button></div><p class="note" id="inv_msg">أدخل الكود الذي أرسله لك صاحب الخطة. بعدها يظهر في «من تعرض؟».</p></div>`
+  ${on?grants+shared+`<div class="grp">لديك كود من شخص آخر؟</div><div class="card"><div class="fr2"><input id="inv_code" dir="ltr" autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="مثال: K7Q2MX" style="text-transform:uppercase;letter-spacing:.1em" aria-label="كود الدعوة"><button class="btn pri" style="flex:0 0 auto" data-act="gaccept">قبول</button></div><p class="note" id="inv_msg">أدخل الكود الذي أرسله لك صاحب الخطة. بعدها يظهر في «من تعرض؟».</p></div>`
   :`<div class="bnr info"><span class="g"><b>المشاركة تحتاج تسجيل الدخول</b>لمشاركة ملف مع فرد بالغ أو مدرب، أو لقبول كود، سجّل الدخول أولاً.</span><button class="btn" data-act="tab" data-v="me/sync">تسجيل الدخول</button></div>`}
   <p class="note">ملف الطفل لا يحتاج بريداً ويُدار بالكامل من حسابك. البالغ أو المدرب يحصل على صلاحية بكود تُرسله له، ويمكنك إيقافها في أي وقت. الحذف من «منطقة الخطر» في حسابي.</p>`;
 }
@@ -1127,7 +1139,7 @@ function vClients(){
   :`<div class="card"><b>لا يوجد متدربون بعد</b><p class="note">اطلب من المتدرب: حسابي › الأشخاص والمشاركة › مشاركة، ويختار «مدرب / أخصائي» ثم يرسل لك الكود. أدخل الكود في «الأشخاص والمشاركة».</p><button class="btn" data-act="tab" data-v="me/family">إدخال كود</button></div>`}`;
 }
 function vData(){return `
-  <div class="card"><h3 style="margin:0 0 6px">النسخ الاحتياطي</h3><p class="note">لكل مستخدم إعداداته وأصنافه وخطته، ويُحفظ كل يوم بأصنافه في مفتاح مستقل داخل هذا المتصفح، ويُحفظ الفعلي لكل تاريخ في «التقدم» ويدخل في التصدير. المستخدم الحالي: <b>${esc(curUser().name)}</b>. صدّر نسخة احتياطية قبل تغيير الجهاز.</p><div class="btns"><button data-act="export">تصدير كل المستخدمين</button><button data-act="import">استيراد</button></div></div>`;
+  <div class="card"><h2 style="margin:0 0 6px">النسخ الاحتياطي</h2><p class="note">لكل مستخدم إعداداته وأصنافه وخطته، ويُحفظ كل يوم بأصنافه في مفتاح مستقل داخل هذا المتصفح، ويُحفظ الفعلي لكل تاريخ في «التقدم» ويدخل في التصدير. المستخدم الحالي: <b>${esc(curUser().name)}</b>. صدّر نسخة احتياطية قبل تغيير الجهاز.</p><div class="btns"><button data-act="export">تصدير كل المستخدمين</button><button data-act="import">استيراد</button></div></div>`;
 }
 function vMeSubData(){return vData()+srcCard()}
 function vMeSub(){const s=S();
@@ -1190,21 +1202,21 @@ function vHist(){
   <div class="dv"><span>أصناف نُقلت بين الوجبات</span><b>${mv}</b></div></div></details>
   <div class="dhead"><b>الأيام <small>الشريط = الفعلي، الخط = الخطة</small></b></div><div class="card" style="padding:4px 12px">`;
   h+=A.map(({r,L})=>{const pc=Math.min(100,L.eaten.k/max*100),pp=Math.min(100,L.plan.k/max*100),part=!(L.total>0&&L.logged===L.total);
-    return `<div class="hr" data-act="hopen" data-d="${r.date}"><span>${r.date.slice(5).replace('-','/')} ${esc(r.name)}</span><div class="hb"><i class="${part?'part':''}" style="width:${pc}%"></i><u style="inset-inline-start:${pp}%"></u></div><b>${rd(L.eaten.k)}${part?'*':''}</b></div>`}).join('')+`</div>`;
+    return `<button type="button" class="hr" data-act="hopen" data-d="${r.date}"><span>${r.date.slice(5).replace('-','/')} ${esc(r.name)}</span><span class="hb" aria-hidden="true"><i class="${part?'part':''}" style="width:${pc}%"></i><u style="inset-inline-start:${pp}%"></u></span><b>${rd(L.eaten.k)}${part?'*':''}</b></button>`}).join('')+`</div>`;
   return h;
 }
-function renderModal(){
+function modalBody(){
   const m=$('#modal');
   if(!modal){m.className='';m.innerHTML='';return}
   m.className='on';
   if(modal.type==='ask'){
-    m.innerHTML=`<div class="sheet"><h3>تأكيد</h3><p>${esc(modal.msg)}</p><div class="btns"><button class="btn pri" data-act="yes">متابعة</button><button class="btn" data-act="close">إلغاء</button></div></div>`;
+    m.innerHTML=`<div class="sheet"><h2>تأكيد</h2><p>${esc(modal.msg)}</p><div class="btns"><button class="btn pri" data-act="yes">متابعة</button><button class="btn" data-act="close">إلغاء</button></div></div>`;
   }else if(modal.type==='user'){
-    m.innerHTML=`<div class="sheet"><h3>${modal.mode==='add'?'مستخدم جديد':'تعديل الاسم'}</h3><input id="un" value="${esc(modal.name||'')}" placeholder="الاسم" style="width:100%">${modal.mode==='add'?'<label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="ucopy" style="width:auto"> نسخ إعدادات وأصناف وخطة المستخدم الحالي</label><label style="display:flex;gap:8px;align-items:center;margin:0 0 10px"><input type="checkbox" id="ukid" style="width:auto"> ملف طفل (بلا بريد، تديره أنت بالكامل)</label><p class="note" style="margin:0 0 6px">بدون النسخ يبدأ بالخطة والإعدادات الافتراضية.</p>':'<div style="height:10px"></div>'}<div class="btns"><button class="btn pri" data-act="usave">حفظ</button><button class="btn" data-act="close">إلغاء</button></div></div>`;
+    m.innerHTML=`<div class="sheet"><h2>${modal.mode==='add'?'مستخدم جديد':'تعديل الاسم'}</h2><input id="un" value="${esc(modal.name||'')}" aria-label="الاسم" autocomplete="off" placeholder="الاسم…" style="width:100%">${modal.mode==='add'?'<label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="ucopy" style="width:auto"> نسخ إعدادات وأصناف وخطة المستخدم الحالي</label><label style="display:flex;gap:8px;align-items:center;margin:0 0 10px"><input type="checkbox" id="ukid" style="width:auto"> ملف طفل (بلا بريد، تديره أنت بالكامل)</label><p class="note" style="margin:0 0 6px">بدون النسخ يبدأ بالخطة والإعدادات الافتراضية.</p>':'<div style="height:10px"></div>'}<div class="btns"><button class="btn pri" data-act="usave">حفظ</button><button class="btn" data-act="close">إلغاء</button></div></div>`;
   }else if(modal.type==='log'||modal.type==='hlog'){
     const hr=modal.type==='hlog'?getRec(modal.date):null,d=hr||state.days[ui.day],it=d.meals[modal.m].items[modal.i],f=FOOD(it),e=gE(it),em=emOf(it,modal.m);
     const u=f.u&&f.ug?f.ug:1,dq=+(((e!=null?e:(it.x?0:it.g)))/u).toFixed(1);
-    m.innerHTML=`<div class="sheet"><h3>تسجيل: ${esc(f.n)}</h3><p class="note">${it.x?'صنف خارج الخطة':`الخطة: ${fmtQ(f,it.g)} في ${esc(mealShort(d,modal.m))}`}</p>
+    m.innerHTML=`<div class="sheet"><h2>تسجيل: ${esc(f.n)}</h2><p class="note">${it.x?'صنف خارج الخطة':`الخطة: ${fmtQ(f,it.g)} في ${esc(mealShort(d,modal.m))}`}</p>
     <label class="lbl">الكمية المأكولة (${esc(unitOf(f))})<input id="lq" type="number" inputmode="decimal" step="any" min="0" value="${dq}" style="width:100px;text-align:center"></label>
     <label class="lbl">أُكل في<select id="lm">${d.meals.map((mm,j)=>`<option value="${j}" ${j===em?'selected':''}>${esc(mm.n)}</option>`).join('')}</select></label>
     <div class="btns"><button class="btn pri" data-act="logsave">حفظ كمأكول</button>${it.x?'':'<button data-act="logskip">لم يُؤكل</button>'}</div>
@@ -1217,7 +1229,7 @@ function renderModal(){
     const r4=(l,t,cls)=>`<tr${cls?` class="${cls}"`:''}><td>${l}</td><td>${rd(t.k)}</td><td>${rd(t.p)}</td><td>${rd(t.c)}</td><td>${rd(t.f)}</td></tr>`;
     const dr=(l,a,b)=>`<tr><td>${l}</td><td>${dc(a.k-b.k,b.k)}</td><td>${dc(a.p-b.p,b.p)}</td><td>${dc(a.c-b.c,b.c)}</td><td>${dc(a.f-b.f,b.f)}</td></tr>`;
     const ic={skip:'✗',qty:'≠',move:'↪',extra:'＋'};
-    m.innerHTML=`<div class="sheet"><h3>${hr?esc(d.name)+' — '+dateLabel(hr.date):'مقارنة '+esc(d.name)+' — '+dateLabel(dateOfDay(ui.day))}</h3>
+    m.innerHTML=`<div class="sheet"><h2>${hr?esc(d.name)+' — '+dateLabel(hr.date):'مقارنة '+esc(d.name)+' — '+dateLabel(dateOfDay(ui.day))}</h2>
     <p class="note">سُجّل ${L.logged} من ${L.total} صنف. المتوقع للنهاية = المأكول + ما لم يُسجَّل بعد (محسوب كما في الخطة).</p>
     <table><tr><th></th><th>سعرات</th><th>P</th><th>C</th><th>F</th></tr>${r4('الخطة',L.plan)}${r4('المأكول فعلاً',L.eaten)}${r4('لم يُسجَّل بعد',L.pend)}${r4('المتوقع للنهاية',L.exp,'avg')}${dr('الفرق عن الخطة',L.exp,L.plan)}${dr('الفرق عن الهدف',L.exp,Tg)}</table>
     <h4>حسب الوجبة (سعرات)</h4>
@@ -1230,24 +1242,24 @@ function renderModal(){
   }else if(modal.type==='food'){
     const f=F(modal.id);if(!f){modal=null;m.className='';m.innerHTML='';return}
     const pu=ui.fu==='unit'&&f.u&&f.ug,val=k=>pu?+(f[k]*f.ug/100).toFixed(2):f[k];
-    m.innerHTML=`<div class="sheet" role="dialog" aria-label="تعديل ${esc(f.n)}"><h3>تعديل الصنف</h3>
+    m.innerHTML=`<div class="sheet" role="dialog" aria-label="تعديل ${esc(f.n)}"><h2>تعديل الصنف</h2>
     <label class="lbl" style="flex-direction:column;align-items:stretch">الاسم<input value="${esc(f.n)}" data-ch="food" data-id="${f.id}" data-fld="n"></label>
     <p class="note">القيم ${pu?'لكل '+esc(f.u):'لكل 100 جم'} — أي تعديل يتحدّث في كل الخطة فوراً.</p>
     <div class="tiles" style="grid-template-columns:repeat(4,1fr)">${[['k','سعرات'],['p','بروتين'],['c','كارب'],['f','دهون']].map(([k,l])=>`<label class="sc"><span>${l}</span><input type="number" step="any" inputmode="decimal" value="${val(k)}" data-ch="food" data-id="${f.id}" data-fld="${k}"></label>`).join('')}</div>
     <div class="tiles" style="grid-template-columns:1fr 1fr;margin-top:8px"><label class="sc"><span>الوحدة (اختياري)</span><input value="${esc(f.u||'')}" placeholder="حبة" data-ch="food" data-id="${f.id}" data-fld="u"></label><label class="sc"><span>وزن الوحدة جم</span><input type="number" step="any" value="${f.ug||''}" data-ch="food" data-id="${f.id}" data-fld="ug"></label></div>
     <div class="btns" style="margin-top:10px"><button class="btn pri" data-act="close">تم</button><button class="btn dan" data-act="delfood" data-id="${f.id}">حذف الصنف</button></div></div>`;
   }else if(modal.type==='weekopts'){
-    m.innerHTML=`<div class="sheet" role="dialog" aria-label="خيارات الأسبوع"><h3>خيارات الأسبوع</h3><div class="list" style="box-shadow:none;border:1px solid var(--ln)">
+    m.innerHTML=`<div class="sheet" role="dialog" aria-label="خيارات الأسبوع"><h2>خيارات الأسبوع</h2><div class="list" style="box-shadow:none;border:1px solid var(--ln)">
     <button class="li" data-act="refitweek"><span class="g"><b>ضبط كميات الأسبوع على الأهداف</b><small>يُبقي الأصناف</small></span></button>
     <button class="li" data-act="print"><span class="g"><b>طباعة الأسبوع</b></span></button>
     <button class="li dz" data-act="rebuildweek"><span class="g"><b>إعادة بناء الأسبوع من القوالب</b><small>يُفقد أي تعديل يدوي</small></span></button></div>
     <div class="btns" style="margin-top:8px"><button data-act="close">إغلاق</button></div></div>`;
   }else if(modal.type==='shq'){
     const x=shopLines().find(z=>z.id===modal.id)||{n:'',q:''};
-    m.innerHTML=`<div class="sheet" role="dialog" aria-label="كمية ${esc(x.n)}"><h3>${esc(x.n)}</h3><label class="lbl">الكمية<input id="shq_v" value="${esc(x.q)}" style="max-width:60%"></label><div class="btns"><button class="btn pri" data-act="shqsave">حفظ</button><button data-act="close">إلغاء</button></div></div>`;
+    m.innerHTML=`<div class="sheet" role="dialog" aria-label="كمية ${esc(x.n)}"><h2>${esc(x.n)}</h2><label class="lbl">الكمية<input id="shq_v" value="${esc(x.q)}" style="max-width:60%"></label><div class="btns"><button class="btn pri" data-act="shqsave">حفظ</button><button data-act="close">إلغاء</button></div></div>`;
   }else if(modal.type==='dayopts'){
     const d=state.days[ui.day],L=dayLog(d);
-    m.innerHTML=`<div class="sheet" role="dialog" aria-label="خيارات اليوم"><h3>خيارات ${esc(d.name)}</h3>
+    m.innerHTML=`<div class="sheet" role="dialog" aria-label="خيارات اليوم"><h2>خيارات ${esc(d.name)}</h2>
     <h4>نوع اليوم</h4><div class="seg"><button class="${d.mode==='high'?'on':''}" data-act="mode" data-v="high">كارب عادي</button><button class="${d.mode==='low'?'on':''}" data-act="mode" data-v="low">كارب قليل</button></div>
     <label class="lbl">بروتين اليوم <select data-ch="prot">${Object.keys(PL).map(k=>`<option value="${k}" ${d.prot===k?'selected':''}>${PL[k]}</option>`).join('')}</select></label>
     <div class="list" style="box-shadow:none;border:1px solid var(--ln)">
@@ -1262,7 +1274,7 @@ function renderModal(){
     const d=state.days[ui.day],it=d.meals[modal.m]&&d.meals[modal.m].items[modal.i],f=it&&F(it.f);
     if(!f){modal=null;m.className='';m.innerHTML='';return}
     const a=`data-m="${modal.m}" data-i="${modal.i}"`;
-    m.innerHTML=`<div class="sheet" role="dialog" aria-label="خيارات ${esc(f.n)}"><h3>${esc(f.n)}</h3><p class="note">${it.x?'خارج الخطة':'الخطة: '+fmtQ(f,it.g)}${isCooked(f)&&!it.x?' مطبوخ (≈ '+rd(it.g*RAWF)+' جم نيء)':''}</p>
+    m.innerHTML=`<div class="sheet" role="dialog" aria-label="خيارات ${esc(f.n)}"><h2>${esc(f.n)}</h2><p class="note">${it.x?'خارج الخطة':'الخطة: '+fmtQ(f,it.g)}${isCooked(f)&&!it.x?' مطبوخ (≈ '+rd(it.g*RAWF)+' جم نيء)':''}</p>
     <div class="list" style="box-shadow:none;border:1px solid var(--ln)">
     <button class="li" data-act="log" ${a}><span class="g"><b>تسجيل كمية مختلفة أو وجبة أخرى</b><small>أو «لم يُؤكل»</small></span></button>
     ${it.x?'':`<button class="li" data-act="swap" ${a}><span class="g"><b>بدائل</b><small>صنف بنفس القيمة الغذائية</small></span></button>`}
@@ -1270,26 +1282,26 @@ function renderModal(){
     <div class="btns" style="margin-top:8px"><button data-act="close">إغلاق</button></div></div>`;
   }else if(modal.type==='who'){
     const L=ui.shared||[];
-    m.innerHTML=`<div class="sheet" role="dialog" aria-label="من تعرض؟"><h3>من تعرض؟</h3><div class="list" style="box-shadow:none;border:1px solid var(--ln)">${meta.users.map(u=>`<button class="li" data-act="uswitch" data-v="${u.id}" aria-pressed="${!ui.remote&&u.id===meta.cur}">${avS(u.name,!ui.remote&&u.id===meta.cur)}<span class="g"><b>${esc(u.name)}</b><small>${u.kind==='child'?'ملف طفل':'على هذا الجهاز'}${!ui.remote&&u.id===meta.cur?' · المعروض الآن':''}</small></span></button>`).join('')}
+    m.innerHTML=`<div class="sheet" role="dialog" aria-label="من تعرض؟"><h2>من تعرض؟</h2><div class="list" style="box-shadow:none;border:1px solid var(--ln)">${meta.users.map(u=>`<button class="li" data-act="uswitch" data-v="${u.id}" aria-pressed="${!ui.remote&&u.id===meta.cur}">${avS(u.name,!ui.remote&&u.id===meta.cur)}<span class="g"><b>${esc(u.name)}</b><small>${u.kind==='child'?'ملف طفل':'على هذا الجهاز'}${!ui.remote&&u.id===meta.cur?' · المعروض الآن':''}</small></span></button>`).join('')}
     ${L.map((x,i)=>`<button class="li" data-act="whopick" data-v="${i}" aria-pressed="${!!ui.remote&&ui.remote.owner===x.owner&&ui.remote.id===x.user_id}">${avS(x.name,!!ui.remote&&ui.remote.id===x.user_id)}<span class="g"><b>${esc(x.name)}</b><small>${ROLES[x.role]} · من ${esc(x.owner_email||'')}</small></span></button>`).join('')}</div>
     ${cloud.sess?'':'<p class="note">سجّل الدخول لترى الأشخاص المشاركين معك.</p>'}
     <div class="btns" style="margin-top:8px"><button data-act="tab" data-v="me/family">إدارة الأشخاص</button><button data-act="tab" data-v="me">حسابي</button><button data-act="close">إغلاق</button></div></div>`;
   }else if(modal.type==='share'){
     const u=meta.users.find(x=>x.id===modal.user)||{name:''};
-    m.innerHTML=`<div class="sheet" role="dialog" aria-label="مشاركة ${esc(u.name)}"><h3>مشاركة «${esc(u.name)}»</h3>${modal.code?`<p>أرسل هذا الكود للشخص. يدخله من: حسابي › الأشخاص والمشاركة.</p><div class="code" id="sh_code">${esc(modal.code)}</div><p class="note">الصلاحية: ${ROLES[modal.role]} (${ROLE_NOTE[modal.role]}). الكود يُستخدم مرة واحدة.</p><div class="btns"><button class="btn pri" data-act="gcopy">نسخ الكود</button><button data-act="close">تم</button></div>`
+    m.innerHTML=`<div class="sheet" role="dialog" aria-label="مشاركة ${esc(u.name)}"><h2>مشاركة «${esc(u.name)}»</h2>${modal.code?`<p>أرسل هذا الكود للشخص. يدخله من: حسابي › الأشخاص والمشاركة.</p><div class="code" id="sh_code">${esc(modal.code)}</div><p class="note">الصلاحية: ${ROLES[modal.role]} (${ROLE_NOTE[modal.role]}). الكود يُستخدم مرة واحدة.</p><div class="btns"><button class="btn pri" data-act="gcopy">نسخ الكود</button><button data-act="close">تم</button></div>`
     :`<p class="note">اختر ما يستطيع الشخص الآخر فعله. التسجيل (ما أكلت) يبقى لك دائماً.</p><div class="modes" style="grid-template-columns:1fr">${Object.keys(ROLES).map(r=>`<button class="${modal.role===r?'on':''}" data-act="srole" data-v="${r}" aria-pressed="${modal.role===r}"><b>${ROLES[r]}</b><small>${ROLE_NOTE[r]}</small></button>`).join('')}</div><div class="btns" style="margin-top:8px"><button class="btn pri" data-act="gcreate" ${modal.busy?'disabled':''}>${modal.busy?'جارٍ إنشاء الكود…':'إنشاء كود دعوة'}</button><button data-act="close">إلغاء</button></div>`}</div>`;
   }else if(modal.type==='scan'){
     m.innerHTML=scanHtml();
   }else if(modal.type==='swap'){
     const d=state.days[ui.day],it=d.meals[modal.m].items[modal.i],o=F(it.f),by=modal.by||state.settings.by;
     const c=swapCands(it,by),key=by==='kcal'?'k':KEYM[o.grp];
-    m.innerHTML=`<div class="sheet" data-stop><h3>بدائل: ${esc(o.n)} (${qtyOf(it)} ${esc(unitOf(o))})</h3>
+    m.innerHTML=`<div class="sheet" data-stop><h2>بدائل: ${esc(o.n)} (${qtyOf(it)} ${esc(unitOf(o))})</h2>
     <div class="seg" style="margin-bottom:6px"><button class="${by!=='kcal'?'on':''}" data-act="by" data-v="auto">مطابقة ${KEYL[KEYM[o.grp]]}</button><button class="${by==='kcal'?'on':''}" data-act="by" data-v="kcal">مطابقة السعرات</button></div>
     <p class="note">الكمية البديلة محسوبة لتساوي ${KEYL[key]} الصنف الحالي، والأرقام تبيّن فرق الميزان عن الأصل.</p>
-    ${c.map(x=>`<div class="cand" data-act="applyswap" data-f="${x.c.id}" data-g="${x.g}"><div><b>${esc(x.c.n)}</b><small>${rd(x.g/(x.c.ug||1)*(x.c.ug?1:1))} ${esc(unitOf(x.c))}</small></div><div class="dl"><span class="${Math.abs(x.d.k)>50?'w':''}">${sg(x.d.k)} kcal</span><br>P ${sg(x.d.p)} · C ${sg(x.d.c)} · F ${sg(x.d.f)}</div></div>`).join('')||'<p class="note">لا توجد بدائل.</p>'}
+    ${c.map(x=>`<button type="button" class="cand" data-act="applyswap" data-f="${x.c.id}" data-g="${x.g}"><span><b>${esc(x.c.n)}</b><small>${rd(x.g/(x.c.ug||1)*(x.c.ug?1:1))} ${esc(unitOf(x.c))}</small></span><span class="dl"><span class="${Math.abs(x.d.k)>50?'w':''}">${sg(x.d.k)} kcal</span><br>P ${sg(x.d.p)} · C ${sg(x.d.c)} · F ${sg(x.d.f)}</span></button>`).join('')||'<p class="note">لا توجد بدائل.</p>'}
     <button class="btn" style="width:100%;margin-top:8px" data-act="close">إغلاق</button></div>`;
   }else{
-    m.innerHTML=`<div class="sheet" data-stop><h3>إضافة صنف</h3><input id="q" type="search" placeholder="🔍 ابحث (يتجاهل التشكيل والهمزات)" value="${esc(ui.aq||'')}" style="margin-bottom:6px"><div class="gch sm" style="margin:0 0 6px"><button class="${!ui.ag?'on':''}" data-act="agrp" data-v="">الكل</button>${Object.keys(GROUPS).map(g=>`<button class="${ui.ag===g?'on':''}" data-act="agrp" data-v="${g}">${GROUPS[g]}</button>`).join('')}</div><label style="display:flex;gap:8px;align-items:center;margin:4px 0 8px;font-weight:600"><input type="checkbox" id="xtra" style="width:auto" ${ui.xt?'checked':''}> خارج الخطة (أكلته فعلاً)</label><div id="addList"></div><label class="btn" style="display:block;text-align:center;margin-top:8px">📷 إضافة من صورة ملصق / باركود<input type="file" id="am_img" accept="image/*" style="display:none"></label><button class="btn" style="width:100%;margin-top:6px" data-act="close">إغلاق</button></div>`;
+    m.innerHTML=`<div class="sheet" data-stop><h2>إضافة صنف</h2><input id="q" type="search" placeholder="🔍 ابحث (يتجاهل التشكيل والهمزات)" value="${esc(ui.aq||'')}" style="margin-bottom:6px"><div class="gch sm" style="margin:0 0 6px"><button class="${!ui.ag?'on':''}" data-act="agrp" data-v="">الكل</button>${Object.keys(GROUPS).map(g=>`<button class="${ui.ag===g?'on':''}" data-act="agrp" data-v="${g}">${GROUPS[g]}</button>`).join('')}</div><label style="display:flex;gap:8px;align-items:center;margin:4px 0 8px;font-weight:600"><input type="checkbox" id="xtra" style="width:auto" ${ui.xt?'checked':''}> خارج الخطة (أكلته فعلاً)</label><div id="addList"></div><label class="btn" style="display:block;text-align:center;margin-top:8px">📷 إضافة من صورة ملصق / باركود<input type="file" id="am_img" accept="image/*" style="display:none"></label><button class="btn" style="width:100%;margin-top:6px" data-act="close">إغلاق</button></div>`;
     renderAddList(ui.aq||'');
   }
 }
@@ -1297,18 +1309,43 @@ function renderAddList(q){
   const el=$('#addList');if(!el)return;ui.aq=q;
   const L=searchFoods(q,ui.ag);
   el.innerHTML=(q?`<p class="note" style="margin:0 0 4px">${L.length?'<b>أصنافي ('+L.length+')</b>':'لا توجد نتائج في أصنافي لـ «'+esc(q)+'»'}</p>`:'')
-    +L.map(f=>`<div class="cand" data-act="pick" data-id="${f.id}"><div><b>${esc(f.n)}</b><small>${GROUPS[f.grp]}${f.u&&f.ug?' · '+rd(f.k*f.ug/100)+' kcal/'+esc(f.u):''}</small></div><div class="dl">${rd(f.k)} kcal · P ${f.p} · C ${f.c} · F ${f.f}</div></div>`).join('')
+    +L.map(f=>`<button type="button" class="cand" data-act="pick" data-id="${f.id}"><span><b>${esc(f.n)}</b><small>${GROUPS[f.grp]}${f.u&&f.ug?' · '+rd(f.k*f.ug/100)+' kcal/'+esc(f.u):''}</small></span><span class="dl">${rd(f.k)} kcal · P ${f.p} · C ${f.c} · F ${f.f}</span></button>`).join('')
     +extraHtml(q,ui.ag,'pickc')
     +(q?`<button class="btn" style="width:100%;margin-top:6px" data-act="newfromq">＋ إضافة «${esc(q)}» يدوياً</button>`:'');
 }
+// التركيز: نحفظ مفتاح العنصر المركَّز ونعيده بعد إعادة البناء، وننقله إلى النافذة عند فتحها ونرجعه لزرّها عند إغلاقها
+const cssE=v=>(window.CSS&&CSS.escape)?CSS.escape(String(v)):String(v).replace(/["\\]/g,'\\$&');
+const FK=['act','ch','k','v','m','i','id','d','ci','f','g'];
+function fkey(el){if(!el||el===document.body||!el.closest)return null;if(!el.closest('#app,#top,#nav,#modal'))return null;
+  if(el.id&&el.id!=='app')return '#'+cssE(el.id);
+  const a=FK.filter(k=>el.dataset&&el.dataset[k]!=null).map(k=>'[data-'+k+'="'+cssE(el.dataset[k])+'"]');
+  return a.length?el.tagName.toLowerCase()+a.join(''):null}
+function refocus(sel,root){if(!sel)return false;let el=null;try{el=(root||document).querySelector(sel)}catch(e){}if(!el)return false;el.focus({preventScroll:true});return document.activeElement===el}
+let mOpen=null,mBack=null;
+function renderModal(fk){
+  if(fk===undefined)fk=fkey(document.activeElement);
+  const wasOpen=mOpen!=null;
+  modalBody();
+  const m=$('#modal'),sh=modal&&m.classList.contains('on')?m.querySelector('.sheet'):null;
+  ['top','app','nav'].forEach(id=>{const e=$('#'+id);if(!e)return;if(sh)e.setAttribute('inert','');else e.removeAttribute('inert')});
+  if(sh){
+    sh.setAttribute('role','dialog');sh.setAttribute('aria-modal','true');sh.tabIndex=-1;
+    const h=sh.querySelector('h2');if(h&&!sh.hasAttribute('aria-label')){h.id='mttl';sh.setAttribute('aria-labelledby','mttl')}
+    if(!wasOpen||mOpen!==modal.type){if(!wasOpen)mBack=fk;mOpen=modal.type;if(!sh.contains(document.activeElement))sh.focus({preventScroll:true})}
+    else if(!sh.contains(document.activeElement)&&!refocus(fk,sh))sh.focus({preventScroll:true});
+  }else if(wasOpen){mOpen=null;const b=mBack;mBack=null;if(!refocus(b))refocus(fk)}
+  else if(document.activeElement===document.body||!document.activeElement)refocus(fk);
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal){e.preventDefault();modal=null;render()}});
 function render(){
+  const fk=fkey(document.activeElement);
   if(ui.tab==='me'&&!SUBS[ui.sub])ui.sub='';
   const sub=ui.tab==='me'&&ui.sub,u=ui.remote?{name:ui.remote.name}:curUser(),title=sub?SUBS[ui.sub]:(TABS.find(t=>t[0]===ui.tab)||TABS[0])[1];
   $('#top').innerHTML=`<div class="top">${sub?`<button class="bk" data-act="back" aria-label="رجوع إلى حسابي">${ico('back')}</button>`:''}<h1>${title}${ui.tab==='me'?'':`<small>${esc(u.name)}</small>`}</h1>${ui.tab==='me'?'':`<button class="av" data-act="who" aria-haspopup="dialog" aria-label="من تعرض؟ الآن: ${esc(u.name)}" style="${ui.remote?'background:#3a5bd9;color:#fff':''}">${esc(u.name.trim().charAt(0)||'؟')}</button>`}</div>`;
   $('#nav').innerHTML=TABS.map(([k,l])=>`<button data-act="tab" data-v="${k}" ${ui.tab===k?'aria-current="page"':''}><span>${ico(k)}</span>${l}</button>`).join('');
   $('#app').innerHTML=banners()+(ui.tab==='day'?vDay():ui.tab==='week'?vWeek():ui.tab==='hist'?vHist():ui.tab==='foods'?vFoods():vMeSub());
   syncHash();
-  renderModal();
+  renderModal(fk);
 }
 
 // ---------- actions ----------
@@ -1316,6 +1353,7 @@ function act(a,ds){
   const blk=remoteBlock(a);if(blk){toast(blk);return}
   const d=state.days[ui.day];
   switch(a){
+    case 'skip':{const a=$('#app');a.focus();return}
     case 'tab':{const [t,sb]=String(ds.v).split('/');modal=null;ui.tab=t;ui.sub=sb||'';document.documentElement.scrollTop=0;break}
     case 'back':ui.sub='';document.documentElement.scrollTop=0;break;
     case 'uswitch':if(ui.remote){leaveRemote();meta.cur=ds.v}if(ds.v!==meta.cur||modal){modal=null;switchUser(ds.v);toast('تعرض الآن: «'+curUser().name+'»')}else{modal=null;render()}return;
@@ -1593,11 +1631,11 @@ async function startScan(file,from){
 }
 function scanHtml(){
   const S0=ui.scan||{},d=S0.d||{},v=k=>esc(d[k]==null?'':d[k]);
-  if(S0.busy)return `<div class="sheet" data-stop><h3>قراءة الصورة</h3>${S0.url?`<img src="${S0.url}" alt="" style="max-width:120px;border-radius:8px">`:''}<p class="note" id="scmsg">${esc(S0.msg||'')}</p><button class="btn" style="width:100%" data-act="scanclose">إلغاء</button></div>`;
+  if(S0.busy)return `<div class="sheet" data-stop><h2>قراءة الصورة</h2>${S0.url?`<img src="${S0.url}" alt="" style="max-width:120px;border-radius:8px">`:''}<p class="note" id="scmsg">${esc(S0.msg||'')}</p><button class="btn" style="width:100%" data-act="scanclose">إلغاء</button></div>`;
   const per=d.b==='u',bad=(+d.k>0&&d.p!=null&&d.c!=null&&d.f!=null)?Math.abs(4*d.p+4*d.c+9*d.f-d.k)/d.k>0.25:false;
-  return `<div class="sheet sc" data-stop><h3>تأكيد الصنف</h3>
+  return `<div class="sheet sc" data-stop><h2>تأكيد الصنف</h2>
   ${(S0.warn||[]).map(w=>`<p class="note" style="margin:2px 0">⚠ ${esc(w)}</p>`).join('')}
-  <div style="display:flex;gap:8px;align-items:flex-start;margin:6px 0">${S0.url?`<img src="${S0.url}" alt="" style="width:70px;border-radius:8px">`:''}<div style="flex:1"><input id="sc_n" placeholder="اسم الصنف (مطلوب)" value="${v('n')}" style="width:100%">${S0.sug&&!d.n?`<button class="btn" style="margin-top:4px;padding:4px 8px;font-size:12px" data-act="scansug">اقتراح: ${esc(S0.sug)}</button>`:''}</div></div>
+  <div style="display:flex;gap:8px;align-items:flex-start;margin:6px 0">${S0.url?`<img src="${S0.url}" alt="" style="width:70px;border-radius:8px">`:''}<div style="flex:1"><input id="sc_n" aria-label="اسم الصنف" placeholder="اسم الصنف (مطلوب)…" value="${v('n')}" style="width:100%">${S0.sug&&!d.n?`<button class="btn" style="margin-top:4px;padding:4px 8px;font-size:12px" data-act="scansug">اقتراح: ${esc(S0.sug)}</button>`:''}</div></div>
   <div class="seg" style="margin-bottom:6px"><button class="${!per?'on':''}" data-act="scanb" data-v="g">القيم لكل 100 جم</button><button class="${per?'on':''}" data-act="scanb" data-v="u">القيم لكل حصة / وحدة</button></div>
   <div class="frm"><label>سعرات<input id="sc_k" type="number" step="any" inputmode="decimal" value="${v('k')}"></label><label>بروتين (جم)<input id="sc_p" type="number" step="any" inputmode="decimal" value="${v('p')}"></label><label>كارب (جم)<input id="sc_c" type="number" step="any" inputmode="decimal" value="${v('c')}"></label><label>دهون (جم)<input id="sc_f" type="number" step="any" inputmode="decimal" value="${v('f')}"></label>
   ${per?`<label>اسم الوحدة<input id="sc_u" placeholder="قطعة / حصة" value="${v('u')}"></label><label>وزنها بالجرام<input id="sc_ug" type="number" step="any" inputmode="decimal" value="${v('ug')}"></label>`:''}
@@ -1605,7 +1643,7 @@ function scanHtml(){
   ${bad?'<p class="note" style="color:var(--act)">السعرات لا تطابق الماكروز (4·P + 4·C + 9·F)؛ راجع الأرقام.</p>':''}
   <button class="btn pri" style="width:100%;margin-top:8px" data-act="scansave">💾 حفظ كصنف</button>
   ${S0.from!=null?'<button class="btn" style="width:100%;margin-top:6px" data-act="scansaveadd">💾 حفظ وإضافته لهذه الوجبة</button>':''}
-  <details style="margin-top:8px"><summary class="note">النص المقروء / لصق نص ملصق</summary><textarea id="sc_txt" rows="4" style="width:100%" placeholder="الصق نص الملصق هنا">${esc(S0.txt||'')}</textarea><button class="btn" style="width:100%;margin-top:4px" data-act="scanreparse">إعادة تحليل النص</button></details>
+  <details style="margin-top:8px"><summary class="note">النص المقروء / لصق نص ملصق</summary><textarea id="sc_txt" rows="4" style="width:100%" aria-label="نص الملصق" placeholder="الصق نص الملصق هنا…">${esc(S0.txt||'')}</textarea><button class="btn" style="width:100%;margin-top:4px" data-act="scanreparse">إعادة تحليل النص</button></details>
   <button class="btn" style="width:100%;margin-top:6px" data-act="scanclose">إلغاء</button></div>`;
 }
 function scanCollect(){
