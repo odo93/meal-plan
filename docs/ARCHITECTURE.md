@@ -31,6 +31,7 @@ GoTrue (signup/token/refresh/recover/user) + PostgREST upsert بـ`on_conflict` 
 ## 5. التنقل (v2)
 - شريط سفلي: اليوم `day` | الخطة `week` | التقدم `hist` | الأصناف `foods` | حسابي `me`. الحالة في `ui.tab` و`ui.sub` (صفحات «حسابي» الفرعية: profile, goals, family, sync, data, advanced).
 - العنوان في الرابط: `#/plan`، `#/progress`، `#/foods`، `#/me/goals`… واليوم بلا عنوان. `syncHash()` يضيف للسجل بـ`pushState` بعد كل `render()`، و`popstate` يعيد الحالة. أي hash لا يبدأ بـ`#/` (روابط Supabase) لا يُلمس.
+- **العرض:** كل `render()` يبني HTML كنص ثم يمرره إلى `patch(el, html, fresh)`؛ داخل الصفحة نفسها يُعدَّل المختلف فقط (العقد والتركيز والتمرير والأقسام المفتوحة تبقى)، وعند تغيّر الصفحة/الشخص يُستبدل المحتوى. القسم المطوي الذي فتحه المستخدم يبقى مفتوحاً، والذي فتحه الكود (`_ao`) يُغلق إن لم يعد مطلوباً. النوافذ تُبنى كاملة في `modalBody()` ثم `renderModal()` يضيف aria-modal وinert وEsc ونقل التركيز.
 - الأزرار: `data-act="tab" data-v="me/goals"`، و`data-act="back"` يعود لـ«حسابي».
 
 ## 6. المشاركة والإدارة (Supabase)
