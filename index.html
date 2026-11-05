@@ -959,5 +959,27 @@ if(rollWeek())save();
 render();
 if(/access_token=/.test(location.hash))cHash().then(r=>{if(r||ui.tab==='set')render()});
 </script>
+<!-- بانر «نسخة جديدة متاحة»: الإضافة الوحيدة المسموحة في v1. يقرأ v2/version.json ويفتح النسخة الجديدة (لا يغيّر أي شيء في v1). -->
+<div id="v2upd" role="status" style="display:none;position:fixed;inset-inline:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:50;max-width:560px;margin:0 auto;background:#fff1d6;color:#1b1b1f;border:1px solid #f5a623;border-radius:14px;padding:12px 14px;box-shadow:0 6px 24px rgba(0,0,0,.18);font:15px/1.6 system-ui,Tahoma,Arial,sans-serif"></div>
+<script>
+(function(){
+  if(!/^https?:$/.test(location.protocol))return;
+  var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
+  var hidden=function(v){try{return sessionStorage.getItem('v2upd_hide')===v}catch(e){return false}};
+  fetch('v2/version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(j){
+    if(!j||typeof j.v!=='string'||hidden(j.v))return;
+    var moved=false;try{moved=!!localStorage.getItem('mp3_imported')}catch(e){}
+    var notes=(Array.isArray(j.notes)?j.notes:[]).slice(0,4).map(function(n){return '<li>'+esc(n)+'</li>'}).join('');
+    var el=document.getElementById('v2upd');
+    el.innerHTML='<b style="display:block;font-size:16px">نسخة جديدة من التطبيق متاحة ('+esc(j.v)+')</b>'
+      +(notes?'<ul style="margin:4px 0;padding-inline-start:18px;font-size:13px">'+notes+'</ul>':'')
+      +'<div style="font-size:13px;color:#636366;margin:4px 0 8px">'+(moved?'سبق أن فتحت النسخة الجديدة على هذا الجهاز، وبياناتك فيها.':'عند فتحها تنتقل بياناتك على هذا الجهاز تلقائياً، وتبقى هذه النسخة كما هي.')+'</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap"><a href="v2/" style="flex:1;text-align:center;background:#f5a623;color:#2b1a00;font-weight:700;text-decoration:none;border-radius:10px;padding:10px 14px;min-height:44px;box-sizing:border-box">الانتقال للنسخة الجديدة</a>'
+      +'<button type="button" id="v2upd_x" style="border:1px solid #f5a623;background:#fff;color:#8a5700;border-radius:10px;padding:10px 14px;font:inherit;font-weight:700;min-height:44px;cursor:pointer">لاحقاً</button></div>';
+    el.style.display='block';
+    document.getElementById('v2upd_x').onclick=function(){el.style.display='none';try{sessionStorage.setItem('v2upd_hide',j.v)}catch(e){}};
+  }).catch(function(){});
+})();
+</script>
 </body>
 </html>
