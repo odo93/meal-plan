@@ -21,8 +21,8 @@ const ICON={
 };
 const ico=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
 const TABS=[['day','اليوم'],['week','الخطة'],['hist','التقدم'],['foods','الأصناف'],['me','حسابي']];
-const SUBS={profile:'ملفي الشخصي',goals:'أهدافي',family:'الأشخاص والمشاركة',clients:'متدربيني',mode:'نوع الاستخدام',sync:'الحساب والمزامنة',data:'بياناتي',advanced:'متقدم'};
-const APP_VER='2.5';
+const SUBS={profile:'ملفي الشخصي',goals:'أهدافي',family:'الأشخاص والمشاركة',clients:'متدربيني',mode:'نوع الاستخدام',sync:'حسابي',data:'بياناتي',advanced:'متقدم'};
+const APP_VER='2.6';
 // نوع الاستخدام: يحدد ما يظهر في «حسابي»، ويمكن تغييره في أي وقت
 const MODES=[['self','لنفسي','خطتي وحدي'],['family','لي ولعائلتي','أفراد وأطفال تديرهم'],['coach','مدرب مستقل','متابعة متدربين'],['org','مؤسسة','مدربون وأخصائيو تغذية']];
 const isCoach=()=>meta.mode==='coach'||meta.mode==='org';
@@ -60,7 +60,7 @@ const verLt=(a,b)=>{const x=String(a).split('.').map(Number),y=String(b).split('
 function banners(){
   const P=ui.pub||{},cfg=P.cfg,seen=lsGet('mp3_ann_seen')||[];let h='';
   if(storeErr)h+=`<div class="bnr warn" role="alert"><span class="g"><b>آخر تعديلاتك لم تُحفظ في هذا الجهاز</b>${storeErr.quota?'مساحة التخزين في المتصفح ممتلئة.':'المتصفح منع الحفظ (ربما وضع التصفح الخاص).'} صدّر نسخة احتياطية الآن حتى لا تضيع بياناتك عند إغلاق الصفحة.</span><span class="btns" style="display:flex;flex-direction:column;gap:6px;margin:0"><button class="btn pri" data-act="export">تصدير نسخة</button><button class="btn" data-act="retrysave">حاول مرة أخرى</button></span></div>`;
-  if(navigator.onLine===false)h+=`<div class="bnr info" role="status"><span class="g"><b>لا يوجد اتصال بالإنترنت</b>${ui.remote?'ملف المشارك يحتاج اتصالاً لحفظ التعديلات.':'التطبيق يعمل وتعديلاتك تُحفظ في هذا الجهاز.'}${cloud.auto&&cloud.sess&&!ui.remote?' تُرفع للسحابة تلقائياً عند عودة الاتصال.':''}</span></div>`;
+  if(navigator.onLine===false)h+=`<div class="bnr info" role="status"><span class="g"><b>لا يوجد اتصال بالإنترنت</b>${ui.remote?'ملف المشارك يحتاج اتصالاً لحفظ التعديلات.':'التطبيق يعمل وتعديلاتك تُحفظ في هذا الجهاز.'}${cloud.sess&&!ui.remote?' تُحفظ في حسابك تلقائياً عند عودة الاتصال.':''}</span></div>`;
   if(cfg&&verLt(APP_VER,cfg.min_version))h+=`<div class="bnr warn" role="alert"><span class="g"><b>تحديث مطلوب</b>هذه النسخة (${APP_VER}) أقدم من المسموح. أعد تحميل الصفحة للحصول على ${esc(cfg.latest_version)}.</span><button class="btn pri" data-act="reload">إعادة التحميل</button></div>`;
   (P.ann||[]).filter(a=>!seen.includes(a.id)).forEach(a=>{h+=`<div class="bnr ${a.level==='warn'?'warn':'info'}" role="status"><span class="g"><b>${esc(a.title)}</b>${esc(a.body||'')}</span><button class="btn" data-act="annx" data-v="${a.id}" aria-label="إخفاء الإعلان">إخفاء</button></div>`});
   if(ui.remote)h+=`<div class="bnr rm" role="status"><span class="g"><b>تعرض الآن: ${esc(ui.remote.name)}</b>${ROLES[ui.remote.role]} · ${canWrite()?'تعديلاتك على الخطة تُحفظ في حسابه، والتسجيل يبقى له':'مشاهدة فقط'}${ui.remote.busy?' · جارٍ الحفظ…':''}</span><button class="btn" data-act="whome">رجوع لملفي</button></div>`;
@@ -130,9 +130,9 @@ function applyTheme(t){const r=document.documentElement;if(t==='light'||t==='dar
 function themeSeg(){const c=themeNow();return `<div class="seg" role="group" aria-label="المظهر">${THEMES.map(([v,t])=>`<button type="button" data-act="theme" data-v="${v}" aria-pressed="${c===v}" class="${c===v?'on':''}">${t}</button>`).join('')}</div><div class="note" style="margin-top:6px">«تلقائي» يتبع إعداد الهاتف.</div>`}
 function vMe(){
   const s=S(),u=curUser(),on=!!cloud.sess,k=rd(targets(state.days[ui.day]).k),nU=meta.users.length;
-  return `<div class="card prof"><span class="av${curPic()?' ph':''}" aria-hidden="true">${avIn(u.name,curPic())}</span><div style="flex:1;min-width:0"><b style="font-size:17px">${esc(u.name)}</b><div class="note">${esc(goalOf(s).name)} · هدف اليوم ${k} سعرة</div></div><span class="pill ${on?'':'off'}">${on?'متزامن':'على هذا الجهاز'}</span></div>
+  return `<div class="card prof"><span class="av${curPic()?' ph':''}" aria-hidden="true">${avIn(u.name,curPic())}</span><div style="flex:1;min-width:0"><b style="font-size:17px">${esc(u.name)}</b><div class="note">${esc(goalOf(s).name)} · هدف اليوم ${k} سعرة</div></div><span class="pill ${on?'':'off'}">${on?'محفوظ في حسابك':'على هذا الجهاز فقط'}</span></div>
   <div class="grp">أنا</div><div class="list">${li('profile','ملفي الشخصي',profLine(s),'me/profile')}${li('goals','أهدافي',esc(goalOf(s).name)+' · السعرات والماكروز ودورة الكارب','me/goals')}</div>
-  <div class="grp">الحساب</div><div class="list">${li('advanced','نوع الاستخدام',(MODES.find(x=>x[0]===meta.mode)||[0,'لم يُحدَّد بعد'])[1],'me/mode')}${isCoach()&&feat('clients')?li('family','متدربيني',(ui.shared||[]).length+' مشارك معك','me/clients'):''}${li('family','الأشخاص والمشاركة',nU+(nU>1?' ملفات':' ملف')+' على هذا الجهاز'+(on?'':' · المشاركة تحتاج تسجيل الدخول'),'me/family')}${li('sync','الحساب والمزامنة',on?esc(cloud.email||'مسجّل الدخول'):'غير مفعّلة','me/sync')}</div>
+  <div class="grp">الحساب</div><div class="list">${li('advanced','نوع الاستخدام',(MODES.find(x=>x[0]===meta.mode)||[0,'لم يُحدَّد بعد'])[1],'me/mode')}${isCoach()&&feat('clients')?li('family','متدربيني',(ui.shared||[]).length+' مشارك معك','me/clients'):''}${li('family','الأشخاص والمشاركة',nU+(nU>1?' ملفات':' ملف')+' على هذا الجهاز'+(on?'':' · المشاركة تحتاج تسجيل الدخول'),'me/family')}${li('sync','حسابي',on?esc(cloud.email||'مسجّل الدخول'):'لم تسجّل بعد — بياناتك على هذا الجهاز فقط','me/sync')}</div>
   <div class="grp">المظهر</div><div class="card">${themeSeg()}</div>
   <div class="grp">البيانات</div><div class="list">${li('data','بياناتي','تصدير واستيراد','me/data')}${li('advanced','متقدم','معادلات BMR والأهداف المخصصة','me/advanced')}</div>
   <div class="grp">منطقة الخطر</div><div class="list">${li('reset','إعادة ضبط «'+esc(u.name)+'»','الإعدادات والأصناف والخطة','','reset','dz')}${li('trash','حذف «'+esc(u.name)+'»','مع كل خطته وسجله','','udel','dz')}${on?li('logout','تسجيل الخروج من السحابة','','','clogout','dz'):''}</div>`;
@@ -314,6 +314,11 @@ function modalBody(){
   }else if(modal.type==='shq'){
     const x=shopLines().find(z=>z.id===modal.id)||{n:'',q:''};
     m.innerHTML=`<div class="sheet" role="dialog" aria-label="كمية ${esc(x.n)}"><h2>${esc(x.n)}</h2><label class="lbl">الكمية<input id="shq_v" value="${esc(x.q)}" style="max-width:60%"></label><div class="btns"><button class="btn pri" data-act="shqsave">حفظ</button><button data-act="close">إلغاء</button></div></div>`;
+  }else if(modal.type==='acctdata'){
+    m.innerHTML=`<div class="sheet" role="dialog"><h2>في حسابك بيانات محفوظة</h2><p class="note">اختر ما تريد الاحتفاظ به على هذا الجهاز.</p>
+    <div class="list" style="box-shadow:none;border:1px solid var(--ln)"><button class="li" data-act="acctpull"><span class="g"><b>استخدام بيانات الحساب</b><small>تحلّ محل بيانات هذا الجهاز (مناسب لجهاز جديد)</small></span></button>
+    <button class="li" data-act="acctpush"><span class="g"><b>الاحتفاظ ببيانات هذا الجهاز</b><small>تُحفظ في الحساب بدل المحفوظ فيه</small></span></button></div>
+    <div class="btns" style="margin-top:8px"><button data-act="close">لاحقاً</button></div></div>`;
   }else if(modal.type==='dayov'){
     const d=state.days[ui.day],pm=planMode(ui.day),B=baseTargets({mode:modal.mode||pm,name:d.name}),t=modal.t||{},v=k=>t[k]!=null?esc(t[k]):'';
     const sb=(act,val,cur,l)=>`<button type="button" class="${cur?'on':''}" aria-pressed="${cur}" data-act="${act}" data-v="${val}">${l}</button>`;

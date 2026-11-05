@@ -129,6 +129,10 @@ function act(a,ds){
     case 'glreset':ask('استعادة الأهداف الافتراضية؟ تُحذف أي أهداف أو تعديلات خاصة بك على أسمائها وإعداداتها.',()=>{const s=S();s.goals=clone(DEF_GOALS);s.g={};fixSettings(s)});return;
     case 'clogin':cRun(()=>cAuth(false));return;
     case 'csignup':cRun(()=>cAuth(true));return;
+    case 'cauthm':ui.authM=ds.v;break;
+    case 'cphone':cRun(cSetPhone);return;
+    case 'acctpull':modal=null;cPull.now=true;cRun(cPull);return;
+    case 'acctpush':modal=null;render();cRun(cPush);return;
     case 'cforgot':cRun(async()=>{const em=(($('#cl_em')||{}).value||cloud.email||'').trim();if(!em)return 'اكتب بريدك أولاً';cloud.email=em;cSave();await cFetch('/auth/v1/recover'+RET(),{method:'POST',anon:true,body:{email:em}});return 'أُرسل رابط الاستعادة إلى '+em+' — افتحه من نفس الجهاز'});return;
     case 'cnewpw':cRun(async()=>{const pw=($('#cl_np')||{}).value||'';if(pw.length<6)return 'كلمة المرور 6 أحرف على الأقل';await cFetch('/auth/v1/user',{method:'PUT',body:{password:pw}});ui.recov=false;setTimeout(render,0);return 'تم تغيير كلمة المرور — يمكنك الرفع الآن'});return;
     case 'clogout':leaveRemote();cloud.sess=null;cloud.auto=false;ui.shared=null;ui.grants=null;cSave();break;
@@ -184,7 +188,7 @@ document.addEventListener('change',e=>{
   else if(c==='eqn'){const e=S().eqs.find(x=>x.id===t.dataset.id);if(e){const k=t.dataset.k;e[k]=t.value.trim()||(k==='name'?e.name:'');ui.eqo=e.id}}
   else if(c==='eqc'){const e=S().eqs.find(x=>x.id===t.dataset.id);if(e&&e[t.dataset.sx]){e[t.dataset.sx][t.dataset.k]=+t.value||0;ui.eqo=e.id}}
   else if(c==='gln'){const g=S().goals.find(x=>x.id===t.dataset.id);if(g){if(t.dataset.k==='name')g.name=t.value.trim()||g.name;else g.sign=+t.value}}
-  else if(c==='cl'){const k=t.dataset.k;cloud[k]=k==='auto'?t.checked:t.value.trim();cSave();return}
+  else if(c==='cl'){const k=t.dataset.k;if(k==='email'){cloud.email=t.value.trim();cSave()}return}
   else if(c==='gp'){const ss=S(),k=t.dataset.k;ss.g[ss.goal][k]=(k==='mode'||k==='prB'||k==='fatM')?t.value:(+t.value||0)}
   else if(c==='cyc'){const ss=S(),k=t.dataset.k;ss.cyc[k]=k==='on'?t.checked:Math.min(100,Math.max(0,+t.value||0))/100}
   else if(c==='food'){const f=F(t.dataset.id),k=t.dataset.fld;

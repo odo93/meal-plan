@@ -167,17 +167,21 @@ function vEqMgmt(s){
   <div class="grp">منطقة الخطر</div><div class="list"><button class="li dz" data-act="glreset"><span class="g"><b>استعادة الأهداف الافتراضية</b><small>تُحذف الأهداف المخصصة وتعديلاتها</small></span></button><button class="li dz" data-act="eqreset"><span class="g"><b>استعادة المعادلات الافتراضية</b><small>تُحذف المعادلات المخصصة وتعديلاتها</small></span></button></div>
   <p class="note">الاستعادة تعيد القوائم فقط ولا تمس بياناتك. بعد أي تغيير استخدم «ضبط كميات الأسبوع» من «أهدافي».</p>`;
 }
-function vCloud(){const c=cloud,on=!!c.sess;
-  return `<div class="card set"><h2 style="margin:0 0 6px">المزامنة السحابية (اختيارية)</h2>
-  <p class="note">دون إعداد، كل شيء يُحفظ في هذا المتصفح فقط. للمزامنة بين أجهزتك: أنشئ مشروعاً مجانياً على Supabase، نفّذ ملف <b>schema.sql</b> (مرفق)، ثم أدخل رابط المشروع والمفتاح العام (anon / publishable). لا تُدخل مفتاح service_role أبداً.</p>
-  <label>رابط المشروع<input id="cl_url" dir="ltr" value="${esc(c.url||'')}" data-ch="cl" data-k="url" placeholder="https://xxxx.supabase.co" style="width:100%"></label>
-  <label>المفتاح العام<input id="cl_key" dir="ltr" value="${esc(c.key||'')}" data-ch="cl" data-k="key" style="width:100%"></label>
-  ${on&&ui.recov?`<label>كلمة مرور جديدة (6 أحرف فأكثر)<input id="cl_np" type="password" dir="ltr" autocomplete="new-password" style="width:100%"></label><div class="btns" style="margin:6px 0"><button class="btn pri" data-act="cnewpw">حفظ كلمة المرور الجديدة</button></div>`:''}
-  ${on?`<p class="note">مسجّل الدخول: <b dir="ltr">${esc(c.email||'')}</b></p>
-  <label><span><input type="checkbox" data-ch="cl" data-k="auto" ${c.auto?'checked':''} style="width:auto"> رفع تلقائي بعد كل تعديل</span></label>
-  <div class="btns"><button data-act="cpush">⬆ رفع الآن</button><button data-act="cpull">⬇ تنزيل من السحابة</button><button data-act="clogout">خروج</button></div>`
-  :`<label>البريد<input id="cl_em" dir="ltr" type="email" name="email" autocomplete="email" spellcheck="false" value="${esc(c.email||'')}" data-ch="cl" data-k="email" style="width:100%"></label>
-  <label>كلمة المرور (لا تُحفظ في الجهاز)<input id="cl_pw" type="password" name="password" dir="ltr" autocomplete="current-password" style="width:100%"></label>
-  <div class="btns"><button data-act="clogin">تسجيل الدخول</button><button data-act="csignup">إنشاء حساب</button></div><div class="btns" style="margin-top:6px"><button data-act="cforgot">نسيت كلمة المرور؟ أرسل رابط استعادة</button></div>`}
+function vCloud(){const c=cloud,on=!!c.sess,up=ui.authM==='up';
+  if(on)return `<div class="card set"><h2 style="margin:0 0 6px">حسابك</h2>
+  ${ui.recov?`<label>كلمة مرور جديدة (6 أحرف فأكثر)<input id="cl_np" type="password" dir="ltr" autocomplete="new-password" style="width:100%"></label><div class="btns" style="margin:6px 0"><button class="btn pri" data-act="cnewpw">حفظ كلمة المرور الجديدة</button></div>`:''}
+  <p style="margin:0 0 6px">البريد: <b dir="ltr">${esc(c.email||'')}</b></p>
+  <label>رقم الجوال${c.phone?'':' <span class="tag">مطلوب</span>'}<span><input id="cl_ph" type="tel" dir="ltr" inputmode="tel" autocomplete="tel" spellcheck="false" placeholder="+9665xxxxxxxx" value="${esc(c.phone||'')}" style="flex:1"> <button class="btn" style="flex:0 0 auto" data-act="cphone">حفظ</button></span></label>
+  <p class="note" style="margin:8px 0 0">✓ كل تعديل يُحفظ في حسابك تلقائياً${navigator.onLine===false?' عند عودة الاتصال':''}، فتجد بياناتك على أي جهاز تسجّل منه.</p>
+  <p class="note" id="cst">${esc(c.last||'')}</p>
+  <div class="btns"><button data-act="cpush">حفظ الآن</button><button data-act="cpull">استرجاع بياناتي من الحساب</button><button data-act="clogout">تسجيل الخروج</button></div></div>`;
+  return `<div class="card set"><h2 style="margin:0 0 6px">حسابك</h2>
+  <p class="note" style="margin:0 0 8px">أنشئ حساباً ليُحفظ كل شيء تلقائياً، وتجد بياناتك على أي جهاز وتشاركها مع مدربك أو عائلتك. بدون حساب تبقى البيانات على هذا الجهاز فقط.</p>
+  <div class="seg" role="tablist" style="margin-bottom:8px"><button role="tab" aria-selected="${!up}" class="${up?'':'on'}" data-act="cauthm" data-v="in">تسجيل الدخول</button><button role="tab" aria-selected="${up}" class="${up?'on':''}" data-act="cauthm" data-v="up">حساب جديد</button></div>
+  <label>البريد<input id="cl_em" dir="ltr" type="email" name="email" autocomplete="email" spellcheck="false" value="${esc(c.email||'')}" data-ch="cl" data-k="email" style="width:100%"></label>
+  ${up?`<label>رقم الجوال<input id="cl_ph" type="tel" name="tel" dir="ltr" inputmode="tel" autocomplete="tel" spellcheck="false" placeholder="+9665xxxxxxxx" style="width:100%"></label>`:''}
+  <label>كلمة المرور${up?' (6 أحرف فأكثر)':''}<input id="cl_pw" type="password" name="password" dir="ltr" autocomplete="${up?'new-password':'current-password'}" style="width:100%"></label>
+  <div class="btns">${up?'<button class="btn pri" data-act="csignup">إنشاء الحساب</button>':'<button class="btn pri" data-act="clogin">تسجيل الدخول</button>'}</div>
+  ${up?'<p class="note">سنرسل رابط تفعيل إلى بريدك. التفعيل برمز على الجوال قريباً.</p>':'<div class="btns" style="margin-top:6px"><button data-act="cforgot">نسيت كلمة المرور؟ أرسل رابط استعادة</button></div>'}
   <p class="note" id="cst">${esc(c.last||'')}</p></div>`;
 }

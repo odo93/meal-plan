@@ -1,12 +1,15 @@
 const {JSDOM,VirtualConsole}=require('jsdom');const fs=require('fs');
 const html=require('./v2html')();
 const errs=[];const vc=new VirtualConsole();vc.on('jsdomError',e=>errs.push(e.message));
-const DB={mp_users:[],mp_days:[],mp_history:[]},log=[];
+const DB={mp_users:[],mp_days:[],mp_history:[]},log=[],BODY=[];
 const d=new JSDOM(html,{runScripts:'dangerously',url:'http://x.test/',virtualConsole:vc,pretendToBeVisual:true,beforeParse(win){
-  win.fetch=async(url,o)=>{o=o||{};const u=new URL(url),p=u.pathname,body=o.body?JSON.parse(o.body):null;log.push([o.method||'GET',p+u.search,o.headers.Authorization]);
+  win.fetch=async(url,o)=>{o=o||{};const u=new URL(url),p=u.pathname,body=o.body?JSON.parse(o.body):null;log.push([o.method||'GET',p+u.search,o.headers.Authorization]);BODY.push([p,body]);
     const R=(j,st)=>({ok:(st||200)<300,status:st||200,text:async()=>j===undefined?'':JSON.stringify(j)});
     if(p==='/auth/v1/token'&&u.searchParams.get('grant_type')==='password')return body.password==='pw'?R({access_token:'AT1',refresh_token:'RT1',expires_in:3600,user:{id:'uid-1'}}):R({error_description:'Invalid login credentials'},400);
     if(p==='/auth/v1/token'&&u.searchParams.get('grant_type')==='refresh_token')return R({access_token:'AT2',refresh_token:'RT2',expires_in:3600,user:{id:'uid-1'}});
+    if(p==='/auth/v1/signup')return R({id:'uid-9',email:body.email});
+    if(p==='/auth/v1/user'&&o.method==='PUT')return R({id:'uid-1',user_metadata:body.data});
+    if(/^\/rest\/v1\/(rpc|app_config|announcements|shared_foods|mp_accounts)/.test(p))return R([]);
     const m=p.match(/^\/rest\/v1\/(\w+)/);const t=m&&m[1];
     if(o.method==='POST'){const key={mp_users:['owner','id'],mp_days:['owner','user_id','idx'],mp_history:['owner','user_id','date']}[t];
       if(u.searchParams.get('on_conflict')!==key.join(','))return R({message:'bad conflict'},400);
@@ -20,15 +23,25 @@ const click=s=>$(s).dispatchEvent(new w.MouseEvent('click',{bubbles:true})),E=s=
 let ok=0,bad=0;const T=(n,c,x)=>{c?ok++:(bad++,console.log('FAIL',n,x===undefined?'':x))};
 (async()=>{
  click('#nav [data-act="tab"][data-v="me"]');click('[data-act="tab"][data-v="me/sync"]');
- T('cloud card',$('#app').textContent.includes('المزامنة السحابية'));
- // no config -> message
+ T('account card, no technical words',$('#app').textContent.includes('حسابك')&&!/مزامنة|Supabase|المفتاح العام|رابط المشروع/.test($('#app').textContent));
+ T('no URL / key fields',!$('#cl_url')&&!$('#cl_key')&&!$('[data-k="auto"]'));
+ T('fixed project',E('cloud.url')==='https://exznecnhvsihdelwsibv.supabase.co'&&E('cloud.key').length>100);
  const set=(id,v)=>{$(id).value=v;ev($(id),'change')};
- set('#cl_url','https://proj.supabase.co/');set('#cl_key','ANON');set('#cl_em','a@b.c');
- T('persisted cfg',JSON.parse(w.localStorage.getItem('mp3_cloud')).url==='https://proj.supabase.co/');
+ // sign-up needs a phone and sends it with the account
+ click('[data-act="cauthm"][data-v="up"]');T('sign-up form has phone',!!$('#cl_ph')&&$('#cl_ph').type==='tel'&&$('#cl_pw').autocomplete==='new-password');
+ set('#cl_em','a@b.c');$('#cl_ph').value='12';$('#cl_pw').value='secret1';click('[data-act="csignup"]');await sleep(50);
+ T('bad phone rejected',/رقم جوال/.test($('#cst').textContent)&&!BODY.some(b=>b[0]==='/auth/v1/signup'));
+ E('render()');T('password survives a background re-render',$('#cl_pw').value==='secret1');
+ $('#cl_ph').value='+966 50 123 4567';click('[data-act="csignup"]');await sleep(50);
+ const su=BODY.find(b=>b[0]==='/auth/v1/signup');
+ T('signup sends phone',su&&su[1].data.phone==='+966501234567'&&su[1].email==='a@b.c',JSON.stringify(su));
+ T('activation message',/رابط التفعيل/.test($('#cst').textContent));
+ click('[data-act="cauthm"][data-v="in"]');
  $('#cl_pw').value='bad';click('[data-act="clogin"]');await sleep(50);
  T('bad login msg',$('#cst').textContent.includes('Invalid'),$('#cst').textContent);
  $('#cl_pw').value='pw';click('[data-act="clogin"]');await sleep(80);
- T('logged in',!!E('cloud.sess')&&E('cloud.sess.uid')==='uid-1'&&$('#app').textContent.includes('رفع الآن'),E('cloud.last'));
+ T('logged in',!!E('cloud.sess')&&E('cloud.sess.uid')==='uid-1'&&$('#app').textContent.includes('حفظ الآن'),E('cloud.last'));
+ T('empty account → device data saved to it',DB.mp_users.length===1&&!E('modal'));
  T('password not stored',!w.localStorage.getItem('mp3_cloud').includes('"pw"'));
  // make data: add a logged day + second user
  E('state.days[0].meals[0].items[0].e=state.days[0].meals[0].items[0].g;state.days[0].lw=weekKey();save()');
@@ -56,8 +69,17 @@ let ok=0,bad=0;const T=(n,c,x)=>{c?ok++:(bad++,console.log('FAIL',n,x===undefine
  T('pull restored',E('curUser().name')===nm,E('curUser().name'));
  T('restored day log',E('state.days[0].meals[0].items[0].e')>0);
  // auto push
- E('cloud.auto=true');const n0=log.length;E('state.settings.bw=75;save()');await sleep(4300);
+ const n0=log.length;E('state.settings.bw=75;save()');await sleep(4300);
  T('auto push fired',log.length>n0&&DB.mp_users[0].settings.bw===75);
+ // phone for an existing account
+ E("ui.tab='me';ui.sub='sync';render()");$('#cl_ph').value='0501234567';click('[data-act="cphone"]');await sleep(60);
+ T('phone saved to account',BODY.some(b=>b[0]==='/auth/v1/user'&&b[1].data.phone==='0501234567')&&E('cloud.phone')==='0501234567');
+ // signing in again with data in the account → user chooses
+ E("meta.mode='coach'");E('afterLogin()');await sleep(80);
+ T('choice shown when account has data',E('modal&&modal.type')==='acctdata');
+ E('meta.users[0].name="محلي"');click('[data-act="acctpull"]');await sleep(150);
+ T('account data restored without a second question',E('curUser().name')===nm&&!E('modal'));
+ T('user type kept after restore',E('meta.mode')==='coach');
  // error display
  w.fetch=async()=>({ok:false,status:500,text:async()=>'{"message":"boom"}'});click('[data-act="cpush"]');await sleep(100);
  T('error shown',$('#cst').textContent.includes('boom'),$('#cst').textContent);

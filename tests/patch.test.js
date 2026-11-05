@@ -22,6 +22,8 @@ P('<details open><summary>s</summary></details>',true);const d2=box.querySelecto
 P('<details><summary>s</summary></details>');T('code-opened fold closes when code stops asking',box.querySelector('details')===d2&&!d2.open);
 P('<b>x</b><i>y</i>');T('extra nodes removed, new appended',box.innerHTML==='<b>x</b><i>y</i>');
 P('<input type=checkbox checked>');const cb=box.querySelector('input');P('<input type=checkbox>');T('checkbox synced',box.querySelector('input')===cb&&!cb.checked);
+P('<input id=pw type=password>',true);const pw=box.querySelector('#pw');pw.value='secret';P('<input id=pw type=password>');
+T('typed field without value attr survives re-render',box.querySelector('#pw')===pw&&pw.value==='secret');
 P('',true);
 
 // Today: qty change keeps the same row nodes and the day strip

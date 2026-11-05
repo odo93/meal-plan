@@ -1,12 +1,15 @@
 // v2/js/cloud.js — المزامنة السحابية (Supabase REST)
 // سكربت عادي (ليس module): كل الملفات تتشارك نطاقاً عاماً واحداً وتُحمَّل بالترتيب في index.html.
 // لا تستدعِ عند التحميل دالة من ملف لاحق؛ الاستدعاء داخل الدوال مسموح.
-// ---------- مزامنة سحابية اختيارية (Supabase REST) ----------
+// ---------- الحفظ في حساب المستخدم (Supabase REST) ----------
+// الرابط والمفتاح العام ثابتان هنا ويظهران للمدير فقط في لوحة الإدارة؛ المستخدم لا يراهما ولا يغيّرهما.
+// الحفظ تلقائي دائماً بعد تسجيل الدخول (لا خيار «مزامنة» للمستخدم).
 const CK='mp3_cloud';
-let cloud=Object.assign({url:'https://exznecnhvsihdelwsibv.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4em5lY25odnNpaGRlbHdzaWJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1OTY4NzAsImV4cCI6MjEwOTE3Mjg3MH0.8TP92hVmjHt9KrnaWzWDWvzdgBIctk2BkBphxjzRCK0',email:'',auto:false,sess:null,last:''},lsGet(CK)||{});
+const SB_URL='https://exznecnhvsihdelwsibv.supabase.co',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4em5lY25odnNpaGRlbHdzaWJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM1OTY4NzAsImV4cCI6MjEwOTE3Mjg3MH0.8TP92hVmjHt9KrnaWzWDWvzdgBIctk2BkBphxjzRCK0';
+let cloud=Object.assign({email:'',phone:'',sess:null,last:''},lsGet(CK)||{});cloud.url=SB_URL;cloud.key=SB_KEY;delete cloud.auto;
 const cSave=()=>lsSet(CK,cloud);
 function cMsg(t){cloud.last=t;cSave();const e=$('#cst');if(e)e.textContent=t}
-async function cRun(fn){if(!cloud.url||!cloud.key){cMsg('أدخل رابط المشروع والمفتاح العام أولاً');return}cMsg('جارٍ التنفيذ…');try{cMsg(await fn()||'تم')}catch(e){cMsg('خطأ: '+(e&&e.message||e))}}
+async function cRun(fn){cMsg('جارٍ التنفيذ…');try{cMsg(await fn()||'تم')}catch(e){cMsg('خطأ: '+(e&&e.message||e))}}
 async function cFetch(path,o){o=o||{};
   const h=Object.assign({apikey:cloud.key,'Content-Type':'application/json'},o.headers||{});
   h.Authorization='Bearer '+(o.token||(o.anon||!cloud.sess?cloud.key:await cToken()));
@@ -17,14 +20,27 @@ async function cFetch(path,o){o=o||{};
 }
 function cSess(j){cloud.sess={at:j.access_token,rt:j.refresh_token,exp:Date.now()+(j.expires_in||3600)*1000,uid:(j.user&&j.user.id)||(cloud.sess&&cloud.sess.uid)};cSave()}
 async function cToken(){const s=cloud.sess;if(s.exp-Date.now()>60000)return s.at;cSess(await cFetch('/auth/v1/token?grant_type=refresh_token',{method:'POST',anon:true,body:{refresh_token:s.rt}}));return cloud.sess.at}
+// رقم الجوال: أرقام فقط مع + اختيارية في البداية، 8–15 رقماً
+const normPhone=v=>{const s=String(v||'').replace(/[\s\-()]/g,'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));return /^\+?\d{8,15}$/.test(s)?s:''};
 async function cAuth(signup){
   const email=(($('#cl_em')||{}).value||cloud.email||'').trim(),pw=($('#cl_pw')||{}).value||'';
   if(!email||!pw)return 'أدخل البريد وكلمة المرور';
-  cloud.email=email;
-  const j=await cFetch(signup?'/auth/v1/signup'+RET():'/auth/v1/token?grant_type=password',{method:'POST',anon:true,body:{email,password:pw}});
-  if(j&&j.access_token){cSess(j);loadShared().then(render);setTimeout(render,0);return 'تم تسجيل الدخول'}
-  return 'تم إنشاء الحساب. أكّد بريدك من الرسالة ثم سجّل الدخول';
+  let phone='';if(signup){phone=normPhone(($('#cl_ph')||{}).value);if(!phone)return 'أدخل رقم جوال صحيحاً (8–15 رقماً، مثل ‎+9665xxxxxxxx)';if(pw.length<6)return 'كلمة المرور 6 أحرف فأكثر'}
+  cloud.email=email;if(phone)cloud.phone=phone;
+  const j=await cFetch(signup?'/auth/v1/signup'+RET():'/auth/v1/token?grant_type=password',{method:'POST',anon:true,body:signup?{email,password:pw,data:{phone}}:{email,password:pw}});
+  if(j&&j.access_token){cSess(j);afterLogin(j.user);return 'تم تسجيل الدخول'}
+  return 'تم إنشاء الحساب. افتح الرسالة في بريدك واضغط رابط التفعيل، ثم سجّل الدخول';
 }
+// بعد الدخول: إن كان الحساب فارغاً تُحفظ بيانات الجهاز فيه، وإن كان فيه بيانات يختار المستخدم أيّهما يبقى
+async function afterLogin(user){
+  if(user){const ph=user.user_metadata&&user.user_metadata.phone;if(ph)cloud.phone=ph;if(user.email)cloud.email=user.email;cSave()}
+  await loadShared();render();
+  try{const r=await cFetch('/rest/v1/mp_users?select=id&owner=eq.'+ENC(cloud.sess.uid)+'&limit=1');
+    if(Array.isArray(r)&&r.length){modal={type:'acctdata'};render()}else cRun(cPush);
+  }catch(e){}
+}
+async function cSetPhone(){const ph=normPhone(($('#cl_ph')||{}).value);if(!ph)return 'أدخل رقم جوال صحيحاً (8–15 رقماً)';
+  await cFetch('/auth/v1/user',{method:'PUT',body:{data:{phone:ph}}});cloud.phone=ph;cSave();render();return 'تم حفظ رقم الجوال'}
 async function cHash(){ // رابط التأكيد/الاستعادة من Supabase يعود إلى التطبيق ومعه الرمز في #hash
   const q=new URLSearchParams(location.hash.slice(1)),at=q.get('access_token');
   if(!at)return false;
@@ -33,7 +49,7 @@ async function cHash(){ // رابط التأكيد/الاستعادة من Supab
     const u=await cFetch('/auth/v1/user',{token:at});
     cSess({access_token:at,refresh_token:q.get('refresh_token'),expires_in:+q.get('expires_in')||3600,user:u});
     cloud.email=u.email||cloud.email;cSave();
-    ui.tab='me';ui.sub='sync';ui.recov=q.get('type')==='recovery';
+    ui.tab='me';ui.sub='sync';ui.recov=q.get('type')==='recovery';if(!ui.recov)setTimeout(()=>afterLogin(u),0);
     cMsg(ui.recov?'تم التحقق من الرابط — اكتب كلمة المرور الجديدة':'تم تأكيد الحساب وتسجيل الدخول');
     return true;
   }catch(e){cMsg('رابط غير صالح أو منتهٍ: '+(e.message||e));return false}
@@ -56,23 +72,24 @@ async function cPush(){
   await cFetch('/rest/v1/mp_users?owner=eq.'+ENC(uid)+'&id=not.in.('+ids.map(ENC).join(',')+')',{method:'DELETE'});
   for(const u of meta.users){const ds=hIdx(u.id);
     await cFetch('/rest/v1/mp_history?owner=eq.'+ENC(uid)+'&user_id=eq.'+ENC(u.id)+(ds.length?'&date=not.in.('+ds.join(',')+')':''),{method:'DELETE'})}
-  return 'تم الرفع '+new Date().toLocaleTimeString('ar-u-nu-latn',{hour:'numeric',minute:'2-digit'})+' — '+U.length+' مستخدم، '+H.length+' يوم سجل';
+  return 'آخر حفظ في حسابك: '+new Date().toLocaleTimeString('ar-u-nu-latn',{hour:'numeric',minute:'2-digit'})+' ('+U.length+(U.length>1?' ملفات':' ملف')+'، '+H.length+' يوم في السجل)';
 }
 async function cAll(table,order){let out=[],off=0;for(;;){const r=await cFetch('/rest/v1/'+table+'?select=*&owner=eq.'+ENC(cloud.sess.uid)+'&order='+order+'&limit=1000&offset='+off);out=out.concat(r||[]);if(!r||r.length<1000)break;off+=1000}return out}
 async function cPull(){
   const U=await cAll('mp_users','id'),D=await cAll('mp_days','user_id,idx'),H=await cAll('mp_history','user_id,date');
-  if(!U.length)return 'لا توجد بيانات في السحابة بعد — ارفع أولاً';
+  if(!U.length)return 'لا توجد بيانات محفوظة في حسابك بعد';
   const users=U.map(u=>{const days=Array(7).fill(null);D.filter(x=>x.user_id===u.id).forEach(x=>days[x.idx]=x.data);
     return{id:u.id,name:u.name,data:{settings:u.settings,foods:u.foods,days},hist:H.filter(x=>x.user_id===u.id).map(x=>x.data)}}).filter(u=>validUser(u.data));
-  if(!users.length)return 'بيانات السحابة غير مكتملة (أيام ناقصة)';
-  ask('تنزيل '+users.length+' مستخدم من السحابة سيستبدل كل بياناتك المحلية. متابعة؟',()=>restoreAll({meta:{cur:meta.cur},users}));
+  if(!users.length)return 'بيانات الحساب غير مكتملة (أيام ناقصة)';
+  if(cPull.now){cPull.now=false;restoreAll({meta:{cur:meta.cur},users});save();render();return 'تم استرجاع بياناتك من الحساب'}
+  ask('تنزيل '+users.length+(users.length>1?' ملفات':' ملف')+' من حسابك سيستبدل بيانات هذا الجهاز. متابعة؟',()=>restoreAll({meta:{cur:meta.cur},users}));
   return 'بانتظار تأكيدك';
 }
 let cT=null;function cSched(){clearTimeout(cT);cT=setTimeout(()=>cRun(cPush),4000)}
 function restoreAll(o){
   meta.users.forEach(u=>wipeUser(u.id));
   const cur=o.meta&&o.users.some(u=>u.id===o.meta.cur)?o.meta.cur:o.users[0].id;
-  meta={users:o.users.map(u=>({id:u.id,name:u.name||'مستخدم'})),cur};
+  const md=meta.mode;meta={users:o.users.map(u=>Object.assign({id:u.id,name:u.name||'مستخدم'},u.data&&u.data.settings&&picOk(u.data.settings.pic)?{pic:u.data.settings.pic}:{})),cur};if(md)meta.mode=md;
   o.users.forEach(u=>{saveUser(u.id,u.data);(Array.isArray(u.hist)?u.hist:[]).forEach(r=>{if(r&&r.date)hPut(u.id,r)})});
   state=o.users.find(u=>u.id===cur).data;
 }

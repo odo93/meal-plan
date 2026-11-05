@@ -10,7 +10,7 @@ const mk=()=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.
     if(p==='/auth/v1/token')return body.password==='pw'?R({access_token:'AT',refresh_token:'RT',expires_in:3600,user:{email:'m@x.y'}}):R({error_description:'Invalid login credentials'},400);
     if(p==='/rest/v1/rpc/is_admin')return R(ADMIN);
     if(p==='/rest/v1/rpc/admin_stats')return R({accounts:2,active_7d:1,people:3,history_days:14,active_grants:1,pending_grants:0});
-    if(p==='/rest/v1/rpc/admin_accounts')return R([{id:'a1',email:'m@x.y',created_at:'2026-11-02T00:00:00Z',last_sign_in_at:null,people:2,last_update:null,is_admin:true,mode:'coach',features:{scan:false}}]);
+    if(p==='/rest/v1/rpc/admin_accounts')return R([{id:'a1',phone:'+966501234567',confirmed:false,email:'m@x.y',created_at:'2026-11-02T00:00:00Z',last_sign_in_at:null,people:2,last_update:null,is_admin:true,mode:'coach',features:{scan:false}}]);
     if(p==='/rest/v1/announcements'&&(o.method||'GET')==='GET')return R([{id:3,title:'قديم',body:'',level:'info',active:true,ends_at:null}]);
     if(p==='/rest/v1/app_config')return (o.method||'GET')==='GET'?R([{id:1,latest_version:'2.1',min_version:'2.0',features:{share:{self:false,family:true,coach:true,org:true}},defaults:{goal:'cut',g:{cut:{pr:2.5}}},updated_at:null}]):R(undefined,204);
     if(p==='/rest/v1/shared_foods'&&(o.method||'GET')==='GET')return R([]);
@@ -37,6 +37,7 @@ const mk=()=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.
  T('delete on second press',log.some(l=>l[0]==='DELETE'&&l[1]==='/rest/v1/announcements?id=eq.3'));
  click('[data-v="config"]');await sleep(40);
  T('no raw JSON box',!$('#c_f'));
+ T('connection info read-only in admin',$('#cn_url').readOnly&&/exznecnhvsihdelwsibv/.test($('#cn_url').value)&&$('#cn_key').readOnly);
  $('#c_m').value='2.1';submit('#cf');await sleep(40);
  const pc=log.find(l=>l[0]==='PATCH'&&l[1].startsWith('/rest/v1/app_config'));
  T('versions saved alone',pc&&pc[3].min_version==='2.1'&&!('features' in pc[3]));
@@ -52,6 +53,7 @@ const mk=()=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.
  T('pattern defaults saved',pd&&pd[3].defaults.cyc.on===true&&pd[3].defaults.cyc.r===0.4&&pd[3].defaults.cyc.pat.join()==='high,low,high,low,high,low,low');
  T('defaults saved (blank = app default)',pd&&pd[3].defaults.goal==='cut'&&pd[3].defaults.act===1.375&&pd[3].defaults.g.bulk.val===12&&!pd[3].defaults.g.cut);
  click('[data-v="accounts"]');await sleep(40);
+ T('accounts show phone + activation',$('#app').textContent.includes('+966501234567')&&$('#app').textContent.includes('لم يفعّل البريد'));
  T('accounts show type + override',$('#app').textContent.includes('مدرب مستقل')&&$('#app').textContent.includes('المسح بالصورة'));
  click('[data-act="acedit"]');await sleep(10);
  T('edit row open',!!$('#acf')&&$('#ac_f_scan').value==='0'&&$('#ac_f_share').value==='');

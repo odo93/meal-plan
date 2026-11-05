@@ -40,7 +40,7 @@ function syncHist(){ // يحفظ/يحدّث سجل كل يوم من الأسبو
     const r=snapDay(d,date,di);if(!old||cmp(old)!==cmp(r))hPut(meta.cur,r);
   });
 }
-function save(onlyDay){if(ui.remote){if(canWrite())rSched();return}saveMeta();saveUser(meta.cur,state,onlyDay);syncHist();if(typeof cloud!=='undefined'&&cloud.auto&&cloud.sess)cSched()}
+function save(onlyDay){if(ui.remote){if(canWrite())rSched();return}saveMeta();saveUser(meta.cur,state,onlyDay);syncHist();if(typeof cloud!=='undefined'&&cloud.sess)cSched()}
 function load(){
   const m=lsGet(MK);
   if(m&&Array.isArray(m.users)&&m.users.length){

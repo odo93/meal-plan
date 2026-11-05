@@ -104,8 +104,8 @@ function vAccounts(){const A=data.accounts;if(!A)return '<p class="note">جار�
     <div class="tbl"><table class="mx" style="min-width:0"><thead><tr><th>الميزة لهذا الحساب</th><th>الحالة</th></tr></thead><tbody>${FEATS.map(([k,l])=>{const v=(a.features||{})[k];return `<tr><td>${l}</td><td><select id="ac_f_${k}" aria-label="${l}"><option value="">حسب نوع الاستخدام</option><option value="1" ${v===true?'selected':''}>مفعّلة دائماً</option><option value="0" ${v===false?'selected':''}>مغلقة</option></select></td></tr>`}).join('')}</tbody></table></div>
     <div class="btns"><button class="btn pri" type="submit">حفظ</button><button class="btn" type="button" data-act="acclose">إلغاء</button></div><p class="note">الاستثناء يتقدّم على إعداد نوع الاستخدام. يصل للمستخدم عند فتح التطبيق وهو مسجّل الدخول.</p></form></div>`;
   const cur=A.find(a=>a.id===ui.acc);
-  return `${cur?edit(cur):''}<div class="card"><h2>الحسابات (${A.length})</h2><div class="tbl"><table><thead><tr><th>البريد</th><th>النوع</th><th>استثناءات</th><th>التسجيل</th><th>آخر دخول</th><th>الملفات</th><th>آخر تحديث</th><th></th></tr></thead><tbody>
-  ${A.map(a=>`<tr><td dir="ltr" style="text-align:end">${esc(a.email)}${a.is_admin?' <span class="pill">مدير</span>':''}</td><td>${esc(modeName(a.mode))}</td><td>${ov(a).length?ov(a).map(k=>`<span class="pill ${a.features[k]?'':'warn'}">${esc((FEATS.find(f=>f[0]===k)||[0,k])[1])}${a.features[k]?'':' ✕'}</span>`).join(' '):'—'}</td><td>${fmtD(a.created_at)}</td><td>${fmtD(a.last_sign_in_at)}</td><td class="n">${esc(a.people)}</td><td>${fmtD(a.last_update)}</td><td><button class="btn" data-act="acedit" data-id="${esc(a.id)}">تعديل</button></td></tr>`).join('')}</tbody></table></div></div>`}
+  return `${cur?edit(cur):''}<div class="card"><h2>الحسابات (${A.length})</h2><div class="tbl"><table><thead><tr><th>البريد</th><th>الجوال</th><th>النوع</th><th>استثناءات</th><th>التسجيل</th><th>آخر دخول</th><th>الملفات</th><th>آخر تحديث</th><th></th></tr></thead><tbody>
+  ${A.map(a=>`<tr><td dir="ltr" style="text-align:end">${esc(a.email)}${a.is_admin?' <span class="pill">مدير</span>':''}${a.confirmed===false?' <span class="pill warn">لم يفعّل البريد</span>':''}</td><td dir="ltr" style="text-align:end">${esc(a.phone||'—')}</td><td>${esc(modeName(a.mode))}</td><td>${ov(a).length?ov(a).map(k=>`<span class="pill ${a.features[k]?'':'warn'}">${esc((FEATS.find(f=>f[0]===k)||[0,k])[1])}${a.features[k]?'':' ✕'}</span>`).join(' '):'—'}</td><td>${fmtD(a.created_at)}</td><td>${fmtD(a.last_sign_in_at)}</td><td class="n">${esc(a.people)}</td><td>${fmtD(a.last_update)}</td><td><button class="btn" data-act="acedit" data-id="${esc(a.id)}">تعديل</button></td></tr>`).join('')}</tbody></table></div></div>`}
 function vAnn(){const A=data.ann||[];
   return `<div class="card"><h2>إعلان جديد</h2><form id="af"><label>العنوان<input id="a_t" required maxlength="80"></label><label>النص<input id="a_b" maxlength="240"></label>
   <div class="row"><label>النوع<select id="a_l"><option value="info">معلومة</option><option value="warn">تنبيه</option></select></label><label>ينتهي في (اختياري)<input id="a_e" type="date"></label></div>
@@ -117,7 +117,11 @@ function vConfig(){const c=data.cfg;if(!c)return '<p class="note">جارٍ ال�
   return `<div class="card"><h2>الإصدارات</h2><form id="cf"><div class="row"><label>أحدث إصدار<input id="c_l" value="${esc(c.latest_version)}" dir="ltr" pattern="[0-9.]+" required></label><label>أقل إصدار مسموح<input id="c_m" value="${esc(c.min_version)}" dir="ltr" pattern="[0-9.]+" required></label></div>
   <p class="note">من يفتح نسخة أقدم من «أقل إصدار مسموح» يرى «تحديث مطلوب». رقم الإصدار في التطبيق هو APP_VER.</p>
   <div class="btns"><button class="btn pri" type="submit">حفظ</button></div><p class="note">آخر تعديل: ${fmtD(c.updated_at)}</p></form></div>
-  ${vFeatures(c)}${vDefaults(c)}`}
+  ${vFeatures(c)}${vDefaults(c)}${vConn()}`}
+function vConn(){return `<div class="card"><h2>الاتصال بقاعدة البيانات</h2><p class="note">يستخدمه التطبيق ولوحة الإدارة ثابتاً، ولا يظهر للمستخدمين. المفتاح العام (anon) مسموح ظهوره في الصفحة؛ الحماية في سياسات RLS. لا تضع مفتاح service_role في أي صفحة أبداً.</p>
+  <label>رابط المشروع<input id="cn_url" dir="ltr" readonly value="${esc(SB.url)}"></label>
+  <label>المفتاح العام (anon)<textarea id="cn_key" dir="ltr" readonly rows="3" style="min-height:0;font-size:12px">${esc(SB.key)}</textarea></label>
+  <div class="btns"><button class="btn" type="button" data-act="copy" data-v="cn_url">نسخ الرابط</button><button class="btn" type="button" data-act="copy" data-v="cn_key">نسخ المفتاح</button></div></div>`}
 function vFeatures(c){const F=c.features||{};const on=(k,m)=>!(F[k]&&F[k][m]===false);
   return `<div class="card"><h2>الميزات حسب نوع الاستخدام</h2><form id="cff"><div class="tbl"><table class="mx"><thead><tr><th>الميزة</th>${MODES.map(([,l])=>`<th>${l}</th>`).join('')}</tr></thead><tbody>
   ${FEATS.map(([k,l])=>`<tr><td>${l}</td>${MODES.map(([m,ml])=>`<td><input type="checkbox" id="ft_${k}_${m}" aria-label="${l} — ${ml}" ${on(k,m)?'checked':''}></td>`).join('')}</tr>`).join('')}</tbody></table></div>
@@ -178,6 +182,7 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(
   if(a==='tab'){ui.tab=t.dataset.v;ui.acc=null;render();load(ui.tab)}
   if(a==='acedit'){ui.acc=ui.acc===id?null:id;render();const c=$('#acc_ed');if(c&&c.scrollIntoView)c.scrollIntoView({block:'start'})}
   if(a==='acclose'){ui.acc=null;render()}
+  if(a==='copy'){const el=$('#'+t.dataset.v);if(el){el.select();try{(navigator.clipboard?navigator.clipboard.writeText(el.value):Promise.reject()).then(()=>msg('تم النسخ'),()=>{document.execCommand('copy');msg('تم النسخ')})}catch(x){}}}
   if(a==='out'){sess=null;ui.admin=null;try{localStorage.removeItem(SK)}catch(x){}render()}
   if(a==='atog')run(()=>api('/rest/v1/announcements?id=eq.'+encodeURIComponent(id),{method:'PATCH',prefer:'return=minimal',body:{active:t.dataset.v==='1'}}),'تم');
   if(a==='adel'&&twice())run(()=>api('/rest/v1/announcements?id=eq.'+encodeURIComponent(id),{method:'DELETE'}),'حُذف الإعلان');

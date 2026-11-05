@@ -17,7 +17,7 @@ render();
 loadPublic();if(cloud.sess)loadShared().then(render);
 if(/access_token=/.test(location.hash))cHash().then(r=>{if(r||ui.sub==='sync')render()});
 applyTheme(themeNow());
-window.addEventListener("online",()=>{render();if(cloud.auto&&cloud.sess&&!ui.remote)cSched()});window.addEventListener("offline",()=>render());
+window.addEventListener("online",()=>{render();if(cloud.sess&&!ui.remote)cSched()});window.addEventListener("offline",()=>render());
 // تثبيت التطبيق والعمل بدون إنترنت (PWA)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1'))
   window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));

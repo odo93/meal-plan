@@ -42,7 +42,7 @@ function mNode(x,y){
   const tg=x.tagName;
   if(tg==='TEXTAREA'){if(x.value!==y.value)x.value=y.value;return}
   mKids(x,y);
-  if(tg==='INPUT'&&x.type!=='file'){if(x.type==='checkbox'||x.type==='radio'){if(x.checked!==y.checked)x.checked=y.checked}else if(x.value!==y.value)x.value=y.value}
+  if(tg==='INPUT'&&x.type!=='file'){if(x.type==='checkbox'||x.type==='radio'){if(x.checked!==y.checked)x.checked=y.checked}else if(y.hasAttribute('value')&&x.value!==y.value)x.value=y.value}  // حقل بلا value في القالب (كلمة مرور، جوال…) ملك المستخدم: لا نمسحه
   else if(tg==='SELECT'){const v=y.value;if(x.value!==v)x.value=v}}
 function render(){
   const fk=fkey(document.activeElement);
