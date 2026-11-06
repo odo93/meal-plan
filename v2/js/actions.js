@@ -5,7 +5,7 @@
 function ovRead(){const t={};['p','c','f'].forEach(k=>{const e=$('#ov_'+k);if(e&&e.value!==''&&isFinite(+e.value)&&+e.value>=0)t[k]=+e.value});return t}
 function act(a,ds){
   const blk=remoteBlock(a);if(blk){toast(blk);return}
-  const d=state.days[ui.day];
+  const d=state.days[ui.day],own=!ui.remote&&d,n0=own?nLogged(d):0,done0=own&&dayDone(d);
   switch(a){
     case 'skip':{const a=$('#app');a.focus();return}
     case 'theme':{const v=ds.v;if(v==='auto'){try{localStorage.removeItem('mp3_theme')}catch(e){}}else lsSet('mp3_theme',v);applyTheme(v);break}
@@ -15,7 +15,7 @@ function act(a,ds){
     case 'who':modal={type:'who'};render();if(cloud.sess&&!ui.shared)loadShared().then(()=>{if(modal&&modal.type==='who')render()});return;
     case 'whoload':cRun(async()=>{await loadShared();render();return 'تم تحديث القائمة'});return;
     case 'whopick':{const x=(ui.shared||[])[+ds.v];if(!x)return;toast('جارٍ تحميل «'+x.name+'»…');
-      openRemote(x).then(()=>{toast('تعرض الآن: «'+ui.remote.name+'»');render()},e=>{toast(e.message||String(e));render()});return}
+      openRemote(x).then(()=>{if(isCoach())track('coach_view');toast('تعرض الآن: «'+ui.remote.name+'»');render()},e=>{toast(e.message||String(e));render()});return}
     case 'whome':leaveRemote();modal=null;toast('رجعت إلى ملفك');break;
     case 'umode':meta.mode=ds.v;if(cloud.sess){meta.modePending=true;cFetch('/rest/v1/rpc/mp_set_mode',{method:'POST',body:{p_mode:ds.v}}).then(r=>{delete meta.modePending;saveMeta();if(r)lsSet('mp3_acct',{mode:r.mode,features:r.features||{}});render()}).catch(()=>{})}saveMeta();toast('نوع الاستخدام: '+MODES.find(x=>x[0]===ds.v)[1]);if(isCoach())loadShared().then(render);break;
     case 'annx':{const sn=lsGet('mp3_ann_seen')||[];sn.push(+ds.v);lsSet('mp3_ann_seen',sn);render();return}
@@ -26,7 +26,7 @@ function act(a,ds){
     case 'gcreate':{const M=modal;M.busy=true;render();
       cRun(async()=>{await cPush();const code=mkCode();
         await cFetch('/rest/v1/mp_grants',{method:'POST',headers:{Prefer:'return=minimal'},body:{owner:cloud.sess.uid,user_id:M.user,role:M.role,code}});
-        M.code=code;M.busy=false;await loadShared();if(modal===M)render();return 'تم إنشاء كود الدعوة'}).then(()=>{if(M.busy){M.busy=false;render()}});return}
+        M.code=code;M.busy=false;track('share');await loadShared();if(modal===M)render();return 'تم إنشاء كود الدعوة'}).then(()=>{if(M.busy){M.busy=false;render()}});return}
     case 'gcopy':{const c=modal&&modal.code;try{navigator.clipboard.writeText(c).then(()=>toast('تم نسخ الكود'),()=>toast('انسخ الكود يدوياً'))}catch(e){toast('انسخ الكود يدوياً')}return}
     case 'grevoke':{const id=ds.v;ask('إيقاف هذه الصلاحية؟ لن يرى الطرف الآخر الملف بعد الآن.',()=>{cRun(async()=>{await cFetch('/rest/v1/mp_grants?id=eq.'+ENC(id),{method:'DELETE'});await loadShared();render();return 'تم إيقاف الصلاحية'})});return}
     case 'gleave':{const x=(ui.shared||[])[+ds.v];if(!x)return;ask('مغادرة «'+x.name+'»؟ لن تراه بعد الآن إلا بكود جديد.',()=>{cRun(async()=>{await cFetch('/rest/v1/mp_grants?'+qs({owner:x.owner,user_id:x.user_id,grantee:cloud.sess.uid}),{method:'DELETE'});if(ui.remote&&ui.remote.owner===x.owner&&ui.remote.id===x.user_id)leaveRemote();await loadShared();render();return 'تمت المغادرة'})});return}
@@ -192,8 +192,10 @@ function act(a,ds){
     case 'import':$('#file').click();return;
     case 'reset':ask('إعادة ضبط المستخدم «'+curUser().name+'» (الإعدادات والأصناف والخطة) للأصل؟ باقي المستخدمين لا يتأثرون.',()=>{defaultState()});return;
   }
+  if(own&&state.days[ui.day]===d){if(nLogged(d)>n0)track('log');if(!done0&&dayDone(d))track('day_done')}
   save();render();
 }
+const nLogged=d=>d.meals.reduce((s,m)=>s+m.items.filter(it=>gE(it)>0).length,0);
 document.addEventListener('click',e=>{
   const t=e.target.closest('[data-act]');
   if(!t){if(modal&&e.target.id==='modal'){modal=null;render()}return}

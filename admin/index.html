@@ -65,7 +65,7 @@ const GOALS=[['manual','كارب أقل'],['cut','تنحيف'],['maint','تثب�
 const ACTS=[[1.2,'خامل'],[1.375,'خفيف'],[1.55,'متوسط'],[1.725,'عالٍ'],[1.9,'شديد']];
 const DAYS=['السبت','الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة'],PAT0=['high','low','high','low','high','low','high'];
 const GD={cut:{val:0.75,u:'كجم/أسبوع عجز',pr:2.2,fat:25},maint:{pr:1.8,fat:25},recomp:{val:10,u:'% عجز',pr:2.2,fat:25},bulk:{val:15,u:'% فائض',pr:1.6,fat:25},lean:{val:7,u:'% فائض',pr:2.2,fat:25}};
-const TABS=[['stats','نظرة عامة'],['insights','الرؤى'],['errors','الأخطاء'],['accounts','الحسابات'],['ann','الإعلانات'],['config','إعدادات التطبيق'],['foods','الأصناف المشتركة']];
+const TABS=[['stats','نظرة عامة'],['trial','اختبار الفكرة'],['insights','الرؤى'],['errors','الأخطاء'],['accounts','الحسابات'],['ann','الإعلانات'],['config','إعدادات التطبيق'],['foods','الأصناف المشتركة']];
 let sess=lsGet(SK),ui={tab:'stats',busy:false},data={};
 function msg(t){const e=$('#msg');e.textContent=t;e.style.display='block';clearTimeout(msg.t);msg.t=setTimeout(()=>e.style.display='none',3500)}
 async function api(path,o){o=o||{};
@@ -86,6 +86,7 @@ async function load(tab){ui.busy=true;render();
     if(tab==='stats')data.stats=await rpc('admin_stats');
     if(tab==='accounts')data.accounts=await rpc('admin_accounts');
     if(tab==='errors')data.errors=await api('/rest/v1/app_errors?select=*&order=at.desc&limit=300');
+    if(tab==='trial')data.met=await rpc('admin_metrics',{p_days:+(ui.metDays||90)});
     if(tab==='insights')data.ins=await rpc('admin_insights',{p_days:+(ui.insDays||90)});
     if(tab==='ann')data.ann=await api('/rest/v1/announcements?select=*&order=id.desc');
     if(tab==='config')data.cfg=(await api('/rest/v1/app_config?select=*&id=eq.1'))[0];
@@ -108,6 +109,29 @@ function vAccounts(){const A=data.accounts;if(!A)return '<p class="note">جار�
   const cur=A.find(a=>a.id===ui.acc);
   return `${cur?edit(cur):''}<div class="card"><h2>الحسابات (${A.length})</h2><div class="tbl"><table><thead><tr><th>البريد</th><th>الجوال</th><th>النوع</th><th>استثناءات</th><th>التسجيل</th><th>آخر دخول</th><th>الملفات</th><th>آخر تحديث</th><th></th></tr></thead><tbody>
   ${A.map(a=>`<tr><td dir="ltr" style="text-align:end">${a.anon?'<span class="pill off">حساب مؤقت</span>':esc(a.email)}${a.is_admin?' <span class="pill">مدير</span>':''}${a.confirmed===false&&!a.anon?' <span class="pill warn">لم يفعّل البريد</span>':''}</td><td dir="ltr" style="text-align:end">${esc(a.phone||'—')}</td><td>${esc(modeName(a.mode))}</td><td>${ov(a).length?ov(a).map(k=>`<span class="pill ${a.features[k]?'':'warn'}">${esc((FEATS.find(f=>f[0]===k)||[0,k])[1])}${a.features[k]?'':' ✕'}</span>`).join(' '):'—'}</td><td>${fmtD(a.created_at)}</td><td>${fmtD(a.last_sign_in_at)}</td><td class="n">${esc(a.people)}</td><td>${fmtD(a.last_update)}</td><td><button class="btn" data-act="acedit" data-id="${esc(a.id)}">تعديل</button></td></tr>`).join('')}</tbody></table></div></div>`}
+// مقاييس اختبار الفكرة مقابل حدود النجاح (docs/VALIDATION-PLAN.md)
+function vTrial(){const M=data.met;if(!M)return '<p class="note">جارٍ التحميل…</p>';
+  const per=ui.metDays||90,ch=(v,l)=>`<button class="btn${per==v?' pri':''}" data-act="metd" data-v="${v}">${l}</button>`;
+  const pct=(ok,el)=>el?Math.round(ok/el*100):null,C=M.counts||{};
+  const st=(v,goal)=>v==null?'<span class="pill off">لا بيانات كافية</span>':v>=goal?'<span class="pill">تحقق</span>':'<span class="pill warn">أقل من الهدف</span>';
+  const rows=[
+    ['التفعيل: أكمل أول يوم خلال 48 ساعة',pct(M.act_ok,M.act_elig),60,'%',`${M.act_ok} من ${M.act_elig}`],
+    ['الاستمرار: عاد بعد 7 أيام',pct(M.r7_ok,M.r7_elig),40,'%',`${M.r7_ok} من ${M.r7_elig}`],
+    ['الاستمرار: عاد بعد 30 يوماً',pct(M.r30_ok,M.r30_elig),20,'%',`${M.r30_ok} من ${M.r30_elig}`],
+    ['المقياس الرئيسي: أيام تسجيل أكل لكل مستخدم في الأسبوع',M.user_weeks?+M.log_days:null,4,' يوم',`${M.user_weeks} أسبوع-مستخدم`],
+    ['المدربون الذين فتحوا ملفات متدربيهم آخر 7 أيام',M.coaches?pct(M.coach_wk,M.coaches):null,60,'%',`${M.coach_wk} من ${M.coaches} مدرب`]];
+  const wk=M.weekly||[],wmax=Math.max(1,...wk.map(x=>x.active));
+  const bar=(v,max)=>`<span style="display:inline-block;height:10px;border-radius:5px;background:var(--ac);width:${Math.max(2,Math.round(v/Math.max(1,max)*100))}%;vertical-align:middle"></span>`;
+  const EV=[['open','أيام فتح'],['log','أيام تسجيل أكل'],['day_done','أيام مكتملة'],['share','مشاركات مع مدرب/عائلة'],['coach_view','أيام فتح المدرب لملف متدرب'],['update','تحديثات من الزر']];
+  return `<div class="btns" style="margin:0 0 8px">${ch(30,'30 يوماً')}${ch(90,'90 يوماً')}${ch(365,'سنة')}</div>
+  <p class="note">من إشارات الاستخدام (حدث واحد لكل نوع في اليوم لكل حساب)، بلا أسماء ولا بريد. الحسابات قبل الموافقة على الحفظ لا تُحسب.</p>
+  <div class="stats"><div class="stat"><b>${esc(M.users)}</b><span>مستخدمون في الفترة</span></div><div class="stat"><b>${esc(M.new_users)}</b><span>جدد في الفترة</span></div><div class="stat"><b>${esc(M.wau)}</b><span>نشطون آخر 7 أيام</span></div></div>
+  <div class="card"><h2>المقاييس مقابل حد النجاح</h2><div class="tbl"><table style="min-width:0"><thead><tr><th>المقياس</th><th>الآن</th><th>الهدف</th><th>الحالة</th><th>العيّنة</th></tr></thead><tbody>
+  ${rows.map(([l,v,g,u,n])=>`<tr><td>${l}</td><td class="n">${v==null?'—':esc(v)+u}</td><td class="n">${g}${u}+</td><td>${st(v,g)}</td><td class="note">${esc(n)}</td></tr>`).join('')}
+  <tr><td>الاستعداد للدفع: مدرب واحد على الأقل يدفع أو يحجز</td><td class="n">—</td><td class="n">1+</td><td><span class="pill off">يُتابع يدوياً</span></td><td class="note">لا يوجد دفع في التطبيق بعد</td></tr>
+  </tbody></table></div><p class="note">العيّنة الصغيرة (أقل من 20) تعطي أرقاماً متقلبة؛ اقرأها مع المقابلات.</p></div>
+  <div class="card"><h2>المستخدمون النشطون أسبوعياً</h2>${wk.length?`<div class="tbl"><table style="min-width:0"><thead><tr><th>الأسبوع</th><th></th><th>نشطون</th><th>جدد</th><th>أيام تسجيل/مستخدم</th></tr></thead><tbody>${wk.map(x=>`<tr><td dir="ltr" style="text-align:end">${esc(x.wk)}</td><td style="width:40%">${bar(x.active,wmax)}</td><td class="n">${esc(x.active)}</td><td class="n">${esc(x.new_u)}</td><td class="n">${esc(x.logd)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="note">لا بيانات بعد.</p>'}</div>
+  <div class="card"><h2>الأحداث في الفترة</h2><div class="tbl"><table style="min-width:0"><tbody>${EV.map(([k,l])=>`<tr><td>${l}</td><td class="n">${esc(C[k]||0)}</td></tr>`).join('')}</tbody></table></div></div>`}
 function vInsights(){const I=data.ins;if(!I)return '<p class="note">جارٍ التحميل…</p>';
   const per=ui.insDays||90,ch=(v,l)=>`<button class="btn${per==v?' pri':''}" data-act="insd" data-v="${v}">${l}</button>`;
   const lst=(t,a,unit)=>`<div class="card"><h2>${t}</h2>${a&&a.length?`<div class="tbl"><table style="min-width:0"><tbody>${a.map(x=>`<tr><td>${esc(x.n)}</td><td class="n">${esc(x.c)} ${unit||'مرة'}</td></tr>`).join('')}</tbody></table></div>`:'<p class="note">لا بيانات بعد.</p>'}</div>`;
@@ -177,7 +201,7 @@ function render(){
   if(!sess){$('#app').innerHTML=vLogin();return}
   if(ui.admin===false){$('#app').innerHTML=`<div class="card login"><h2>لا توجد صلاحية</h2><p class="note">الحساب ${esc(sess.email)} ليس ضمن مديري التطبيق.</p><div class="btns"><button class="btn" data-act="out">تسجيل الخروج</button></div></div>`;return}
   if(ui.admin==null){$('#app').innerHTML='<p class="note">جارٍ التحقق من الصلاحية…</p>';return}
-  $('#app').innerHTML={errors:vErrors,insights:vInsights,stats:vStats,accounts:vAccounts,ann:vAnn,config:vConfig,foods:vFoods}[ui.tab]();
+  $('#app').innerHTML={errors:vErrors,trial:vTrial,insights:vInsights,stats:vStats,accounts:vAccounts,ann:vAnn,config:vConfig,foods:vFoods}[ui.tab]();
 }
 async function boot(){render();if(!sess)return;
   try{ui.admin=!!(await rpc('is_admin'))}catch(e){ui.admin=false;msg(e.message)}
@@ -211,6 +235,7 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(
   if(a==='acclose'){ui.acc=null;render()}
   if(a==='errclr'&&twice())run(()=>api('/rest/v1/app_errors?id=gt.0',{method:'DELETE'}),'مُسحت الأخطاء');
   if(a==='tpldel'&&twice()){const L=((data.cfg&&data.cfg.meal_templates)||[]).filter(t=>t.id!==id);run(()=>api('/rest/v1/app_config?id=eq.1',{method:'PATCH',prefer:'return=minimal',body:{meal_templates:L,updated_at:new Date().toISOString()}}),'حُذف القالب')}
+  if(a==='metd'){ui.metDays=+t.dataset.v;load('trial')}
   if(a==='insd'){ui.insDays=+t.dataset.v;load('insights')}
   if(a==='copy'){const el=$('#'+t.dataset.v);if(el){el.select();try{(navigator.clipboard?navigator.clipboard.writeText(el.value):Promise.reject()).then(()=>msg('تم النسخ'),()=>{document.execCommand('copy');msg('تم النسخ')})}catch(x){}}}
   if(a==='out'){sess=null;ui.admin=null;try{localStorage.removeItem(SK)}catch(x){}render()}

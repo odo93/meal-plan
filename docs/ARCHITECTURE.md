@@ -1,4 +1,4 @@
-# هيكل التطبيق (v2.12 — 5 نوفمبر 2026)
+# هيكل التطبيق (v2.13 — 5 نوفمبر 2026)
 
 ## 0. نظرة عامة
 ```
@@ -97,6 +97,7 @@ v1 (index.html في الجذر) ← مجمّد؛ v2 ينسخ بياناته مر
 | `app_config` | الإصدار، الميزات حسب النوع، الافتراضيات، مفتاح CAPTCHA العام، قوالب الوجبات العامة `meal_templates` | الجميع يقرأ، المدير يعدّل |
 | `announcements`، `shared_foods` | الإعلانات والأصناف المشتركة | الجميع يقرأ النشط، المدير يدير |
 | `app_errors` | أخطاء التطبيق من الأجهزة | الجميع يضيف، المدير يقرأ ويمسح |
+| `app_events` | إشارات الاستخدام لاختبار الفكرة (`track()` في `cloud.js`: حدث واحد لكل نوع في اليوم، يُرفع بعد الموافقة) — المقاييس عبر `admin_metrics` في تبويب «اختبار الفكرة» | الحساب يضيف أحداثه فقط، المدير يقرأ |
 | `app_admins` | المديرون | يُضافون بـSQL فقط |
 
 **الدوال:** `is_admin`، `mp_can` (للسياسات)، `mp_accept_invite`، `mp_shared_with_me`، `mp_my_grants`، `mp_set_mode`، `mp_delete_account`، `admin_stats`، `admin_accounts`، `admin_set_account`، `admin_insights`. **المشغّلات:** `before delete` على `mp_users/mp_days/mp_history` ← `mp_archive`.

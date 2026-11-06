@@ -12,6 +12,7 @@ const mk=()=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.
     if(p==='/rest/v1/rpc/admin_stats')return R({accounts:3,registered:2,anonymous:1,active_7d:1,people:3,history_days:14,active_grants:1,pending_grants:0});
     if(p==='/rest/v1/app_errors'&&(o.method||'GET')==='GET')return R([{id:1,at:'2026-11-05T08:00:00Z',ver:'2.8',msg:'TypeError: boom',src:'/meal-plan/v2/js/render.js',line:12,uid:'u1'},{id:2,at:'2026-11-05T09:00:00Z',ver:'2.9',msg:'TypeError: boom',src:'/meal-plan/v2/js/render.js',line:12,uid:'u2'}]);
     if(p==='/rest/v1/rpc/admin_insights')return R({days:12,weights:3,top_eaten:[{n:'بيض',c:9}],top_skipped:[{n:'خبز',c:4}],extra:[],by_dow:[{dow:6,adh:71,n:2}],weekly:[{wk:'2026-11-02',days:5}],goals:[{goal:'cut',c:2}],modes:[{mode:'coach',c:1}]});
+    if(p==='/rest/v1/rpc/admin_metrics')return R({users:12,new_users:10,wau:7,act_elig:10,act_ok:7,r7_elig:8,r7_ok:2,r30_elig:0,r30_ok:0,log_days:4.5,user_weeks:20,coaches:3,coach_wk:2,counts:{open:40,log:30,share:4},weekly:[{wk:'2026-11-02',active:7,new_u:3,logd:4.5}]});
     if(p==='/rest/v1/rpc/admin_accounts')return R([{id:'a1',phone:'+966501234567',confirmed:false,email:'m@x.y',created_at:'2026-11-02T00:00:00Z',last_sign_in_at:null,people:2,last_update:null,is_admin:true,mode:'coach',features:{scan:false}},{id:'a2',email:null,phone:null,confirmed:false,anon:true,created_at:'2026-11-05T00:00:00Z',people:1,is_admin:false,mode:null,features:{}}]);
     if(p==='/rest/v1/announcements'&&(o.method||'GET')==='GET')return R([{id:3,title:'قديم',body:'',level:'info',active:true,ends_at:null}]);
     if(p==='/rest/v1/app_config')return (o.method||'GET')==='GET'?R([{id:1,latest_version:'2.1',min_version:'2.0',features:{share:{self:false,family:true,coach:true,org:true}},defaults:{goal:'cut',g:{cut:{pr:2.5}}},updated_at:null}]):R(undefined,204);
@@ -32,6 +33,9 @@ const mk=()=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.
  T('errors grouped',/TypeError: boom/.test($('#app').textContent)&&$('#app tbody').children.length===1&&/2\.8, 2\.9|2\.9, 2\.8/.test($('#app').textContent));
  click('[data-act="errclr"]');await sleep(10);click('[data-act="errclr"]');await sleep(40);
  T('errors cleared on second press',log.some(l=>l[0]==='DELETE'&&l[1].startsWith('/rest/v1/app_errors')));
+ click('[data-v="trial"]');await sleep(40);
+ {const t=$('#app').textContent;T('idea-test tab: metrics vs targets',/حد النجاح/.test(t)&&/70%/.test(t)&&/25%/.test(t)&&/4.5 يوم/.test(t)&&/67%/.test(t)&&/يُتابع يدوياً/.test(t)&&/لا بيانات كافية/.test(t),t.slice(0,400));
+  T('idea-test: met and missed marked',$('#app').querySelectorAll('.pill.warn').length===1&&/تحقق/.test(t))}
  click('[data-v="insights"]');await sleep(40);
  T('insights tab',/أكثر الأصناف أكلاً/.test($('#app').textContent)&&/بيض/.test($('#app').textContent)&&/الجمعة/.test($('#app').textContent)&&/تنحيف/.test($('#app').textContent)&&/مدرب مستقل/.test($('#app').textContent));
  click('[data-act="insd"][data-v="30"]');await sleep(40);

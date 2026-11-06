@@ -83,14 +83,23 @@ async function checkUpdate(minGap=0){
   try{const r=await fetch('version.json',{cache:'no-store'});if(!r.ok)return;const j=await r.json();
     if(j&&typeof j.v==='string'&&verLt(APP_VER,j.v)&&!(ui.upd&&ui.upd.v===j.v)){ui.upd={v:j.v,notes:Array.isArray(j.notes)?j.notes.slice(0,5).map(String):[]};render()}
   }catch(e){}}
+// ---------- تتبّع الاستخدام لاختبار الفكرة (docs/VALIDATION-PLAN.md) ----------
+// ستة أحداث فقط، مرة واحدة لكل حدث في اليوم. تُجمع في الجهاز وتُرفع دفعة واحدة عند وجود جلسة (أي بعد موافقة المستخدم).
+const EVQ='mp3_evq',EVDAY='mp3_evday';let evT=null;
+function track(ev){try{const day=todayISO(),seen=lsGet(EVDAY)||{};if(seen[ev]===day)return;seen[ev]=day;lsSet(EVDAY,seen);
+  lsSet(EVQ,(lsGet(EVQ)||[]).concat({ev,day,at:new Date().toISOString(),ver:APP_VER}).slice(-300));clearTimeout(evT);evT=setTimeout(flushEvents,5000)}catch(e){}}
+async function flushEvents(){const old=Date.now()-29*864e5,all=lsGet(EVQ)||[],q=all.filter(x=>Date.parse(x.at)>old);if(q.length<all.length)lsSet(EVQ,q);   // الأقدم ترفضه القاعدة
+  if(!q.length||!cloud.sess||navigator.onLine===false)return;
+  try{await cFetch('/rest/v1/app_events',{method:'POST',headers:{Prefer:'return=minimal'},body:q});lsSet(EVQ,(lsGet(EVQ)||[]).filter(x=>!q.some(y=>y.at===x.at&&y.ev===x.ev)))}catch(e){}}
 // التحديث الآن: يحفظ في الجهاز، ويُنهي أي رفع معلّق إلى الحساب (بحد 5 ثوانٍ)، ثم يحمّل النسخة الجديدة. البيانات لا تُمس.
 async function updateNow(){
   if(updBusy)return;updBusy=true;render();
   try{save()}catch(e){}
+  track('update');clearTimeout(evT);
   // الرفع المعلّق وتحديث عامل الخدمة معاً، بحد 5 ثوانٍ للاثنين
   const push=cloud.sess&&!ui.remote?(clearTimeout(cT),cPush()):ui.remote&&canWrite()?(clearTimeout(rT),rPush()):null;
   const sw=navigator.serviceWorker?navigator.serviceWorker.getRegistration().then(r=>r&&r.update()):null;
-  await Promise.race([Promise.all([push,sw].map(p=>p&&p.catch(()=>{}))),new Promise(r=>setTimeout(r,5000))]);
+  await Promise.race([Promise.all([push,sw,flushEvents()].map(p=>p&&p.catch(()=>{}))),new Promise(r=>setTimeout(r,5000))]);
   reloadApp();
 }
 async function cSetPhone(){const ph=normPhone(($('#cl_ph')||{}).value);if(!ph)return 'أدخل رقم جوال صحيحاً (8–15 رقماً)';

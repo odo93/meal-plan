@@ -20,7 +20,8 @@ if(/access_token=/.test(location.hash))cHash().then(r=>{if(r||ui.sub==='sync')re
 applyTheme(themeNow());
 // فحص التحديثات
 setTimeout(checkUpdate,3000);setInterval(()=>{if(document.visibilityState==='visible')checkUpdate()},30*60e3);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkUpdate(10*60e3)});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){checkUpdate(10*60e3);track('open');flushEvents()}});
+track('open');setTimeout(flushEvents,8000);
 window.addEventListener("online",()=>{render();if(cloud.sess&&!ui.remote)cSched()});window.addEventListener("offline",()=>render());
 // تثبيت التطبيق والعمل بدون إنترنت (PWA)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1'))
