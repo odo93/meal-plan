@@ -22,7 +22,7 @@ const ICON={
 const ico=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
 const TABS=[['day','اليوم'],['week','الخطة'],['hist','التقدم'],['foods','الأصناف'],['me','حسابي']];
 const SUBS={profile:'ملفي الشخصي',goals:'أهدافي',family:'الأشخاص والمشاركة',clients:'متدربيني',mode:'نوع الاستخدام',sync:'حسابي',data:'بياناتي',advanced:'متقدم'};
-const APP_VER='2.13';
+const APP_VER='2.14';
 // نوع الاستخدام: يحدد ما يظهر في «حسابي»، ويمكن تغييره في أي وقت
 const MODES=[['self','لنفسي','خطتي وحدي'],['family','لي ولعائلتي','أفراد وأطفال تديرهم'],['coach','مدرب مستقل','متابعة متدربين'],['org','مؤسسة','مدربون وأخصائيو تغذية']];
 const isCoach=()=>meta.mode==='coach'||meta.mode==='org';
@@ -66,13 +66,13 @@ function banners(){
   const U=ui.upd,mustUpd=cfg&&verLt(APP_VER,cfg.min_version);if(U&&!mustUpd&&!U.later)h+=`<div class="bnr info upd" role="status"><span class="g"><b>تحديث جديد جاهز (${esc(U.v)})</b>${U.notes.length?`<ul>${U.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>`:''}بياناتك تبقى كما هي.</span><span class="btns col"><button class="btn pri" data-act="updnow" ${updBusy?'disabled':''}>${updBusy?'جارٍ التحديث…':'تحديث الآن'}</button><button class="btn" data-act="updlater">لاحقاً</button></span></div>`;
   if(mustUpd)h+=`<div class="bnr warn" role="alert"><span class="g"><b>تحديث مطلوب</b>هذه النسخة (${APP_VER}) أقدم من المسموح. أعد تحميل الصفحة للحصول على ${esc(cfg.latest_version)}.</span><button class="btn pri" data-act="updnow">إعادة التحميل</button></div>`;
   (P.ann||[]).filter(a=>!seen.includes(a.id)).forEach(a=>{h+=`<div class="bnr ${a.level==='warn'?'warn':'info'}" role="status"><span class="g"><b>${esc(a.title)}</b>${esc(a.body||'')}</span><button class="btn" data-act="annx" data-v="${a.id}" aria-label="إخفاء الإعلان">إخفاء</button></div>`});
-  if(ui.remote)h+=`<div class="bnr rm" role="status"><span class="g"><b>تعرض الآن: ${esc(ui.remote.name)}</b>${ROLES[ui.remote.role]} · ${canWrite()?'تعديلاتك على الخطة تُحفظ في حسابه، والتسجيل يبقى له':'مشاهدة فقط'}${ui.remote.busy?' · جارٍ الحفظ…':''}</span><button class="btn" data-act="whome">رجوع لملفي</button></div>`;
+  if(ui.remote)h+=`<div class="bnr rm" role="status"><span class="g"><b>تعرض الآن: ${esc(ui.remote.name)}</b>${ROLES[ui.remote.role]} · ${canWrite()?'تعديلاتك على الخطة تُحفظ في حسابه، والتسجيل يبقى له':'مشاهدة فقط'}</span><span class="btns col">${canWrite()?`<span class="rmst" aria-live="polite">${ui.remote.busy?'جارٍ الحفظ…':ui.remote.pending?(ui.remote.err?'لم تُحفظ التعديلات':'تعديلات لم تُحفظ بعد'):ui.remote.savedAt?'✓ محفوظ — يظهر له عند فتح التطبيق':'كل تعديل يُحفظ تلقائياً'}</span>${ui.remote.pending&&!ui.remote.busy?'<button class="btn pri" data-act="rsave">حفظ الآن</button>':''}`:''}<button class="btn" data-act="whome">رجوع لملفي</button></span></div>`;
   if(!meta.mode&&ui.tab==='day'&&!ui.remote)h+=`<div class="card"><b>كيف ستستخدم التطبيق؟</b><p class="note" style="margin:2px 0 8px">نعرض لك ما تحتاجه فقط. يمكنك التغيير لاحقاً من حسابي.</p><div class="modes">${MODES.map(([k,t,d])=>`<button data-act="umode" data-v="${k}"><b>${t}</b><small>${d}</small></button>`).join('')}</div></div>`;
   return h;
 }
 // ---------- الشخص المشارك: يُحمَّل من السحابة ولا يُكتب في هذا الجهاز ----------
 const canWrite=()=>!!ui.remote&&ui.remote.role!=='viewer';
-const NAV_ACTS=new Set(['weekopts','wk','fgrp','fedit','nfopen','dayopts','itemopts','mopen','tab','back','day','goday','close','hopen','hr','cmp','who','whopick','whome','whoload','yes','undo','annx','umode','copyshop','print','fu','by','agrp','gaccept','gleave','share','grevoke','gcreate','gcopy','scanclose','eqo']);
+const NAV_ACTS=new Set(['weekopts','wk','fgrp','fedit','nfopen','dayopts','itemopts','mopen','tab','back','day','goday','close','hopen','hr','cmp','who','whopick','whome','whoload','yes','undo','annx','umode','copyshop','print','fu','by','agrp','gaccept','gleave','share','grevoke','gcreate','gcopy','scanclose','eqo','rsave']);
 const LOG_ACTS=new Set(['wsave','wdel','tdeeuse','mfinish','qlog','log','logsave','logskip','logclr','hlog','hdel','logrest','logclear']);
 const LOCAL_ACTS=new Set(['mpub','cdelacct','picdel','uadd','uren','usave','udel','uswitch','reset','import','export','cpush','cpull','rebuildweek']);
 function remoteBlock(a){if(!ui.remote||NAV_ACTS.has(a))return '';
@@ -90,7 +90,8 @@ async function openRemote(x){
   ui.remote={owner:x.owner,id:x.user_id,name:U[0].name,role:x.role,hist:(H||[]).map(r=>r.data)};
   state=st;modal=null;if(ui.tab==='me')ui.tab='day',ui.sub='';
 }
-function leaveRemote(){if(!ui.remote)return;clearTimeout(rT);ui.remote=null;state=loadUser(meta.cur)||defaultState()}
+// الرجوع قبل انتهاء مهلة الحفظ: تُرفع التعديلات المعلّقة فوراً بنسخة الخطة المعروضة
+function leaveRemote(){const R=ui.remote;if(!R)return;clearTimeout(rT);if(R.pending)rRun(R,state);ui.remote=null;state=loadUser(meta.cur)||defaultState()}
 // يدمج تسجيل صاحب الخطة الأحدث في يوم عدّله المدرب، حتى لا يضيع ما سجّله أثناء التعديل
 function mergeLog(mine,fresh){if(!fresh||!fresh.meals)return mine;
   mine.meals.forEach((m,mi)=>{const fm=fresh.meals[mi];if(!fm)return;
@@ -98,14 +99,16 @@ function mergeLog(mine,fresh){if(!fresh||!fresh.meals)return mine;
     m.items.forEach((it,ii)=>{const fi=fm.items.filter(z=>!z.x)[ii];if(fi&&fi.f===it.f){if(fi.e!=null)it.e=fi.e;else delete it.e;if(fi.em!=null)it.em=fi.em;else delete it.em}});
     fm.items.filter(z=>z.x).forEach(z=>m.items.push(z))});
   if(fresh.lw)mine.lw=fresh.lw;return mine}
-let rT=null;function rSched(){clearTimeout(rT);rT=setTimeout(()=>rPush().catch(e=>{ui.remote&&(ui.remote.busy=false);toast('تعذّر الحفظ: '+(e.message||e));render()}),1500)}
-async function rPush(){const R=ui.remote;if(!R||!canWrite())return;R.busy=true;
+// تعديلات المدرب تُحفظ تلقائياً بعد 1.5 ثانية من آخر تغيير (أو فوراً بزر «حفظ الآن» أو عند الرجوع لملفه)
+let rT=null;function rSched(){const R=ui.remote;if(!R)return;R.pending=true;R.err='';clearTimeout(rT);rT=setTimeout(()=>rRun(R,state),1500)}
+function rRun(R,st){return rPush(R,st).catch(e=>{R.busy=false;R.pending=true;R.err=e.message||String(e);toast('تعذّر الحفظ: '+R.err);render()})}
+async function rPush(R,st){R=R||ui.remote;st=st||state;if(!R||R.role==='viewer')return;R.pending=false;R.busy=true;if(ui.remote===R)render();
   const now=new Date().toISOString(),k={owner:R.owner,id:R.id},kd={owner:R.owner,user_id:R.id};
-  await cFetch('/rest/v1/mp_users?'+qs(k),{method:'PATCH',headers:{Prefer:'return=minimal'},body:{settings:state.settings,foods:state.foods,updated_at:now}});
+  await cFetch('/rest/v1/mp_users?'+qs(k),{method:'PATCH',headers:{Prefer:'return=minimal'},body:{settings:st.settings,foods:st.foods,updated_at:now}});
   const F=await cFetch('/rest/v1/mp_days?select=idx,data&'+qs(kd))||[];
-  for(let i=0;i<7;i++){const fr=F.find(r=>r.idx===i);const d=mergeLog(clone(state.days[i]),fr&&fr.data);state.days[i]=d;
+  for(let i=0;i<7;i++){const fr=F.find(r=>r.idx===i);const d=mergeLog(clone(st.days[i]),fr&&fr.data);st.days[i]=d;
     await cFetch('/rest/v1/mp_days?'+qs(Object.assign({idx:i},kd)),{method:'PATCH',headers:{Prefer:'return=minimal'},body:{data:d,updated_at:now}})}
-  if(ui.remote===R){R.busy=false;render()}
+  R.busy=false;R.savedAt=Date.now();if(ui.remote===R)render();else toast('حُفظت تعديلاتك على خطة «'+R.name+'»');
 }
 async function loadShared(){if(!cloud.sess)return;
   await syncAcct();

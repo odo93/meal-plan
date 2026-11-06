@@ -15,12 +15,13 @@ fromHash();
 addShared(lsGet('mp3_sfoods'));
 window.addEventListener('popstate',()=>{if(location.hash&&!location.hash.startsWith('#/'))return;if(!fromHash()){ui.tab='day';ui.sub=''}modal=null;render()});
 render();
-loadPublic();if(cloud.sess)loadShared().then(render);else anonSignIn().then(ok=>{if(ok)render()});
+loadPublic();if(cloud.sess)loadShared().then(()=>cSyncIn().catch(()=>0)).then(render);else anonSignIn().then(ok=>{if(ok)render()});
 if(/access_token=/.test(location.hash))cHash().then(r=>{if(r||ui.sub==='sync')render()});
 applyTheme(themeNow());
 // فحص التحديثات
 setTimeout(checkUpdate,3000);setInterval(()=>{if(document.visibilityState==='visible')checkUpdate()},30*60e3);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){checkUpdate(10*60e3);track('open');flushEvents()}});
+setInterval(()=>{if(document.visibilityState==='visible'&&cloud.sess)cSyncIn().catch(()=>0)},2*60e3);   // تعديلات المدرب تصل والتطبيق مفتوح
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){checkUpdate(10*60e3);if(Date.now()-syncInAt>30e3)cSyncIn().catch(()=>0);track('open');flushEvents()}});
 track('open');setTimeout(flushEvents,8000);
 window.addEventListener("online",()=>{render();if(cloud.sess&&!ui.remote)cSched()});window.addEventListener("offline",()=>render());
 // تثبيت التطبيق والعمل بدون إنترنت (PWA)

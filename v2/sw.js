@@ -1,7 +1,7 @@
 // عامل الخدمة: يجعل v2 قابلاً للتثبيت ويعمل بدون إنترنت.
 // الشبكة أولاً للصفحة (فيصل كل تحديث فور توفر الإنترنت)، والنسخة المحفوظة عند انقطاعه.
 // لا يتدخل في طلبات المواقع الأخرى (Supabase وUSDA وOpen Food Facts ومكتبات CDN).
-const VER = '2.13';
+const VER = '2.14';
 const CACHE = 'mp-v2-' + VER.replace(/\./g, '-');
 const CORE = ['./', './index.html', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png',
   './css/app.css', './js/core.js', './js/goals.js', './js/meals.js', './js/store.js', './js/catalog.js', './js/food-search.js',

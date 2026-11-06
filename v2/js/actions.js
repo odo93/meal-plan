@@ -16,6 +16,7 @@ function act(a,ds){
     case 'whoload':cRun(async()=>{await loadShared();render();return 'تم تحديث القائمة'});return;
     case 'whopick':{const x=(ui.shared||[])[+ds.v];if(!x)return;toast('جارٍ تحميل «'+x.name+'»…');
       openRemote(x).then(()=>{if(isCoach())track('coach_view');toast('تعرض الآن: «'+ui.remote.name+'»');render()},e=>{toast(e.message||String(e));render()});return}
+    case 'rsave':if(ui.remote&&ui.remote.pending){clearTimeout(rT);rRun(ui.remote,state)}return;
     case 'whome':leaveRemote();modal=null;toast('رجعت إلى ملفك');break;
     case 'umode':meta.mode=ds.v;if(cloud.sess){meta.modePending=true;cFetch('/rest/v1/rpc/mp_set_mode',{method:'POST',body:{p_mode:ds.v}}).then(r=>{delete meta.modePending;saveMeta();if(r)lsSet('mp3_acct',{mode:r.mode,features:r.features||{}});render()}).catch(()=>{})}saveMeta();toast('نوع الاستخدام: '+MODES.find(x=>x[0]===ds.v)[1]);if(isCoach())loadShared().then(render);break;
     case 'annx':{const sn=lsGet('mp3_ann_seen')||[];sn.push(+ds.v);lsSet('mp3_ann_seen',sn);render();return}

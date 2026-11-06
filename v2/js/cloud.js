@@ -123,14 +123,38 @@ const RET=()=>/^https?:$/.test(location.protocol)?'?redirect_to='+ENC(location.o
 async function cUpsert(table,rows,conflict){if(!rows.length)return;
   for(let i=0;i<rows.length;i+=200)await cFetch('/rest/v1/'+table+'?on_conflict='+conflict,{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:rows.slice(i,i+200)});
 }
+// الوارد من الحساب: إن عدّل المدرب (أو جهاز آخر لك) ملفاً بعد آخر مزامنة لهذا الجهاز، تؤخذ خطته وأصنافه
+// ويبقى تسجيلك (المأكول والوزن والصورة). يُستدعى قبل كل رفع حتى لا يُكتب فوق تعديل المدرب.
+const tms=t=>Date.parse(t)||0;let syncInAt=0;
+async function cSyncIn(){
+  if(!cloud.sess||ui.remote)return 0;const uid=cloud.sess.uid,S=meta.syncAt||(meta.syncAt={});syncInAt=Date.now();
+  const U=(await cFetch('/rest/v1/mp_users?select=id,updated_at&owner=eq.'+ENC(uid))||[]).filter(u=>meta.users.some(x=>x.id===u.id));
+  const need=U.filter(u=>S[u.id]&&tms(u.updated_at)>tms(S[u.id])),fresh=U.filter(u=>!S[u.id]);
+  if(fresh.length){   // جهاز لم يسجّل مزامنة بعد: نأخذ من الحساب فقط الملفات التي لها مدرب أو محرر
+    const G=await cFetch('/rest/v1/mp_grants?select=user_id&owner=eq.'+ENC(uid)+'&status=eq.active&role=in.(coach,editor)')||[];
+    fresh.forEach(u=>{if(G.some(g=>g.user_id===u.id))need.push(u);else S[u.id]=u.updated_at})}
+  let n=0;
+  for(const u of need){const k='owner=eq.'+ENC(uid);
+    const [C,D]=await Promise.all([cFetch('/rest/v1/mp_users?select=settings,foods,updated_at&'+k+'&id=eq.'+ENC(u.id)),cFetch('/rest/v1/mp_days?select=idx,data&'+k+'&user_id=eq.'+ENC(u.id))]);
+    const c=C&&C[0],loc=u.id===meta.cur?state:loadUser(u.id);if(!c||!loc)continue;
+    const days=loc.days.map((ld,i)=>{const r=(D||[]).find(x=>x.idx===i);return r&&r.data?mergeLog(clone(r.data),ld):ld});
+    const st={settings:Object.assign({},c.settings,{wlog:loc.settings.wlog,pic:loc.settings.pic}),foods:c.foods,days};
+    if(!st.settings.pic)delete st.settings.pic;if(!st.settings.wlog)delete st.settings.wlog;
+    if(!validUser(st)){S[u.id]=c.updated_at;continue}
+    fixSettings(st.settings);saveUser(u.id,st);if(u.id===meta.cur)state=st;S[u.id]=c.updated_at;n++}
+  saveMeta();
+  if(n){toast(n>1?'وصلت تعديلات جديدة على '+n+' ملفات من حسابك':'وصلت تعديلات جديدة على خطتك (من مدربك أو جهاز آخر)');render()}
+  return n}
 async function cPush(){
   const uid=cloud.sess&&cloud.sess.uid;if(!uid)return 'سجّل الدخول أولاً';
+  await cSyncIn();
   const now=new Date().toISOString(),U=[],D=[],H=[];
   meta.users.forEach(u=>{const st=u.id===meta.cur?state:loadUser(u.id);if(!st)return;
     U.push({owner:uid,id:u.id,name:u.name,settings:st.settings,foods:st.foods,updated_at:now});
     st.days.forEach((d,i)=>D.push({owner:uid,user_id:u.id,idx:i,data:d,updated_at:now}));
     hAll(u.id).forEach(r=>H.push({owner:uid,user_id:u.id,date:r.date,data:r,updated_at:now}));});
   await cUpsert('mp_users',U,'owner,id');await cUpsert('mp_days',D,'owner,user_id,idx');await cUpsert('mp_history',H,'owner,user_id,date');
+  const S=meta.syncAt||(meta.syncAt={});U.forEach(u=>S[u.id]=now);saveMeta();
   // تنظيف ما حُذف محلياً (مستخدمون، وأيام سجل)
   const ids=meta.users.map(u=>u.id);
   await cFetch('/rest/v1/mp_users?owner=eq.'+ENC(uid)+'&id=not.in.('+ids.map(ENC).join(',')+')',{method:'DELETE'});
@@ -145,15 +169,16 @@ async function cPull(){
   const users=U.map(u=>{const days=Array(7).fill(null);D.filter(x=>x.user_id===u.id).forEach(x=>days[x.idx]=x.data);
     return{id:u.id,name:u.name,data:{settings:u.settings,foods:u.foods,days},hist:H.filter(x=>x.user_id===u.id).map(x=>x.data)}}).filter(u=>validUser(u.data));
   if(!users.length)return 'بيانات الحساب غير مكتملة (أيام ناقصة)';
-  if(cPull.now){cPull.now=false;restoreAll({meta:{cur:meta.cur},users});save();render();return 'تم استرجاع بياناتك من الحساب'}
-  ask('تنزيل '+users.length+(users.length>1?' ملفات':' ملف')+' من حسابك سيستبدل بيانات هذا الجهاز. متابعة؟',()=>restoreAll({meta:{cur:meta.cur},users}));
+  const syncAt={};U.forEach(u=>syncAt[u.id]=u.updated_at);   // بعد التنزيل هذا الجهاز مطابق للحساب
+  if(cPull.now){cPull.now=false;restoreAll({meta:{cur:meta.cur},users,syncAt});save();render();return 'تم استرجاع بياناتك من الحساب'}
+  ask('تنزيل '+users.length+(users.length>1?' ملفات':' ملف')+' من حسابك سيستبدل بيانات هذا الجهاز. متابعة؟',()=>restoreAll({meta:{cur:meta.cur},users,syncAt}));
   return 'بانتظار تأكيدك';
 }
 let cT=null;function cSched(){clearTimeout(cT);cT=setTimeout(()=>cRun(cPush),4000)}
 function restoreAll(o){
   meta.users.forEach(u=>wipeUser(u.id));
   const cur=o.meta&&o.users.some(u=>u.id===o.meta.cur)?o.meta.cur:o.users[0].id;
-  const md=meta.mode;meta={users:o.users.map(u=>Object.assign({id:u.id,name:u.name||'مستخدم'},u.data&&u.data.settings&&picOk(u.data.settings.pic)?{pic:u.data.settings.pic}:{})),cur};if(md)meta.mode=md;
+  const md=meta.mode;meta={users:o.users.map(u=>Object.assign({id:u.id,name:u.name||'مستخدم'},u.data&&u.data.settings&&picOk(u.data.settings.pic)?{pic:u.data.settings.pic}:{})),cur};if(md)meta.mode=md;if(o.syncAt)meta.syncAt=o.syncAt;
   o.users.forEach(u=>{saveUser(u.id,u.data);(Array.isArray(u.hist)?u.hist:[]).forEach(r=>{if(r&&r.date)hPut(u.id,r)})});
   state=o.users.find(u=>u.id===cur).data;
 }
