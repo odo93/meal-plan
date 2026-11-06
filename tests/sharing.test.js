@@ -79,5 +79,5 @@ const mk=()=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.
  T('pull filters owner',log.filter(l=>l[0]==='GET'&&/mp_(users|days|history)/.test(l[1])).every(l=>l[1].includes('owner=eq.'+ME)));
  // 8) forced update
  CFG.min_version='9.0';E('loadPublic()');await sleep(60);
- T('update required banner',$('#app').textContent.includes('تحديث مطلوب')&&!!$('[data-act="reload"]'));
+ T('update required banner',$('#app').textContent.includes('تحديث مطلوب')&&!!$('[data-act="updnow"]'));
  console.log('PASS',ok,'FAIL',bad,errs);process.exit(0)})();

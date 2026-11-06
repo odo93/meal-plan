@@ -969,7 +969,7 @@ if(/access_token=/.test(location.hash))cHash().then(r=>{if(r||ui.tab==='set')ren
   fetch('v2/version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(j){
     if(!j||typeof j.v!=='string'||hidden(j.v))return;
     var moved=false;try{moved=!!localStorage.getItem('mp3_imported')}catch(e){}
-    var notes=(Array.isArray(j.notes)?j.notes:[]).slice(0,4).map(function(n){return '<li>'+esc(n)+'</li>'}).join('');
+    var notes=(Array.isArray(j.notes)?j.notes:[]).slice(0,5).map(function(n){return '<li>'+esc(n)+'</li>'}).join('');
     var el=document.getElementById('v2upd');
     el.innerHTML='<b style="display:block;font-size:16px">نسخة جديدة من التطبيق متاحة ('+esc(j.v)+')</b>'
       +(notes?'<ul style="margin:4px 0;padding-inline-start:18px;font-size:13px">'+notes+'</ul>':'')

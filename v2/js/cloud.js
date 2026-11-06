@@ -77,19 +77,20 @@ async function cDeleteAccount(){
   setTimeout(reloadApp,50);return 'حُذف حسابك'}
 // ---------- التحديثات: version.json يحمل رقم آخر نسخة و«ما الجديد» ----------
 // يُفحص عند الفتح، وعند الرجوع للتطبيق (مرة كل 10 دقائق على الأكثر)، وكل 30 دقيقة.
-async function checkUpdate(){
-  if(navigator.onLine===false)return false;checkUpdate.at=Date.now();
-  try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return false;const j=await r.json();
-    if(j&&typeof j.v==='string'&&verLt(APP_VER,j.v)){const was=ui.upd&&ui.upd.v;ui.upd={v:j.v,notes:Array.isArray(j.notes)?j.notes.slice(0,5).map(String):[]};if(was!==j.v)render();return true}
-  }catch(e){}return false}
+let updAt=0,updBusy=false;
+async function checkUpdate(minGap=0){
+  if(navigator.onLine===false||Date.now()-updAt<minGap)return;updAt=Date.now();
+  try{const r=await fetch('version.json',{cache:'no-store'});if(!r.ok)return;const j=await r.json();
+    if(j&&typeof j.v==='string'&&verLt(APP_VER,j.v)&&!(ui.upd&&ui.upd.v===j.v)){ui.upd={v:j.v,notes:Array.isArray(j.notes)?j.notes.slice(0,5).map(String):[]};render()}
+  }catch(e){}}
 // التحديث الآن: يحفظ في الجهاز، ويُنهي أي رفع معلّق إلى الحساب (بحد 5 ثوانٍ)، ثم يحمّل النسخة الجديدة. البيانات لا تُمس.
 async function updateNow(){
-  ui.updBusy=true;render();
-  try{if(!ui.remote)saveMeta(),saveUser(meta.cur,state)}catch(e){}
-  const wait=p=>Promise.race([p.catch(()=>{}),new Promise(r=>setTimeout(r,5000))]);
-  if(cloud.sess&&!ui.remote){clearTimeout(cT);await wait(cPush())}
-  else if(ui.remote&&canWrite()){clearTimeout(rT);await wait(rPush())}
-  try{const reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();if(reg)await wait(reg.update())}catch(e){}
+  if(updBusy)return;updBusy=true;render();
+  try{save()}catch(e){}
+  // الرفع المعلّق وتحديث عامل الخدمة معاً، بحد 5 ثوانٍ للاثنين
+  const push=cloud.sess&&!ui.remote?(clearTimeout(cT),cPush()):ui.remote&&canWrite()?(clearTimeout(rT),rPush()):null;
+  const sw=navigator.serviceWorker?navigator.serviceWorker.getRegistration().then(r=>r&&r.update()):null;
+  await Promise.race([Promise.all([push,sw].map(p=>p&&p.catch(()=>{}))),new Promise(r=>setTimeout(r,5000))]);
   reloadApp();
 }
 async function cSetPhone(){const ph=normPhone(($('#cl_ph')||{}).value);if(!ph)return 'أدخل رقم جوال صحيحاً (8–15 رقماً)';
