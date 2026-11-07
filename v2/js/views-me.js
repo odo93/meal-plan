@@ -22,13 +22,13 @@ const ICON={
 const ico=n=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[n]}</svg>`;
 const TABS=[['day','اليوم'],['week','الخطة'],['hist','التقدم'],['foods','الأصناف'],['me','حسابي']];
 const SUBS={profile:'ملفي الشخصي',goals:'أهدافي',family:'الأشخاص والمشاركة',clients:'متدربيني',mode:'نوع الاستخدام',sync:'حسابي',data:'بياناتي',advanced:'متقدم'};
-const APP_VER='2.14';
+const APP_VER='2.15';
 // نوع الاستخدام: يحدد ما يظهر في «حسابي»، ويمكن تغييره في أي وقت
 const MODES=[['self','لنفسي','خطتي وحدي'],['family','لي ولعائلتي','أفراد وأطفال تديرهم'],['coach','مدرب مستقل','متابعة متدربين'],['org','مؤسسة','مدربون وأخصائيو تغذية']];
 const isCoach=()=>meta.mode==='coach'||meta.mode==='org';
 // ميزات تتحكم بها لوحة الإدارة (للعرض فقط؛ حماية البيانات في RLS). القاعدة: استثناء الحساب ← إعداد نوع الاستخدام ← مفعّلة.
 // الإعدادات الأخيرة محفوظة في الجهاز (mp3_pub / mp3_acct) فتسري بلا إنترنت أيضاً. تسجيل الدخول والمزامنة لا تُغلق أبداً.
-const FEATS=[['scan','المسح بالصورة والباركود'],['online','البحث أونلاين (USDA وOpen Food Facts)'],['shop','قائمة المشتريات'],['multi','أكثر من ملف (أفراد وأطفال)'],['share','المشاركة بكود'],['clients','متدربيني']];
+const FEATS=[['scan','المسح بالصورة والباركود'],['voice','التسجيل بالصوت والكتابة'],['online','البحث أونلاين (USDA وOpen Food Facts)'],['shop','قائمة المشتريات'],['multi','أكثر من ملف (أفراد وأطفال)'],['share','المشاركة بكود'],['clients','متدربيني']];
 const pubCfg=()=>(ui.pub&&ui.pub.cfg)||lsGet('mp3_pub')||{};
 const acct=()=>lsGet('mp3_acct')||{};
 function feat(k){
@@ -380,6 +380,8 @@ function modalBody(){
     const u=meta.users.find(x=>x.id===modal.user)||{name:''};
     m.innerHTML=`<div class="sheet" role="dialog" aria-label="مشاركة ${esc(u.name)}"><h2>مشاركة «${esc(u.name)}»</h2>${modal.code?`<p>أرسل هذا الكود للشخص. يدخله من: حسابي › الأشخاص والمشاركة.</p><div class="code" id="sh_code">${esc(modal.code)}</div><p class="note">الصلاحية: ${ROLES[modal.role]} (${ROLE_NOTE[modal.role]}). الكود يُستخدم مرة واحدة.</p><div class="btns"><button class="btn pri" data-act="gcopy">نسخ الكود</button><button data-act="close">تم</button></div>`
     :`<p class="note">اختر ما يستطيع الشخص الآخر فعله. التسجيل (ما أكلت) يبقى لك دائماً.</p><div class="modes" style="grid-template-columns:1fr">${Object.keys(ROLES).map(r=>`<button class="${modal.role===r?'on':''}" data-act="srole" data-v="${r}" aria-pressed="${modal.role===r}"><b>${ROLES[r]}</b><small>${ROLE_NOTE[r]}</small></button>`).join('')}</div><div class="btns" style="margin-top:8px"><button class="btn pri" data-act="gcreate" ${modal.busy?'disabled':''}>${modal.busy?'جارٍ إنشاء الكود…':'إنشاء كود دعوة'}</button><button data-act="close">إلغاء</button></div>`}</div>`;
+  }else if(modal.type==='voice'){
+    m.innerHTML=voiceHtml();
   }else if(modal.type==='scan'){
     m.innerHTML=scanHtml();
   }else if(modal.type==='swap'){

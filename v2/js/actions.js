@@ -155,6 +155,15 @@ function act(a,ds){
     case 'scansave':case 'scansaveadd':{const c=scanCollect();if(!c)return;const id=candFood(c),f=F(id),from=ui.scan.from;
       if(a==='scansaveadd'&&from!=null){const g=f.u&&f.ug?f.ug:100;d.meals[from].items.push({f:id,g,b:g,r:'x',s:''})}
       modal=null;ui.scan=null;ui.fq='';toast('تم حفظ «'+f.n+'» كصنف');break}
+    case 'voice':if(ui.remote&&!canWrite()){toast('لديك صلاحية مشاهدة فقط');return}vOpen();break;
+    case 'vex':ui.vm.txt=ds.v;break;
+    case 'vgo':ui.vm.txt=($('#v_txt')||{}).value||ui.vm.txt||'';vRun();break;
+    case 'vmic':vMic();return;
+    case 'vans':case 'vskip':{const vm=ui.vm;if(a==='vans')vApply(vm.qs[vm.qi],+ds.v);vm.qi++;if(vm.qi>=vm.qs.length)vm.stage='res';break}
+    case 'vback':ui.vm.stage='in';break;
+    case 'vdel':ui.vm.items.splice(+ds.i,1);if(!ui.vm.items.length)ui.vm.stage='in';break;
+    case 'vsave':if(ui.remote&&!canWrite()){toast('لديك صلاحية مشاهدة فقط');return}vSave();break;
+    case 'vclose':if(vRec){try{vRec.stop()}catch(e){}}modal=null;ui.vm=null;break;
     case 'eqadd':{const s=S(),cur=eqOf(s),src=cur.type==='lin'?cur:DEF_EQS[0],e=clone(src);e.id='e'+Date.now();e.name='معادلة جديدة';e.note='';s.eqs.push(e);s.eq=e.id;ui.eqo=e.id;break}
     case 'eqdel':{const s=S();if(s.eqs.length<2){toast('يجب بقاء معادلة واحدة على الأقل');return}const e=s.eqs.find(x=>x.id===ds.id);if(!e)return;ask('حذف المعادلة «'+e.name+'»؟',()=>{const s2=S();s2.eqs=s2.eqs.filter(x=>x.id!==ds.id)});return}
     case 'eqreset':ask('استعادة معادلات BMR الافتراضية؟ تُحذف أي معادلات أو تعديلات خاصة بك.',()=>{S().eqs=clone(DEF_EQS)});return;
@@ -205,6 +214,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('input',e=>{const t=e.target,id=t.id||'';
   if(id==='q')renderAddList(t.value.trim());
   else if(id==='fq'){ui.fq=t.value;const el=$('#foodList');if(el)el.innerHTML=foodsList();const c=$('#fqc');if(c)c.textContent=fqInfo().txt}
+  else if(id==='v_txt'&&ui.vm){ui.vm.txt=t.value}
   else if(id==='usda_key'){SRC.usda=t.value.trim();lsSet(SK,SRC)}
   else if(id==='sc_txt'){ui.scan.txt=t.value}
   else if(id.startsWith('sc_')&&ui.scan&&ui.scan.d){ui.scan.d[id.slice(3)]=t.value}
@@ -213,6 +223,11 @@ document.addEventListener('input',e=>{const t=e.target,id=t.id||'';
 document.addEventListener('change',e=>{const t=e.target;if(t.id!=='pic_in'||!t.files||!t.files[0]||ui.remote)return;const f=t.files[0];t.value='';
   picFrom(f).then(setPic).catch(()=>toast('تعذّر قراءة الصورة — جرّب صورة أخرى'))});
 document.addEventListener('change',e=>{const t=e.target;if((t.id==='nf_img'||t.id==='am_img')&&t.files&&t.files[0]&&feat('scan')){const f=t.files[0],from=t.id==='am_img'&&modal&&modal.type==='add'?modal.m:null;t.value='';startScan(f,from)}});
+document.addEventListener('change',e=>{const t=e.target,ds=t.dataset||{};if(!ui.vm||!modal||modal.type!=='voice')return;
+  if(ds.vi!==undefined){const i=ui.vm.items[+ds.vi];if(i){i.g=Math.max(0,+t.value||0);i.est=false;render()}}
+  else if(ds.vmeal!==undefined){ui.vm.meal=+t.value;render()}
+  else if(ds.vlang!==undefined){ui.vm.lang=t.value}
+});
 document.addEventListener('change',e=>{
   const t=e.target,c=t.dataset&&t.dataset.ch;if(!c)return;
   if(ui.remote&&!canWrite()&&c!=='cl'){toast('لديك صلاحية مشاهدة فقط');render();return}
