@@ -9,9 +9,11 @@ const V_DEFG={pro:120,dairy:150,carb:150,fruit:120,fat:10,veg:100};
 const V_PIECE={fruit:120,pro:100,carb:100,dairy:100,veg:100,fat:10};
 const vNm=f=>AR(f.n||'');
 const V_PIECEN=[[/تمر/,12],[/زيتون/,4],[/لوز|كاجو|فستق/,1.2],[/فراوله/,15],[/عنب/,5]];
+const V_DEFCNT=[[/فلافل|طعميه/,4],[/تمر/,3],[/لقيمات/,5],[/محشي/,6],[/سمبوس/,3],[/كفت/,3]];
 const V_DEFN=[[/قريش/,100],[/جبن/,40],[/زبد/,10],[/حليب/,200],[/لبن|زبادي/,170],[/لوز|كاجو|فستق|عين جمل|سوداني/,25],[/خيار|طماطم|خس|جرجير/,100],[/عسل|مربى|سكر/,15]];
 // أطباق مركّبة تُفكَّك إلى مكوّنات من القاعدة (تقدير)
-const V_DISH=[[/كبسه|مندي|مظبي|برياني/,'كبسة / مندي',[['ارز مطبوخ',250],['صدر دجاج بالجلد مشوي',150],['زيت نباتي',10]]],[/كشري/,'كشري',[['ارز مطبوخ',120],['مكرونه مطبوخه',80],['عدس مطبوخ',60],['حمص مطبوخ',30],['صلصه طماطم',50],['زيت نباتي',10]]]];
+const V_DISH=[[/كبسه|مندي|مظبي|برياني/,'كبسة / مندي',[['ارز مطبوخ',250],['صدر دجاج بالجلد مشوي',150],['زيت نباتي',10]]],[/(^|\s)فته(\s|$)/,'فتة',[['ارز ابيض مطبوخ',150],['عيش بلدي',60],['لحم ضان مطبوخ',120],['سمن',10],['صلصه طماطم',40]]],[/كشري/,'كشري',[['ارز مطبوخ',120],['مكرونه مطبوخه',80],['عدس مطبوخ',60],['حمص مطبوخ',30],['صلصه طماطم',50],['زيت نباتي',10]]]];
+const V_WAW=/^(ورق|وسط|ورك|وراك|وافل|وينجز|ونجز|وايت)$/; // كلمات تبدأ بالواو أصلاً فلا تُفصل
 let vRec=null;
 
 function vNorm(s){
@@ -26,10 +28,11 @@ function vCooked(ph,r){
   const c=catSearch(ph+' مطبوخ','',true).filter(x=>/مطبوخ/.test(AR(x.n)));
   return c.length?{food:c[0],own:false}:r;
 }
+const vRawLast=(ph,c)=>/نيء|نيئ|خام/.test(ph)?c:c.filter(x=>!/نيء|نيئ|نيي|خام/.test(AR(x.n))).concat(c.filter(x=>/نيء|نيئ|نيي|خام/.test(AR(x.n))));
 function vFind(ph){
   if(!ph)return null;
   const u=searchFoods(ph);if(u.length)return vCooked(ph,{food:u[0],own:true});
-  const c=catSearch(ph,'',true);if(c.length)return{food:c[0],own:false};
+  const c=vRawLast(ph,catSearch(ph,'',true));if(c.length)return{food:c[0],own:false};
   const ph2=ph.replace(/ه(?=\s|$)/g,'');
   if(ph2!==ph&&ph2.length>=2){const u3=searchFoods(ph2);if(u3.length)return{food:u3[0],own:true};const c3=catSearch(ph2,'',true);if(c3.length)return{food:c3[0],own:false}}
   const ws=ph.split(' ').filter(w=>w.length>=3);
@@ -47,7 +50,7 @@ function vGrams(food,q,unit,small,rawUnit){
     return q*per;
   }
   if(unit==='hand')return q*30;
-  if(unit==='slice'){return q*(/خبز|توست|عيش/.test(nm)?28:/جبن/.test(nm)?20:30)}
+  if(unit==='slice'){return q*(ug||(/خبز|توست|عيش/.test(nm)?28:/جبن/.test(nm)?20:30))}
   if(unit==='cnt'||unit==null){
     if(ug)return q*ug;
     if(/خبز|عيش/.test(nm))return q*90;
@@ -65,7 +68,7 @@ function vParse(raw){
   norm.split(' ').forEach(w=>{
     if(w==='|'||w==='و'||w==='مع'||w==='ثم'||w==='بعدين'){toks.push('|');return}
     if(/^و\d/.test(w)){toks.push('|');toks.push(w.slice(1));return}
-    if(w.length>=3&&w[0]==='و'&&V_NUM[w]==null&&!V_UNIT[w]&&!V_DUAL[w]){
+    if(w.length>=3&&w[0]==='و'&&!V_WAW.test(w)&&V_NUM[w]==null&&!V_UNIT[w]&&!V_DUAL[w]){
       const s=w.slice(1);
       if(V_NUM[s]!=null||V_UNIT[s]||V_DUAL[s]||vFind(s)||V_ZERO.includes(s)||V_SKIP.has(s)){toks.push('|');toks.push(s);return}
     }
@@ -111,7 +114,7 @@ function vParse(raw){
     if(unit&&unit!=='gram'||(unit==='gram'))g=vGrams(f,q,unit,small,rawU);
     else if(q!=null){g=q>=20?q:vGrams(f,q,'cnt',false,null)}
     else{ // لا كمية: وحدة واحدة إن وُجدت وإلا حصة افتراضية
-      if(f.ug>0)g=f.ug;else if(/خبز|عيش/.test(vNm(f)))g=90;else{const dn=V_DEFN.find(x=>x[0].test(vNm(f)));g=dn?dn[1]:(V_DEFG[f.grp]||100)}
+      if(f.ug>0){const dc=V_DEFCNT.find(x=>x[0].test(vNm(f)));g=f.ug*(dc?dc[1]:1)}else if(/خبز|عيش/.test(vNm(f)))g=90;else{const dn=V_DEFN.find(x=>x[0].test(vNm(f)));g=dn?dn[1]:(V_DEFG[f.grp]||100)}
       est=true;
     }
     const tag=/خبز|عيش|توست/.test(vNm(f))?'bread':/ارز|مكرون|معكرون|برغل|كسكس|شوفان/.test(vNm(f))?'rice':f.grp==='pro'&&!(f.ug>0)?'meat':'';

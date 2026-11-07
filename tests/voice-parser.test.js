@@ -24,7 +24,7 @@ const TUNED=[
 // عبارات لم أضبط عليها المحلل (لقياس التعميم بصدق)؛ لا تُفرض عليها نسبة نجاح
 const HOLD=[
 ['اكلت اتنين تفاح وكوباية لبن',[['تفاح',240],['لبن',240]]],
-['فطرت خبز اسمر وزبادي وعسل',[['بني',null],['زبادي',null],['عسل',null]]],
+['فطرت خبز اسمر وزبادي وعسل',[['أسمر',null],['زبادي',null],['عسل',null]]],
 ['اكلت تلات حبات تمر',[['تمر',null]]],
 ['تغديت فراخ مشوية ورز وملوخية',[['دجاج',null],['أرز',null],['ملوخية',null]]],
 ['عشاء تونة وخيار وطماطم',[['تونة',null],['خيار',null],['طماطم',null]]],
@@ -36,7 +36,41 @@ const HOLD=[
 ['تغديت كفتة ورز',[['كفتة',null],['أرز',null]]],
 ['اكلت بيتزا',[['بيتزا',null]]],
 ];
+// مجموعة تعميم ثانية: أطباق مصرية وسعودية شائعة، كُتبت وقيست قبل إضافة أصنافها إلى المحلل
+const HOLD2=[
+['تغديت كفتة مشوية ورز وسلطة',[['كفتة',null],['أرز',null],['سلطة',null]]],
+['اكلت حواوشي',[['حواوشي',null]]],
+['تغديت ملوخية وفراخ ورز',[['ملوخية مطبوخة',null],['دجاج',null],['أرز',null]]],
+['تغديت مندي دجاج',[['أرز',null],['دجاج',null]]],
+['فطرت مطبق',[['مطبق',null]]],
+['تغديت فتة',[['أرز',null],['عيش',null],['لحم',null]]],
+['اكلت 2 شريحة بيتزا',[['بيتزا',214]]],
+['اكلت شاورما فراخ',[['شاورما',null]]],
+['فطرت عيش وجبنة بيضاء ولبنة',[['عيش',null],['جبنة',null],['لبنة',null]]],
+['تعشيت مكرونة بشاميل',[['بشاميل',null]]],
+['اكلت محشي ورق عنب',[['محشي',null]]],
+['شربت شاي وبسبوسة',[['شاي',null],['بسبوسة',null]]],
+['تغديت سمبوسة وجريش',[['سمبوسة',null],['جريش',null]]],
+['اكلت 5 لقيمات',[['لقيمات',75]]],
+['تغديت برجر وبطاطس محمرة',[['برجر',null],['بطاطس مقلية',null]]],
+['تعشيت مسقعة وعيش',[['مسقعة',null],['عيش',null]]],
+];
 
+// مجموعة ثالثة كُتبت بعد التحسين ولم يُضبط عليها المحلل (القياس الصادق للتعميم)
+const HOLD3=[
+['فطرت عيش شامي وحمص وزيتون',[['عربي',null],['حمص',null],['زيتون',null]]],
+['تغديت سمك بلطي مشوي ورز بسمتي',[['بلطي',null],['بسمتي',null]]],
+['اتعشيت تلات صوابع كفتة وسلطة خضرا',[['كفتة',120],['سلطة',null]]],
+['شربت كوباية حليب بالشوكولاتة',[['حليب',null]]],
+['اكلت ربع بطيخة',[['بطيخ',null]]],
+['فطرت شوفان بالموز والعسل',[['شوفان',null],['موز',null],['عسل',null]]],
+['تغديت كبدة وعيش بلدي',[['كبدة',null],['عيش بلدي',null]]],
+['اكلت حتة بسبوسة وشاي',[['بسبوسة',null],['شاي',null]]],
+['تعشيت جبنة رومي وخيار',[['جبن',null],['خيار',null]]],
+['سناك تمرتين ولبن',[['تمر',48],['لبن',null]]],
+['تغديت مقلوبة',[['أرز',null]]],
+['فطرت فول بالطحينة وبيضة مسلوقة',[['فول',null],['طحينة',null],['بيض مسلوق',50]]],
+];
 const score=(w,set)=>{let exp=0,hit=0,gOK=0,gN=0;const AR=w.eval('AR');for(const [p,E] of set){const r=w.eval('vParse')(p);for(const [nm,g] of E){exp++;const it=r.items.find(i=>AR(i.name).includes(AR(nm)));if(!it)console.log('  miss:',p,'→',nm);if(it){hit++;if(g!=null){gN++;if(Math.abs(it.g-g)<=Math.max(5,g*0.1))gOK++}}}}return{exp,hit,gOK,gN}};
 const parse=(w,p)=>w.eval('vParse')(p);
 (async()=>{
@@ -44,11 +78,12 @@ const parse=(w,p)=>w.eval('vParse')(p);
  const a=score(w,TUNED),b=score(w,HOLD);
  console.log(`tuned set: items ${a.hit}/${a.exp}, grams ${a.gOK}/${a.gN}`);
  console.log(`holdout set: items ${b.hit}/${b.exp} (${Math.round(b.hit/b.exp*100)}%), grams ${b.gOK}/${b.gN}`);
+ const c=score(w,HOLD2);const e=score(w,HOLD3);console.log(`holdout-3 (written after tuning): items ${e.hit}/${e.exp} (${Math.round(e.hit/e.exp*100)}%), grams ${e.gOK}/${e.gN}`);console.log(`holdout-2 (Egyptian/Saudi dishes): items ${c.hit}/${c.exp} (${Math.round(c.hit/c.exp*100)}%), grams ${c.gOK}/${c.gN}`);
  T('tuned recall 100%',a.hit===a.exp,a);T('tuned grams',a.gOK===a.gN,a);
  let t0=Date.now();for(let i=0;i<200;i++)parse(w,'فطرت فول وطعمية وعيش بلدي وشاي بسكر');const per=(Date.now()-t0)/200;T('parse < 20ms',per<20,per);console.log('avg parse ms',per.toFixed(2));
  T('max 2 questions',TUNED.every(([p])=>parse(w,p).qs.length<=2));
  T('no oil q when fried CAT food',!parse(w,'اكلت بطاطس مقلية').qs.some(q=>q.k==='oil'));
- T('unknown reported',parse(w,'اكلت بيتزا').unknown.length===1);
+ T('unknown reported',parse(w,'اكلت زربوطة').unknown.length===1);
  T('sugar q',parse(w,'شربت شاي بسكر').qs.some(q=>q.k==='sugar'));
  T('no sugar q for plain',!parse(w,'شربت شاي بدون سكر').qs.some(q=>q.k==='sugar'));
  T('meal hint',parse(w,'تغديت ارز').meal===1&&parse(w,'فطرت فول').meal===0);

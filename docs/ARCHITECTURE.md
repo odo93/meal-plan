@@ -30,7 +30,7 @@ v1 (index.html في الجذر) ← مجمّد؛ v2 ينسخ بياناته مر
 | 2 | `goals.js` | الأهداف والمعادلات، `fixSettings`، `targets/baseTargets`، `fitDay`، `buildDay`، `defaultState`، نمط الأسبوع وتعديل الأيام |
 | 2b | `meals.js` | خطة الوجبات (العدد 3–6، الاسم، النوع، الوقت، النسبة)، `mealDef/mealTarget`، الوجبات الجاهزة (`sysTpls/adminTpls/myLib/coachLib`، `pickTpl`، `applyTpl`، `mealToTpl`)، تطبيق الخطة على الأسبوع، واجهة «الوجبات وتوزيعها» ونوافذ الوجبة |
 | 3 | `store.js` | التخزين في الجهاز وفشل الحفظ، السجل بالتاريخ، الإشعار `toast`، البدائل `swapCands`، البحث العربي `AR()` |
-| 4 | `catalog.js` | القاعدة الجاهزة `CAT` (141 صنفاً) |
+| 4 | `catalog.js` | القاعدة الجاهزة `CAT` (157 صنفاً، منها 16 طبقاً مصرياً وسعودياً) |
 | 5 | `food-search.js` | البحث في أصنافي/الجاهزة/USDA/Open Food Facts، `srcCard` |
 | 6 | `views-plan.js` | شاشات اليوم، الخطة والمشتريات، الأصناف، أهدافي، صفحة «حسابك» |
 | 7 | `views-me.js` | «حسابي» وصفحاته، الصورة، الميزات `feat()`، العناوين، المشاركة والمدرب، النوافذ `modalBody`، التقدم `vHist`، `APP_VER` |
