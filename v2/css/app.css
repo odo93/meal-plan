@@ -209,4 +209,10 @@ b,small,h1,h2,.note{overflow-wrap:anywhere}
 .vest{color:var(--lo)}
 .vq{display:flex;align-items:center;gap:4px}
 .vq input{width:68px;text-align:center}
+.vo .btn,.vo select,.vo input,.vo .gch button{min-height:44px}
+.vit .tag{white-space:nowrap}
+.vunk{color:var(--lo)}
+.vz{grid-column:span 2;text-align:center;margin:0}
+.vmeal{display:flex;flex-direction:column;gap:4px;margin:4px 0 0}.vmeal select{width:100%}
+#v_mh{display:block;margin:2px 0 6px}
 .vk{text-align:center;min-width:44px}.vk small{display:block;color:var(--mu);font-size:11px}

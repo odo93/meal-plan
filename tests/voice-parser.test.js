@@ -123,4 +123,19 @@ const parse=(w,p)=>w.eval('vParse')(p);
  // مفتاح الميزة من الإدارة
  const w3=mk();w3.eval("lsSet('mp3_acct',{features:{voice:false}});render()");
  T('feature off hides button',!w3.document.querySelector('[data-act="voice"]'));
+ // إصلاحات الواجهة
+ T('no oil q for mahshi',!parse(w,'تغديت محشي').qs.some(q=>q.k==='oil'));
+ T('plural toast text',w.eval("[vCount(1),vCount(2),vCount(4),vCount(12)].join('|')")==='صنف واحد|صنفان|4 أصناف|12 صنفاً');
+ const w4=mk(),$4=s=>w4.document.querySelector(s);
+ click(w4,$4('[data-act="voice"]'));$4('#v_txt').value='فول وشاي بدون سكر';click(w4,$4('[data-act="vgo"]'));
+ if(w4.eval("ui.vm.stage")==='ask'){w4.eval("ui.vm.stage='res';render()")}
+ const zi=w4.eval("ui.vm.items.findIndex(i=>i.zero)");
+ T('zero drink has no grams input',zi>=0&&!$4(`input[data-vi="${zi}"]`)&&/لا يُحفظ/.test($4('#modal').textContent));
+ T('meal select labelled with hint',!!$4('.vmeal select[aria-describedby="v_mh"]')&&!!$4('#v_mh'));
+ T('unknown note uses theme color',!/#b87500/.test(w4.eval("voiceHtml.toString()")));
+ // المدرب لا يسجّل أكل المتدرب
+ T('voice acts are owner-only',w4.eval("LOG_ACTS.has('voice')&&LOG_ACTS.has('vsave')"));
+ w4.eval("ui.remote={owner:'T',user_id:'p',role:'coach'};modal=null;ui.tab='day';render()");
+ T('coach does not see voice button',!$4('[data-act="voice"]'));
+ T('coach blocked from voice',w4.eval("remoteBlock('voice')")==='التسجيل لصاحب الخطة فقط');
  console.log('PASS',ok,'FAIL',bad,errs);process.exit(0)})();

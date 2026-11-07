@@ -129,7 +129,7 @@ function vParse(raw){
 // أسئلة توضيحية: فقط ما يغيّر الوجبة كثيراً، وبحد أقصى سؤالين
 function vQuestions(r){
   const qs=[],its=r.items;
-  const oilish=its.some(i=>!i.zero&&/فول|سوتيه|خضار|محمر|باذنجان|كوسه|فاصوليا|بامي/.test(AR(i.name)));
+  const oilish=its.some(i=>!i.zero&&!i.dish&&!/محشي|مسقعه|ملوخيه|كشري/.test(AR(i.name))&&/فول|سوتيه|خضار|محمر|باذنجان|كوسه|فاصوليا|بامي/.test(AR(i.name)));
   if(oilish&&!r.flags.oilGiven)qs.push({k:'oil',p:5,t:'الأكل فيه زيت أو سمن؟ كام معلقة تقريباً؟',opts:[['من غير',0],['معلقة',13],['معلقتين',27]]});
   [...new Set(its.filter(i=>i.dish).map(i=>i.dish))].forEach(d=>{const nm=its.find(i=>i.dish===d).dishName;qs.push({k:'dish',p:4,t:'حجم طبق «'+nm+'»؟',opts:[['صغير',0.7],['متوسط',1],['كبير',1.4]],dish:d})});
   its.filter(i=>i.tag==='rice'&&i.est).forEach(i=>qs.push({k:'size',p:4,t:'كمية «'+i.name+'»؟',opts:[['صغير',100],['متوسط',150],['كبير',250]],key:i.key}));
@@ -192,9 +192,9 @@ function voiceHtml(){
   const d=state.days[ui.day],m=d.meals[vm.meal],tot=vm.items.reduce((a,i)=>{const x=vMac(i);a.k+=x.k;a.p+=x.p;a.c+=x.c;a.f+=x.f;return a},{k:0,p:0,c:0,f:0}),plan=sum(m.items);
   const diff=tot.k-plan.k;
   return `<div class="sheet vo" data-stop><h2>تأكيد الوجبة</h2>
-  <label class="lbl">احفظ في <select data-vmeal>${d.meals.map((mm,j)=>{const df=mealDef(d,j);return `<option value="${j}" ${j===vm.meal?'selected':''}>${esc(df?df.n:mm.n)}</option>`}).join('')}</select></label>
-  <div class="vlist">${vm.items.map((i,ix)=>{const x=vMac(i);return `<div class="vit"><span class="g"><b>${esc(i.name)}${i.est?' <span class="vest" title="كمية افتراضية">✱</span>':''}</b>${i.own||i.zero?'':' <span class="tag">من القاعدة</span>'}<small>P ${r1(x.p)} · C ${r1(x.c)} · F ${r1(x.f)}</small>${i.warn?`<small class="vwarn">⚠ ${esc(i.warn)}</small>`:''}</span><label class="vq"><input type="number" inputmode="decimal" min="0" step="5" value="${i.g}" data-vi="${ix}" aria-label="جرامات ${esc(i.name)}"><span>جم</span></label><span class="vk"><b>${rd(x.k)}</b><small>سعرة</small></span><button class="ib" data-act="vdel" data-i="${ix}" aria-label="حذف ${esc(i.name)}">✕</button></div>`}).join('')}</div>
-  ${vm.unknown.length?`<p class="note" style="color:#b87500">لم أتعرف على: ${vm.unknown.map(esc).join('، ')} — أضفها من «+ إضافة صنف».</p>`:''}
+  <label class="vmeal"><b>احفظ في وجبة</b><select data-vmeal aria-describedby="v_mh">${d.meals.map((mm,j)=>{const df=mealDef(d,j);return `<option value="${j}" ${j===vm.meal?'selected':''}>${esc(df?df.n:mm.n)}</option>`}).join('')}</select></label><small id="v_mh" class="note">اخترناها حسب الوقت أو كلامك — غيّرها إن لزم.</small>
+  <div class="vlist">${vm.items.map((i,ix)=>{const x=vMac(i);return `<div class="vit"><span class="g"><b>${esc(i.name)}${i.est?' <span class="vest" title="كمية افتراضية">✱</span>':''}</b>${i.own||i.zero?'':' <span class="tag">من القاعدة</span>'}<small>P ${r1(x.p)} · C ${r1(x.c)} · F ${r1(x.f)}</small>${i.warn?`<small class="vwarn">⚠ ${esc(i.warn)}</small>`:''}</span>${i.zero?`<span class="vz note">0 سعرة — لا يُحفظ</span>`:`<label class="vq"><input type="number" inputmode="decimal" min="0" step="5" value="${i.g}" data-vi="${ix}" aria-label="جرامات ${esc(i.name)}"><span>جم</span></label><span class="vk"><b>${rd(x.k)}</b><small>سعرة</small></span>`}<button class="ib" data-act="vdel" data-i="${ix}" aria-label="حذف ${esc(i.name)}">✕</button></div>`}).join('')}</div>
+  ${vm.unknown.length?`<p class="note vunk">لم أتعرف على: ${vm.unknown.map(esc).join('، ')} — أضفها من «+ إضافة صنف».</p>`:''}
   <div class="card" style="margin:8px 0;padding:8px"><b>${rd(tot.k)} سعرة</b> · P ${rd(tot.p)} · C ${rd(tot.c)} · F ${rd(tot.f)}<br><small class="note">الخطة لهذه الوجبة ${rd(plan.k)} · الفرق <b class="${Math.abs(diff)<=plan.k*0.08?'ok':diff>0?'hi':'lo'}">${sg(diff)}</b></small></div>
   ${vm.items.some(i=>i.est)?'<p class="note">✱ كمية افتراضية لأنك لم تذكرها؛ عدّل الجرام إن لزم.</p>':''}
   <button class="btn pri" style="width:100%" data-act="vsave">💾 حفظ كمأكول</button>
@@ -211,6 +211,7 @@ function vMic(){
   r.onend=()=>{vRec=null;vm.listening=false;if(modal&&modal.type==='voice')render()};
   vRec=r;vm.listening=true;try{r.start()}catch(e){vRec=null;vm.listening=false}render();
 }
+const vCount=n=>n===1?'صنف واحد':n===2?'صنفان':n>=3&&n<=10?n+' أصناف':n+' صنفاً';
 function vSave(){
   const vm=ui.vm,d=state.days[ui.day],m=d.meals[vm.meal];let n=0;
   vm.items.filter(i=>!i.zero&&i.g>0).forEach(i=>{
@@ -218,5 +219,5 @@ function vSave(){
     if(pl)pl.e=i.g;else m.items.push({f:id,g:0,b:0,r:'x',s:'',x:true,e:i.g});
     n++;
   });
-  d.lw=weekKey();modal=null;ui.vm=null;toast('سُجّل '+n+' صنف في '+mealShort(d,vm.meal));
+  d.lw=weekKey();modal=null;ui.vm=null;toast('سُجّل '+vCount(n)+' في '+mealShort(d,vm.meal));
 }
