@@ -1,11 +1,11 @@
 // عامل الخدمة: يجعل v2 قابلاً للتثبيت ويعمل بدون إنترنت.
 // الشبكة أولاً للصفحة (فيصل كل تحديث فور توفر الإنترنت)، والنسخة المحفوظة عند انقطاعه.
 // لا يتدخل في طلبات المواقع الأخرى (Supabase وUSDA وOpen Food Facts ومكتبات CDN).
-const VER = '2.14';
+const VER = '2.15';
 const CACHE = 'mp-v2-' + VER.replace(/\./g, '-');
 const CORE = ['./', './index.html', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png',
   './css/app.css', './js/core.js', './js/goals.js', './js/meals.js', './js/store.js', './js/catalog.js', './js/food-search.js',
-  './js/views-plan.js', './js/views-me.js', './js/insights.js', './js/render.js', './js/actions.js', './js/scan.js', './js/cloud.js', './js/boot.js']
+  './js/views-plan.js', './js/views-me.js', './js/insights.js', './js/render.js', './js/actions.js', './js/scan.js', './js/voice.js', './js/cloud.js', './js/boot.js']
   .map(u => /\.(js|css)$/.test(u) ? u + '?v=' + VER : u);
 
 self.addEventListener('install', e => {

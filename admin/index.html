@@ -59,7 +59,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 const lsGet=k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const GRPS={pro:'بروتين',dairy:'ألبان',carb:'كارب',fruit:'فاكهة',fat:'دهون',veg:'خضار'};
 // يجب أن تطابق التطبيق (v2/js/views-me.js وgoals.js) — الاختبار admin-control يتحقق
-const FEATS=[['scan','المسح بالصورة والباركود'],['online','البحث أونلاين (USDA وOpen Food Facts)'],['shop','قائمة المشتريات'],['multi','أكثر من ملف (أفراد وأطفال)'],['share','المشاركة بكود'],['clients','متدربيني']];
+const FEATS=[['scan','المسح بالصورة والباركود'],['voice','التسجيل بالصوت والكتابة'],['online','البحث أونلاين (USDA وOpen Food Facts)'],['shop','قائمة المشتريات'],['multi','أكثر من ملف (أفراد وأطفال)'],['share','المشاركة بكود'],['clients','متدربيني']];
 const MODES=[['self','لنفسي'],['family','لي ولعائلتي'],['coach','مدرب مستقل'],['org','مؤسسة']];
 const GOALS=[['manual','كارب أقل'],['cut','تنحيف'],['maint','تثبيت'],['recomp','إظهار العضلات'],['bulk','زيادة وزن'],['lean','بناء عضلات']];
 const ACTS=[[1.2,'خامل'],[1.375,'خفيف'],[1.55,'متوسط'],[1.725,'عالٍ'],[1.9,'شديد']];

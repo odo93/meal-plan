@@ -59,7 +59,7 @@ const mk=()=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.
  T('matrix reflects config',!$('#ft_share_self').checked&&$('#ft_share_coach').checked&&$('#ft_scan_self').checked);
  $('#ft_scan_family').checked=false;submit('#cff');await sleep(40);
  const pm=log.filter(l=>l[0]==='PATCH'&&l[1].startsWith('/rest/v1/app_config')).pop();
- T('features saved per type',pm&&pm[3].features.scan.family===false&&pm[3].features.scan.self===true&&pm[3].features.share.self===false&&Object.keys(pm[3].features).length===6);
+ T('features saved per type',pm&&pm[3].features.scan.family===false&&pm[3].features.scan.self===true&&pm[3].features.share.self===false&&Object.keys(pm[3].features).length===7);
  $('#c_cap').value='bad key!';submit('#cfc');await sleep(20);
  T('invalid captcha key rejected',!log.some(l=>l[0]==='PATCH'&&l[3]&&'captcha_site_key' in l[3]));
  $('#c_cap').value='0x4AAAAAAAabcDEF';submit('#cfc');await sleep(40);
