@@ -138,7 +138,15 @@ function act(a,ds){
     case 'undo':{const u=toast.u;toast.u=null;clearTimeout(toast.t);$('#toast').style.display='none';if(u)u();break}
     case 'add':ui.aq='';ui.ag='';ui.xt=false;modal={type:'add',m:+ds.m};break;
     case 'agrp':ui.xt=!!($('#xtra')&&$('#xtra').checked);ui.aq=($('#q')||{}).value||'';ui.ag=ds.v;break;
-    case 'newfromq':ui.nfd=Object.assign({},ui.nfd,{n:ui.aq||'',g:ui.ag||(ui.nfd||{}).g});ui.tab='foods';ui.nfOpen=true;modal=null;setTimeout(()=>{const e=$('#nfcard');if(e&&e.scrollIntoView)e.scrollIntoView()},60);break;
+    // صنف جديد من نافذة «إضافة صنف» للوجبة: بطاقة واحدة تحفظه في أصنافك وتضيفه لهذه الوجبة معاً
+    case 'newfromq':ui.scan={busy:false,d:{n:ui.aq||'',g:ui.ag||'carb',b:'g'},warn:[],txt:'',sug:'',msg:'',from:modal&&modal.type==='add'?modal.m:null};modal={type:'scan'};break;
+    case 'addgrp':{const n=(($('#ng_n')||{}).value||'').trim();if(!n){toast('اكتب اسم الفئة');return}
+      let id=Object.keys(GROUPS).find(k=>GROUPS[k]===n);
+      if(!id){const cg=Array.isArray(state.settings.cg)?state.settings.cg:[];if(cg.length>=12){toast('الحد الأقصى 12 فئة مخصّصة');return}
+        id='u_'+Date.now().toString(36);state.settings.cg=cg.concat({id,n:n.slice(0,30)});applyCustomGroups()}
+      if(modal&&modal.type==='scan'&&ui.scan&&ui.scan.d)ui.scan.d.g=id;else{ui.nfd=ui.nfd||{};ui.nfd.g=id}
+      ui.ngOpen=false;toast('أُضيفت الفئة «'+GROUPS[id]+'»');break}
+    case 'ngcancel':ui.ngOpen=false;break;
     case 'pick':{const f=F(ds.id),g=f.u&&f.ug?f.ug:100,xt=!!($('#xtra')&&$('#xtra').checked);
       d.meals[modal.m].items.push(xt?{f:f.id,g:0,b:0,r:'x',s:'',x:true,e:g}:{f:f.id,g,b:g,r:'x',s:''});if(xt)d.lw=weekKey();modal=null;break}
     case 'close':modal=(modal&&modal.type==='hlog')?{type:'hdetail',date:modal.date}:null;break;
@@ -150,11 +158,11 @@ function act(a,ds){
       d.meals[modal.m].items.push(xt?{f:id,g:0,b:0,r:'x',s:'',x:true,e:g}:{f:id,g,b:g,r:'x',s:''});if(xt)d.lw=weekKey();modal=null;toast('أُضيف «'+f.n+'» — عدّل الجرامات والماكروز تتبعها');break}
     case 'scanb':ui.scan.d.b=ds.v;break;
     case 'scansug':ui.scan.d.n=ui.scan.sug;break;
-    case 'scanclose':modal=null;break;
+    case 'scanclose':modal=null;ui.ngOpen=false;break;
     case 'scanreparse':{const t=($('#sc_txt')||{}).value||'';if(!t.trim()){toast('الصق النص أولاً');return}scanFill(parseLabel(t),t,{n:ui.scan.d.n||''});break}
     case 'scansave':case 'scansaveadd':{const c=scanCollect();if(!c)return;const id=candFood(c),f=F(id),from=ui.scan.from;
       if(a==='scansaveadd'&&from!=null){const g=f.u&&f.ug?f.ug:100;d.meals[from].items.push({f:id,g,b:g,r:'x',s:''})}
-      modal=null;ui.scan=null;ui.fq='';toast('تم حفظ «'+f.n+'» كصنف');break}
+      modal=null;ui.scan=null;ui.ngOpen=false;ui.fq='';toast('تم حفظ «'+f.n+'» كصنف');break}
     case 'voice':if(ui.remote&&!canWrite()){toast('لديك صلاحية مشاهدة فقط');return}vOpen();break;
     case 'vex':ui.vm.txt=ds.v;break;
     case 'vgo':ui.vm.txt=($('#v_txt')||{}).value||ui.vm.txt||'';vRun();break;
@@ -219,6 +227,7 @@ document.addEventListener('input',e=>{const t=e.target,id=t.id||'';
   else if(id==='v_txt'&&ui.vm){ui.vm.txt=t.value}
   else if(id==='usda_key'){SRC.usda=t.value.trim();lsSet(SK,SRC)}
   else if(id==='sc_txt'){ui.scan.txt=t.value}
+  else if((id==='nf_g'||id==='sc_g')&&t.value==='__new'){ui.ngOpen=true;render();setTimeout(()=>{const e=$('#ng_n');if(e)e.focus()},50)}
   else if(id.startsWith('sc_')&&ui.scan&&ui.scan.d){ui.scan.d[id.slice(3)]=t.value}
   else if(id.startsWith('nf_')&&id!=='nf_img'){ui.nfd=ui.nfd||{};ui.nfd[id.slice(3)]=t.value}
 });

@@ -33,6 +33,28 @@ const run=(pre)=>new Promise(res=>{const d=new JSDOM(v1,{runScripts:'dangerously
   T('v2 records seen version',w.localStorage.getItem('mp3_seenver')===E('APP_VER'));
   T('pending update flag kept while version is older',w.localStorage.getItem('mp3_updtry')==='9.9');
   T('hardRefresh available',E("typeof hardRefresh")==='function');
+  // 5) صنف جديد من نافذة الإضافة للوجبة: يُحفظ في الأصناف ويُضاف للوجبة معاً + فئة مخصّصة
+  w=mk();E=s2=>w.eval(s2);
+  E("ui.day=0;ui.aq='لبنة بالعسل';ui.ag='';modal={type:'add',m:0};render();renderAddList('لبنة بالعسل')");
+  T('add modal offers manual add',!!w.document.querySelector('[data-act="newfromq"]'));
+  click(w,'[data-act="newfromq"]');
+  T('opens single save-and-add card with the typed name',E("modal.type")==='scan'&&w.document.getElementById('sc_n').value==='لبنة بالعسل'&&!!w.document.querySelector('[data-act="scansaveadd"]'));
+  const sv=(id,v)=>{const el=w.document.getElementById(id);el.value=v;el.dispatchEvent(new w.Event('input',{bubbles:true}))};
+  const gsel=w.document.getElementById('sc_g');
+  T('group select has new-group option',[...gsel.options].some(o=>o.value==='__new'));
+  gsel.value='__new';gsel.dispatchEvent(new w.Event('input',{bubbles:true}));
+  T('new-group row appears',!!w.document.getElementById('ng_n')&&E("ui.scan.d.g")!=='__new');
+  w.document.getElementById('ng_n').value='حلويات';click(w,'[data-act="addgrp"]');
+  const gid=E("Object.keys(GROUPS).find(k=>GROUPS[k]==='حلويات')");
+  T('custom group created and selected',/^u_/.test(gid)&&E("ui.scan.d.g")===gid&&E("state.settings.cg.length")===1,gid);
+  T('duplicate group name reuses existing',(()=>{w.document.getElementById('sc_g').value='__new';w.document.getElementById('sc_g').dispatchEvent(new w.Event('input',{bubbles:true}));w.document.getElementById('ng_n').value='حلويات';click(w,'[data-act="addgrp"]');return E("state.settings.cg.length")===1})());
+  sv('sc_n','لبنة بالعسل');sv('sc_k','200');sv('sc_p','8');sv('sc_c','20');sv('sc_f','9');
+  const n0=E("state.days[0].meals[0].items.length"),f0=E("state.foods.length");
+  click(w,'[data-act="scansaveadd"]');
+  T('saved in foods with custom group',E("state.foods.length")===f0+1&&E("state.foods.find(f=>f.n==='لبنة بالعسل').grp")===gid);
+  T('added to the meal too',E("state.days[0].meals[0].items.length")===n0+1);
+  E("ui.tab='foods';ui.fg='';render()");
+  T('custom group shown in foods list and filter chips',/حلويات/.test(w.document.body.textContent)&&E("typeof foodsList()")==='string');
   T('no script errors',errs.length===0,errs);
   console.log('PASS',ok,'FAIL',bad);process.exit(bad?1:0);
 })();

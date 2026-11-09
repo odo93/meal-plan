@@ -56,6 +56,12 @@ function fixSettings(s){
   return s;
 }
 const S=()=>fixSettings(state.settings);
+// فئات الأصناف التي أضافها المستخدم (settings.cg) تُدمج في GROUPS فتظهر في القوائم والفلاتر وقائمة التسوق
+function applyCustomGroups(){
+  Object.keys(GROUPS).forEach(k=>{if(k.startsWith('u_'))delete GROUPS[k]});
+  const cg=state&&state.settings&&state.settings.cg;
+  (Array.isArray(cg)?cg:[]).slice(0,12).forEach(g=>{if(g&&/^u_[a-z0-9]+$/.test(g.id)&&typeof g.n==='string'&&g.n.trim())GROUPS[g.id]=g.n.trim().slice(0,30)});
+}
 const goalOf=s=>s.goals.find(g=>g.id===s.goal)||s.goals[0];
 const eqOf=s=>s.eqs.find(e=>e.id===s.eq)||s.eqs[0];
 const SCH=[null,[17.686,658.2,13.384,692.6],[15.057,692.2,14.818,486.6],[11.472,873.1,8.126,845.6],[11.711,587.7,9.082,658.5]];
