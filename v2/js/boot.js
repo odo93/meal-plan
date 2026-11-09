@@ -9,7 +9,7 @@ if(!state){state=defaultState();const id=uid();meta={users:[{id,name:'المست
     const m=100/f.ug;f.k*=m;f.p*=m;f.c*=m;f.f*=m;f.fixed=1;fx.push(f.n)}
   });
   if(fx.length){save();setTimeout(()=>toast('تم تصحيح سعرات: '+fx.join('، ')),400)}})();
-if(rollWeek())save();
+if(rollWeek()|freezePast())save();
 {const at=autoTdee();if(at){save();setTimeout(()=>toast('حُدّث احتياجك الفعلي: '+at+' سعرة'),600)}}
 fromHash();
 addShared(lsGet('mp3_sfoods'));

@@ -45,6 +45,7 @@ function mNode(x,y){
   if(tg==='INPUT'&&x.type!=='file'){if(x.type==='checkbox'||x.type==='radio'){if(x.checked!==y.checked)x.checked=y.checked}else if(y.hasAttribute('value')&&x.value!==y.value)x.value=y.value}  // حقل بلا value في القالب (كلمة مرور، جوال…) ملك المستخدم: لا نمسحه
   else if(tg==='SELECT'){const v=y.value;if(x.value!==v)x.value=v}}
 function render(){
+  if(!ui.remote)freezePast(); // يمنع أن يغيّر أي تعديل لاحق ما سُجّل في الأيام الماضية
   const fk=fkey(document.activeElement);
   if(ui.tab==='me'&&!SUBS[ui.sub])ui.sub='';
   const sub=ui.tab==='me'&&ui.sub,u=ui.remote?{name:ui.remote.name}:curUser(),title=sub?SUBS[ui.sub]:(TABS.find(t=>t[0]===ui.tab)||TABS[0])[1];

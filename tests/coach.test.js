@@ -59,7 +59,7 @@ const mk=ls=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.github.
     dd.meals.forEach(m=>m.items.forEach(it=>{const f=F(it.f);if(f&&f.grp==='pro')it.f='${fav}';it.e=it.g}));hPut(meta.cur,snapDay(dd,dt,di))}`);
  T('favourite food detected',E("usualByGroup().pro[0].id")==='${fav}'.replace('${fav}',fav));
  E("state.days[0].meals[0].items[0].e=state.days[0].meals[0].items[0].g;state.days[0].lw=weekKey()");  // day 0 already logged
- const day0=E("JSON.stringify(state.days[0].meals)"),before=E("JSON.stringify(state.days)");
+ E("render()");const day0=E("JSON.stringify(state.days[0].meals)"),before=E("JSON.stringify(state.days)");
  E("ui.tab='week';render();act('weekopts',{})");T('option in week menu',!!$('#modal [data-act="usualweek"]'));
  E("act('usualweek',{})");T('asks first',E('modal.type')==='ask');E("act('yes',{})");
  const cnt=E(`state.days.slice(1).filter(d=>d.meals.some(m=>m.items.some(i=>i.f==='${fav}'))).length`);

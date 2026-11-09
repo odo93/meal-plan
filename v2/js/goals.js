@@ -98,7 +98,7 @@ function goalTargets(d){
 }
 function legacyTargets(d){const s=state.settings,w=+s.bw||70;const p=w*s.pM,c=w*(d.mode==='high'?s.cH:s.cL),f=w*s.fM;return{p,c,f,k:4*p+4*c+9*f}}
 function baseTargets(d){const s=S();return goalOf(s).kind==='manual'?legacyTargets(d):goalTargets(d)}
-function targets(d){const T=baseTargets(d),o=dayOv(dayIdx(d)),t=o&&o.t;if(!t)return T;
+function targets(d){if(d&&d.tg)return d.tg;const T=baseTargets(d),o=dayOv(dayIdx(d)),t=o&&o.t;if(!t)return T;
   const r={p:t.p!=null?+t.p:T.p,c:t.c!=null?+t.c:T.c,f:t.f!=null?+t.f:T.f};r.k=4*r.p+4*r.c+9*r.f;return r}
 // ---- نمط الأسبوع وتعديل الأيام ----
 const validPat=p=>Array.isArray(p)&&p.length===7&&p.every(x=>x==='high'||x==='low');
@@ -111,7 +111,7 @@ function dayOv(i){if(i<0)return null;const s=state.settings,D=s.ovD&&s.ovD[i];
 function planMode(i){return S().cyc.pat[i]||'high'}
 function effMode(i){const o=dayOv(i);return o&&o.mode?o.mode:planMode(i)}
 // أيام يختلف نوعها عن الإعدادات (تحتاج إعادة بناء من القالب)
-const modeDiffs=()=>state.days.map((d,i)=>d.mode!==effMode(i)?i:-1).filter(i=>i>=0);
+const modeDiffs=()=>state.days.map((d,i)=>!d.tg&&d.mode!==effMode(i)?i:-1).filter(i=>i>=0);
 function applyModes(){modeDiffs().forEach(i=>{state.days[i]=buildDay(i,effMode(i),state.days[i].prot)})}
 function dropStaleOv(){const s=S(),k=weekKey();let ch=false;Object.keys(s.ovD).forEach(i=>{if(!s.ovD[i]||s.ovD[i].wk!==k){delete s.ovD[i];ch=true}});return ch}
 const daysWord=n=>n===1?'يوم واحد':n===2?'يومان':n+' أيام';

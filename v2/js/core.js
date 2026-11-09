@@ -97,7 +97,7 @@ const rd=Math.round;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const F=id=>state.foods.find(x=>x.id===id);
 
-const FOOD=it=>it.fd||F(it.f); // سجلات التاريخ تحمل نسخة من قيم الصنف وقت الحفظ (fd)
+const FOOD=it=>(it.fd&&(it.fd.fz===undefined||it.fd.fz===it.f))?it.fd:F(it.f); // سجلات التاريخ وأيام الأسبوع الماضية تحمل نسخة من قيم الصنف (fd)؛ fz = معرّف الصنف الذي جُمّدت له (إن استُبدل الصنف تُهمل النسخة)
 function mac(it){const f=FOOD(it);if(!f)return{k:0,p:0,c:0,f:0};const q=it.g/100;return{k:f.k*q,p:f.p*q,c:f.c*q,f:f.f*q}}
 function sum(items){const t={k:0,p:0,c:0,f:0};items.forEach(i=>{const m=mac(i);t.k+=m.k;t.p+=m.p;t.c+=m.c;t.f+=m.f});return t}
 
@@ -125,17 +125,29 @@ function dateShort(s){const d=parseISO(s);return DF_S?DF_S.format(d):d.getDate()
 function rangeLabel(a,b){const x=parseISO(a),y=parseISO(b);try{if(DF_L&&DF_L.formatRange)return DF_L.formatRange(x,y)}catch(e){}return dateLabel(a)+' – '+dateLabel(b)}
 // لقطة اليوم كسجل مستقل (وثيقة واحدة لكل مستخدم/تاريخ — جاهزة للنقل لقاعدة بيانات لاحقاً)
 function snapDay(d,date,di){
-  return{date,dow:di,name:d.name,mode:d.mode,prot:d.prot,tg:targets(d),
-    meals:d.meals.map(m=>({n:m.n,items:m.items.map(it=>{const f=F(it.f);if(!f)return null;
-      const o={f:it.f,fd:{n:f.n,u:f.u,ug:f.ug,k:f.k,p:f.p,c:f.c,f:f.f,grp:f.grp},g:it.g};
+  return{date,dow:di,name:d.name,mode:d.mode,prot:d.prot,tg:d.tg||targets(d),
+    meals:d.meals.map(m=>({n:m.n,items:m.items.map(it=>{const f=F(it.f),z=it.fd&&it.fd.fz===it.f?it.fd:null;if(!f&&!z)return null;
+      const s=z||f,o={f:it.f,fd:{n:s.n,u:s.u,ug:s.ug,k:s.k,p:s.p,c:s.c,f:s.f,grp:s.grp},g:it.g};
       if(it.e!=null)o.e=it.e;if(typeof it.em==='number')o.em=it.em;if(it.x)o.x=true;return o}).filter(Boolean)})),ts:Date.now()};
 }
-function clearLog(d){d.meals.forEach(m=>{m.items=m.items.filter(it=>!it.x);m.items.forEach(it=>{delete it.e;delete it.em})});d.lw=null}
+// تجميد الأيام الماضية من الأسبوع الحالي: أي تعديل لاحق في الأصناف أو الإعدادات (الوزن/الهدف/النشاط…) يسري من اليوم فصاعداً ولا يغيّر ما سُجّل
+function isPastDay(di){return dateOfDay(di)<todayISO()}
+function freezePast(){
+  let ch=false;
+  state.days.forEach((d,di)=>{
+    if(!isPastDay(di)||d.lw!==weekKey()||!d.meals.some(m=>m.items.some(it=>gE(it)!=null)))return;
+    if(!d.tg){d.tg=targets(d);ch=true}
+    d.meals.forEach(m=>m.items.forEach(it=>{if(it.fd&&it.fd.fz===it.f)return;const f=F(it.f);if(!f)return;
+      it.fd={n:f.n,u:f.u,ug:f.ug,k:f.k,p:f.p,c:f.c,f:f.f,grp:f.grp,fz:it.f};ch=true}));
+  });
+  return ch;
+}
+function clearLog(d){d.meals.forEach(m=>{m.items=m.items.filter(it=>!it.x);m.items.forEach(it=>{delete it.e;delete it.em;delete it.fd})});d.lw=null;delete d.tg}
 function rollWeek(){ // عند أسبوع جديد: يُؤرشف تسجيل الأسبوع السابق في السجل ثم يُمسح من بطاقات الأيام
   const k=weekKey();let ch=false;
   state.days.forEach((d,di)=>{
     if(d.lw&&iso(parseISO(d.lw))!==k){
-      if(d.meals.some(m=>m.items.some(it=>gE(it)!=null)))hPut(meta.cur,snapDay(d,iso(addDays(parseISO(d.lw),di)),di));
+      {const dt=iso(addDays(parseISO(d.lw),di));if(d.meals.some(m=>m.items.some(it=>gE(it)!=null))&&!hGet(meta.cur,dt))hPut(meta.cur,snapDay(d,dt,di))} // السجل المحفوظ يوماً بيوم هو الأصل؛ لا يُكتب فوقه
       clearLog(d);ch=true;
     }
   });
