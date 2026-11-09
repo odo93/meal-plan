@@ -60,7 +60,8 @@ function vGrams(food,q,unit,small,rawUnit){
   return q*100;
 }
 function vParse(raw){
-  const T0=Date.now(),norm=vNorm(raw),res={items:[],unknown:[],meal:null,flags:{sugarMention:false,noSugar:false,oilGiven:false},ms:0};
+  const T0=Date.now(),norm=vNorm(raw),res={items:[],unknown:[],pend:[],meal:null,flags:{sugarMention:false,noSugar:false,oilGiven:false},ms:0};
+  const orig={};String(raw).split(/\s+/).forEach(w=>{const n=vNorm(w);if(n&&!orig[n])orig[n]=w.replace(/[،,.؟?!]/g,'')}); // الكلمة كما قالها المستخدم لتُحفظ باسمها الأصلي
   // تلميح الوجبة
   norm.split(' ').forEach(w=>{if(res.meal==null&&V_MEAL[w]!=null)res.meal=V_MEAL[w]});
   // فصل الأصناف: "|" و"و" الملتصقة بالكلمة التالية
@@ -109,7 +110,7 @@ function vParse(raw){
     const dish=V_DISH.find(x=>x[0].test(ph));
     if(dish){const id='d'+key;dish[2].forEach(([n,gm])=>{const mm=vFind(n);if(mm)res.items.push({key:key++,name:mm.food.n,food:mm.food,own:mm.own,g:gm,est:true,tag:'',dish:id,dishName:dish[1],base:gm})});return}
     const m=vFind(ph);
-    if(!m){res.unknown.push(ph);return}
+    if(!m){res.unknown.push(ph);const pg=unit==='gram'&&q!=null?q:(q!=null&&q>=20?q:null);res.pend.push({ph:ph.split(' ').map(w=>orig[w]||w).join(' '),g:pg||100,est:pg==null});return}
     const f=m.food;let g,est=false;
     if(unit&&unit!=='gram'||(unit==='gram'))g=vGrams(f,q,unit,small,rawU);
     else if(q!=null){g=q>=20?q:vGrams(f,q,'cnt',false,null)}
@@ -162,10 +163,11 @@ function vRun(){
   const vm=ui.vm,txt=(vm.txt||'').trim();
   if(!txt){toast('قل أو اكتب ما أكلته أولاً');return}
   const r=vParse(txt);
-  vm.items=r.items;vm.unknown=r.unknown;vm.qs=r.qs;vm.qi=0;vm.ms=r.ms;
+  vm.items=r.items;vm.unknown=r.unknown;vm.qs=r.qs;vm.qi=0;vm.ms=r.ms;vm.pend=r.pend.map(p=>Object.assign({st:'idle',cands:[],note:'',man:{n:p.ph,k:'',p:'',c:'',f:''},open:false},p));
   if(r.meal!=null){const i=vSlotIdx(state.days[ui.day],['b','l','s','d'][r.meal]);if(i>=0)vm.meal=i}
-  vm.stage=!r.items.length?'in':(r.qs.length?'ask':'res');
-  if(!r.items.length)toast('لم أتعرف على أصناف — جرّب صياغة أبسط');
+  vm.stage=!r.items.length&&!vm.pend.length?'in':(r.qs.length?'ask':'res');
+  if(!r.items.length&&!vm.pend.length)toast('لم أتعرف على أصناف — جرّب صياغة أبسط');
+  vResolveAll();
 }
 function voiceHtml(){
   const vm=ui.vm||{};
@@ -194,12 +196,53 @@ function voiceHtml(){
   return `<div class="sheet vo" data-stop><h2>تأكيد الوجبة</h2>
   <label class="vmeal"><b>احفظ في وجبة</b><select data-vmeal aria-describedby="v_mh">${d.meals.map((mm,j)=>{const df=mealDef(d,j);return `<option value="${j}" ${j===vm.meal?'selected':''}>${esc(df?df.n:mm.n)}</option>`}).join('')}</select></label><small id="v_mh" class="note">اخترناها حسب الوقت أو كلامك — غيّرها إن لزم.</small>
   <div class="vlist">${vm.items.map((i,ix)=>{const x=vMac(i);return `<div class="vit"><span class="g"><b>${esc(i.name)}${i.est?' <span class="vest" title="كمية افتراضية">✱</span>':''}</b>${i.own||i.zero?'':' <span class="tag">من القاعدة</span>'}<small>P ${r1(x.p)} · C ${r1(x.c)} · F ${r1(x.f)}</small>${i.warn?`<small class="vwarn">⚠ ${esc(i.warn)}</small>`:''}</span>${i.zero?`<span class="vz note">0 سعرة — لا يُحفظ</span>`:`<label class="vq"><input type="number" inputmode="decimal" min="0" step="5" value="${i.g}" data-vi="${ix}" aria-label="جرامات ${esc(i.name)}"><span>جم</span></label><span class="vk"><b>${rd(x.k)}</b><small>سعرة</small></span>`}<button class="ib" data-act="vdel" data-i="${ix}" aria-label="حذف ${esc(i.name)}">✕</button></div>`}).join('')}</div>
-  ${vm.unknown.length?`<p class="note vunk">لم أتعرف على: ${vm.unknown.map(esc).join('، ')} — أضفها من «+ إضافة صنف».</p>`:''}
+  ${(vm.pend&&vm.pend.length)?vPendHtml(vm):(vm.unknown.length?`<p class="note vunk">لم أتعرف على: ${vm.unknown.map(esc).join('، ')} — أضفها من «+ إضافة صنف».</p>`:'')}
   <div class="card" style="margin:8px 0;padding:8px"><b>${rd(tot.k)} سعرة</b> · P ${rd(tot.p)} · C ${rd(tot.c)} · F ${rd(tot.f)}<br><small class="note">الخطة لهذه الوجبة ${rd(plan.k)} · الفرق <b class="${Math.abs(diff)<=plan.k*0.08?'ok':diff>0?'hi':'lo'}">${sg(diff)}</b></small></div>
   ${vm.items.some(i=>i.est)?'<p class="note">✱ كمية افتراضية لأنك لم تذكرها؛ عدّل الجرام إن لزم.</p>':''}
   <button class="btn pri" style="width:100%" data-act="vsave">💾 حفظ كمأكول</button>
   <button class="btn" style="width:100%;margin-top:6px" data-act="vback">تعديل النص</button>
   <p class="note" style="margin:6px 0 0">زمن التحليل ${vm.ms||0} ms</p></div>`;
+}
+// ---------- صنف غير موجود: بحث أونلاين تلقائي (USDA + Open Food Facts) ← أقرب نتيجة تُضاف بماكروزها وتُحفظ كصنف عند الحفظ ----------
+function vNewFood(p,c){return{n:(c.n.includes(p.ph)?c.n:p.ph+' — '+c.n).slice(0,80),grp:c.grp,k:+c.k,p:+c.p,c:+c.c,f:+c.f,u:c.u||'',ug:c.ug||0,src:c.src}}
+function vPut(p,food,tag){ // يضيف أو يستبدل عنصر هذا الصنف الجديد
+  const vm=ui.vm,it={key:p.key!=null?p.key:Date.now()+Math.floor(Math.random()*1000),name:food.n,food,own:false,g:p.g,est:p.est,tag:tag||'new',warn:tag==='manual'?'':'صنف جديد من '+(SRCL[food.src]||'الإنترنت')+' — سيُحفظ في أصنافك؛ راجع القيم'};
+  const i=vm.items.findIndex(x=>x.key===it.key);if(i>=0)vm.items[i]=it;else vm.items.push(it);p.key=it.key;p.st='done';
+}
+async function vLookup(p,vm){
+  p.st='busy';
+  if(!feat('online')||(typeof navigator!=='undefined'&&navigator.onLine===false)){p.st='fail';p.note=feat('online')?'لا يوجد إنترنت الآن':'البحث الأونلاين مغلق';return}
+  const res=await Promise.allSettled([usdaSearch(p.ph),offSearch(p.ph)]);
+  if(ui.vm!==vm)return;
+  let c=[];const u=res[0].status==='fulfilled'?res[0].value.items:[],o=res[1].status==='fulfilled'?res[1].value.items:[];
+  c=u.slice(0,3).concat(o.slice(0,3));
+  if(!c.length){p.st='fail';p.note=res.every(r=>r.status==='rejected')?'تعذّر الاتصال بمصادر البحث':'لا نتائج لهذا الاسم';return}
+  p.cands=c;vPut(p,vNewFood(p,c[0]));
+}
+async function vResolveAll(){
+  const vm=ui.vm;if(!vm||!vm.pend||!vm.pend.length)return;
+  await Promise.all(vm.pend.filter(p=>p.st==='idle').map(p=>vLookup(p,vm).catch(e=>{p.st='fail';p.note='تعذّر البحث'})));
+  if(ui.vm===vm&&modal&&modal.type==='voice')render();
+}
+function vPendHtml(vm){
+  return (vm.pend||[]).map((p,pi)=>{
+    const man=`<details ${p.open||p.st==='fail'?'open':''} style="margin-top:4px"><summary class="note">✍ أدخل القيم يدوياً (لكل 100 جم)</summary><div class="frm" style="margin-top:4px"><label>اسم الصنف<input data-vp="n" data-pi="${pi}" value="${esc(p.man.n)}"></label><label>سعرات<input type="number" inputmode="decimal" step="any" data-vp="k" data-pi="${pi}" value="${esc(p.man.k)}"></label><label>بروتين<input type="number" inputmode="decimal" step="any" data-vp="p" data-pi="${pi}" value="${esc(p.man.p)}"></label><label>كارب<input type="number" inputmode="decimal" step="any" data-vp="c" data-pi="${pi}" value="${esc(p.man.c)}"></label><label>دهون<input type="number" inputmode="decimal" step="any" data-vp="f" data-pi="${pi}" value="${esc(p.man.f)}"></label></div><button class="btn" style="width:100%;margin-top:4px" data-act="vmansave" data-pi="${pi}">أضفه بهذه القيم</button></details>`;
+    let h=`<div class="card vpend" style="margin:8px 0;padding:8px"><b>«${esc(p.ph)}»</b> غير موجود في أصنافك`;
+    if(p.st==='busy'||p.st==='idle')h+=`<p class="note" style="margin:4px 0 0">⏳ أبحث عنه في USDA وOpen Food Facts…</p>`;
+    else{
+      if(p.st==='fail')h+=`<p class="note" style="margin:4px 0 0">⚠ ${esc(p.note||'لا نتائج')}</p>`;
+      else h+=`<p class="note" style="margin:4px 0 0">أُضيف أقرب نتيجة وسيُحفظ كصنف عندك. غيّرها إن لم تناسب:</p><div class="vcands">${p.cands.map((c,ci)=>{const cur=vm.items.some(x=>x.key===p.key&&x.food&&x.food.n===vNewFood(p,c).n&&x.food.k===+c.k);return `<button type="button" class="cand${cur?' on':''}" data-act="vpick" data-pi="${pi}" data-ci="${ci}" aria-pressed="${cur}"><span><b>${esc(c.n)}</b><small>${SRCL[c.src]||''} · ${GROUPS[c.grp]}</small></span><span class="dl">${rd(c.k)} kcal · P ${r1(c.p)} · C ${r1(c.c)} · F ${r1(c.f)}</span></button>`}).join('')}</div>`;
+      h+=man;
+    }
+    return h+'</div>';
+  }).join('');
+}
+function vManSave(pi){
+  const vm=ui.vm,p=vm.pend[pi],m=p.man,n=String(m.n||'').trim(),k=+m.k||0,pr=+m.p||0,c=+m.c||0,f=+m.f||0;
+  if(!n){toast('اكتب اسم الصنف');return false}
+  if(!(k>0||pr>0||c>0||f>0)){toast('أدخل القيم الغذائية');return false}
+  const kk=k>0?k:4*pr+4*c+9*f;
+  vPut(p,{n,grp:guessGrp(n,kk,pr,c,f),k:+kk.toFixed(1),p:pr,c,f,u:'',ug:0,src:'manual'},'manual');p.open=false;return true;
 }
 function vMic(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition,vm=ui.vm;

@@ -161,7 +161,9 @@ function act(a,ds){
     case 'vmic':vMic();return;
     case 'vans':case 'vskip':{const vm=ui.vm;if(a==='vans')vApply(vm.qs[vm.qi],+ds.v);vm.qi++;if(vm.qi>=vm.qs.length)vm.stage='res';break}
     case 'vback':ui.vm.stage='in';break;
-    case 'vdel':ui.vm.items.splice(+ds.i,1);if(!ui.vm.items.length)ui.vm.stage='in';break;
+    case 'vpick':{const vm=ui.vm,p=vm.pend[+ds.pi];if(p&&p.cands[+ds.ci])vPut(p,vNewFood(p,p.cands[+ds.ci]));break}
+    case 'vmansave':if(!vManSave(+ds.pi))return;break;
+    case 'vdel':{const rm=ui.vm.items.splice(+ds.i,1)[0];if(rm&&ui.vm.pend)ui.vm.pend=ui.vm.pend.filter(p=>p.key!==rm.key)}if(!ui.vm.items.length&&!(ui.vm.pend||[]).length)ui.vm.stage='in';break;
     case 'vsave':if(ui.remote&&!canWrite()){toast('لديك صلاحية مشاهدة فقط');return}vSave();break;
     case 'vclose':if(vRec){try{vRec.stop()}catch(e){}}modal=null;ui.vm=null;break;
     case 'eqadd':{const s=S(),cur=eqOf(s),src=cur.type==='lin'?cur:DEF_EQS[0],e=clone(src);e.id='e'+Date.now();e.name='معادلة جديدة';e.note='';s.eqs.push(e);s.eq=e.id;ui.eqo=e.id;break}
@@ -227,6 +229,7 @@ document.addEventListener('change',e=>{const t=e.target,ds=t.dataset||{};if(!ui.
   if(ds.vi!==undefined){const i=ui.vm.items[+ds.vi];if(i){i.g=Math.max(0,+t.value||0);i.est=false;render()}}
   else if(ds.vmeal!==undefined){ui.vm.meal=+t.value;render()}
   else if(ds.vlang!==undefined){ui.vm.lang=t.value}
+  else if(ds.vp!==undefined){const p=ui.vm.pend[+ds.pi];if(p)p.man[ds.vp]=t.value}
 });
 document.addEventListener('change',e=>{
   const t=e.target,c=t.dataset&&t.dataset.ch;if(!c)return;
