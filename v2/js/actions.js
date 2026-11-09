@@ -192,7 +192,7 @@ function act(a,ds){
       if(perUnit){if(!u){toast('اكتب اسم الوحدة (مثل: قطعة)');return}
         UG=ug>0?ug:10;U=u;const m=100/UG;k*=m;p*=m;c*=m;f*=m}   // تحويل قيم الوحدة إلى لكل 100 جم (وزن مفترض 10 جم إن تُرك فارغاً)
       else if(u&&ug>0){U=u;UG=ug}
-      state.foods.push({id:'c'+Date.now(),n,grp:$('#nf_g').value,k,p,c,f,u:U,ug:UG});ui.nfd={};ui.nfT=false;ui.ocr='';ui.fq='';toast('تمت الإضافة');break}
+      const q2=x=>+(+x).toFixed(2);state.foods.push({id:'c'+Date.now(),n,grp:$('#nf_g').value,k:q2(k),p:q2(p),c:q2(c),f:q2(f),u:U,ug:UG});ui.nfd={};ui.nfT=false;ui.ocr='';ui.fq='';toast('تمت الإضافة');break}
     case 'fu':ui.fu=ds.v;break;
     case 'rebuildweek':ask('إعادة بناء كل الأيام؟ سيُفقد أي تعديل يدوي على الكميات والبدائل.',()=>{state.days=state.days.map((x,i)=>buildDay(i,x.mode,x.prot))});return;
     case 'copyshop':{const L=shopLines().filter(x=>!x.have),gs=Object.keys(GROUPS).concat('extra');const t=gs.filter(g=>L.some(x=>x.g===g)).map(g=>(g==='extra'?'إضافات':GROUPS[g])+':\n'+L.filter(x=>x.g===g).map(x=>'- '+x.n+(x.q?': '+x.q:'')).join('\n')).join('\n\n');

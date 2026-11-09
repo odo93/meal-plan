@@ -965,7 +965,7 @@ if(/access_token=/.test(location.hash))cHash().then(r=>{if(r||ui.tab==='set')ren
 (function(){
   if(!/^https?:$/.test(location.protocol))return;
   var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
-  var hidden=function(v){try{return sessionStorage.getItem('v2upd_hide')===v}catch(e){return false}};
+  var hidden=function(v){try{return localStorage.getItem('v2upd_hide')===v||localStorage.getItem('mp3_seenver')===v}catch(e){return false}}; // يُخفى إذا ضغطت «لاحقاً» لهذه النسخة، أو إذا فتحتَ هذه النسخة فعلاً على الجهاز
   fetch('v2/version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(j){
     if(!j||typeof j.v!=='string'||hidden(j.v))return;
     var moved=false;try{moved=!!localStorage.getItem('mp3_imported')}catch(e){}
@@ -977,7 +977,7 @@ if(/access_token=/.test(location.hash))cHash().then(r=>{if(r||ui.tab==='set')ren
       +'<div style="display:flex;gap:8px;flex-wrap:wrap"><a href="v2/" style="flex:1;text-align:center;background:#f5a623;color:#2b1a00;font-weight:700;text-decoration:none;border-radius:10px;padding:10px 14px;min-height:44px;box-sizing:border-box">الانتقال للنسخة الجديدة</a>'
       +'<button type="button" id="v2upd_x" style="border:1px solid #f5a623;background:#fff;color:#8a5700;border-radius:10px;padding:10px 14px;font:inherit;font-weight:700;min-height:44px;cursor:pointer">لاحقاً</button></div>';
     el.style.display='block';
-    document.getElementById('v2upd_x').onclick=function(){el.style.display='none';try{sessionStorage.setItem('v2upd_hide',j.v)}catch(e){}};
+    document.getElementById('v2upd_x').onclick=function(){el.style.display='none';try{localStorage.setItem('v2upd_hide',j.v)}catch(e){}};
   }).catch(function(){});
 })();
 </script>

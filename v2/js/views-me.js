@@ -401,9 +401,9 @@ function renderAddList(q){
   const el=$('#addList');if(!el)return;ui.aq=q;
   const L=searchFoods(q,ui.ag);
   const top=q?[]:myTopFoods(5,ui.ag);
-  el.innerHTML=(top.length?`<p class="note" style="margin:0 0 4px"><b>أصنافك المعتادة</b> · من سجلك آخر 60 يوماً</p>${top.map(({f,c})=>`<button type="button" class="cand" data-act="pick" data-id="${f.id}"><span><b>${esc(f.n)}</b><small>${GROUPS[f.grp]} · أكلته ${c===1?'مرة':c===2?'مرتين':c+(c<11?' مرات':' مرة')}</small></span><span class="dl">${rd(f.k)} kcal · P ${f.p} · C ${f.c} · F ${f.f}</span></button>`).join('')}<p class="note" style="margin:8px 0 4px"><b>كل أصنافي</b></p>`:'')
+  el.innerHTML=(top.length?`<p class="note" style="margin:0 0 4px"><b>أصنافك المعتادة</b> · من سجلك آخر 60 يوماً</p>${top.map(({f,c})=>`<button type="button" class="cand" data-act="pick" data-id="${f.id}"><span><b>${esc(f.n)}</b><small>${GROUPS[f.grp]} · أكلته ${c===1?'مرة':c===2?'مرتين':c+(c<11?' مرات':' مرة')}</small></span><span class="dl">${rd(f.k)} kcal · P ${r1(f.p)} · C ${r1(f.c)} · F ${r1(f.f)}</span></button>`).join('')}<p class="note" style="margin:8px 0 4px"><b>كل أصنافي</b></p>`:'')
     +(q?`<p class="note" style="margin:0 0 4px">${L.length?'<b>أصنافي ('+L.length+')</b>':'لا توجد نتائج في أصنافي لـ «'+esc(q)+'»'}</p>`:'')
-    +L.map(f=>`<button type="button" class="cand" data-act="pick" data-id="${f.id}"><span><b>${esc(f.n)}</b><small>${GROUPS[f.grp]}${f.u&&f.ug?' · '+rd(f.k*f.ug/100)+' kcal/'+esc(f.u):''}</small></span><span class="dl">${rd(f.k)} kcal · P ${f.p} · C ${f.c} · F ${f.f}</span></button>`).join('')
+    +L.map(f=>`<button type="button" class="cand" data-act="pick" data-id="${f.id}"><span><b>${esc(f.n)}</b><small>${GROUPS[f.grp]}${f.u&&f.ug?' · '+rd(f.k*f.ug/100)+' kcal/'+esc(f.u):''}</small></span><span class="dl">${rd(f.k)} kcal · P ${r1(f.p)} · C ${r1(f.c)} · F ${r1(f.f)}</span></button>`).join('')
     +extraHtml(q,ui.ag,'pickc')
     +(q?`<button class="btn" style="width:100%;margin-top:6px" data-act="newfromq">＋ إضافة «${esc(q)}» يدوياً</button>`:'');
 }

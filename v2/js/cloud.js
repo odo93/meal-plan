@@ -78,9 +78,18 @@ async function cDeleteAccount(){
 // ---------- التحديثات: version.json يحمل رقم آخر نسخة و«ما الجديد» ----------
 // يُفحص عند الفتح، وعند الرجوع للتطبيق (مرة كل 10 دقائق على الأكثر)، وكل 30 دقيقة.
 let updAt=0,updBusy=false;
+const lsRaw=k=>{try{return localStorage.getItem(k)}catch(e){return null}},lsPut=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+// تحديث قسري: يلغي عامل الخدمة ويمسح الذاكرة المؤقتة ثم يحمّل من الشبكة (مرة واحدة لكل نسخة؛ البيانات في localStorage لا تُمس)
+async function hardRefresh(v){
+  lsPut('mp3_hard',v);
+  try{const rs=navigator.serviceWorker?await navigator.serviceWorker.getRegistrations():[];await Promise.all(rs.map(r=>r.unregister()))}catch(e){}
+  try{const ks=window.caches?await caches.keys():[];await Promise.all(ks.filter(k=>k.startsWith('mp-v2-')).map(k=>caches.delete(k)))}catch(e){}
+  location.replace(location.pathname+'?r='+Date.now());
+}
 async function checkUpdate(minGap=0){
   if(navigator.onLine===false||Date.now()-updAt<minGap)return;updAt=Date.now();
   try{const r=await fetch('version.json',{cache:'no-store'});if(!r.ok)return;const j=await r.json();
+    if(j&&typeof j.v==='string'&&verLt(APP_VER,j.v)&&lsRaw('mp3_updtry')===j.v&&lsRaw('mp3_hard')!==j.v){hardRefresh(j.v);return} // حاولنا التحديث ولا تزال النسخة قديمة (ذاكرة مؤقتة عنيدة، شائعة في آيفون)
     if(j&&typeof j.v==='string'&&verLt(APP_VER,j.v)&&!(ui.upd&&ui.upd.v===j.v)){ui.upd={v:j.v,notes:Array.isArray(j.notes)?j.notes.slice(0,5).map(String):[]};render()}
   }catch(e){}}
 // ---------- تتبّع الاستخدام لاختبار الفكرة (docs/VALIDATION-PLAN.md) ----------
@@ -100,6 +109,7 @@ async function updateNow(){
   const push=cloud.sess&&!ui.remote?(clearTimeout(cT),cPush()):ui.remote&&canWrite()?(clearTimeout(rT),rPush()):null;
   const sw=navigator.serviceWorker?navigator.serviceWorker.getRegistration().then(r=>r&&r.update()):null;
   await Promise.race([Promise.all([push,sw,flushEvents()].map(p=>p&&p.catch(()=>{}))),new Promise(r=>setTimeout(r,5000))]);
+  if(ui.upd)lsPut('mp3_updtry',ui.upd.v);
   reloadApp();
 }
 async function cSetPhone(){const ph=normPhone(($('#cl_ph')||{}).value);if(!ph)return 'أدخل رقم جوال صحيحاً (8–15 رقماً)';

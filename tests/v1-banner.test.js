@@ -16,7 +16,7 @@ const mk=(ver,ls)=>new JSDOM(html,{runScripts:'dangerously',url:'https://odo93.g
  T('button opens v2',b.querySelector('a').getAttribute('href')==='v2/'&&/الانتقال للنسخة الجديدة/.test(b.querySelector('a').textContent));
  T('explains data moves on first open',/تنتقل بياناتك/.test(b.textContent));
  $('#v2upd_x').dispatchEvent(new w.MouseEvent('click',{bubbles:true}));
- T('«later» hides for the session',b.style.display==='none'&&w.sessionStorage.getItem('v2upd_hide')==='2.12');
+ T('«later» hides until the next version',b.style.display==='none'&&w.localStorage.getItem('v2upd_hide')==='2.12');
  d=mk({v:'2.12',notes:[]},[['mp3_imported','v1:3:2026-11-04']]);w=d.window;$=s=>w.document.querySelector(s);await sleep(60);
  T('already moved: says the data is in the new version',/وبياناتك فيها/.test($('#v2upd').textContent));
  d=mk(null);w=d.window;$=s=>w.document.querySelector(s);await sleep(60);
